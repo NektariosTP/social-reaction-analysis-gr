@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Data & Models (Crucial for your project)
+data/
+*.csv
+*.json
+*.sqlite
+*.bin
+models/
+
+# Frontend
+node_modules/
+dist/
+build/
+.DS_Store
