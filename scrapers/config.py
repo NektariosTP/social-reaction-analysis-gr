@@ -68,10 +68,13 @@ REACTION_KEYWORDS: list[str] = [
 NEWS_SOURCES: list[dict] = [
     {
         "name": "protothema",
-        "seed_urls": [
-            "https://www.protothema.gr/greece/",
-            "https://www.protothema.gr/politics/",
-        ],
+        # Sitemap-based strategy — seed_urls are not used by ProtothemaScraper.
+        # See scrapers/news/protothema.py for the sitemap-driven crawl() override.
+        "seed_urls": [],
+        "sitemap_index_url": "https://www.protothema.gr/sitemap/NewsArticles/sitemap_index.xml",
+        # Number of most-recent individual sitemap files to scan per run.
+        # Each file typically contains ~50 articles published within a short time window.
+        "sitemap_pages": 3,
     },
     {
         "name": "kathimerini",
