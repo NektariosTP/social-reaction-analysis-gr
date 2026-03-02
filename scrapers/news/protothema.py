@@ -53,7 +53,7 @@ _SITEMAP_INDEX_URL: str = _SOURCE_CFG["sitemap_index_url"]
 _SITEMAP_PAGES: int = _SOURCE_CFG.get("sitemap_pages", 3)
 
 _HTTP_HEADERS: dict[str, str] = {
-    "User-Agent": "SocialReactionAnalysisBot/1.0 (+https://github.com/your-org/social-reaction-analysis-gr)",
+    "User-Agent": "SocialReactionAnalysisBot/1.0",
     "Accept": "application/xml, text/xml, */*",
 }
 
@@ -280,7 +280,15 @@ class ProtothemaScraper(BaseNewsSpider):
 
         soup = BeautifulSoup(raw_html, "lxml")
 
-        # -- 0. Locate the article main wrapper --------------------------------
+        # -- 0a. Extract standfirst/subheading (inner div.articleTopInfo > h3) ---
+        # Protothema wraps the article deck/standfirst in an h3 inside a second
+        # div.articleTopInfo that lives alongside the media and body containers.
+        standfirst = ""
+        standfirst_el = soup.select_one("div.articleTopInfo > h3")
+        if standfirst_el:
+            standfirst = _clean_text(standfirst_el.get_text(strip=True))
+
+        # -- 0b. Locate the article main wrapper --------------------------------
         main = soup.select_one("div.articleContainer__main")
         if main is None:
             return _clean_text(result.markdown or "")
@@ -465,7 +473,10 @@ class ProtothemaScraper(BaseNewsSpider):
             else:
                 final.append(line)
 
-        return "\n\n".join(final).strip()
+        body = "\n\n".join(final).strip()
+        if standfirst and not body.startswith(standfirst):
+            body = standfirst + "\n\n" + body
+        return body
 
     def _build_record(
         self,

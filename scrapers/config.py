@@ -73,15 +73,15 @@ NEWS_SOURCES: list[dict] = [
         "seed_urls": [],
         "sitemap_index_url": "https://www.protothema.gr/sitemap/NewsArticles/sitemap_index.xml",
         # Number of most-recent individual sitemap files to scan per run.
-        # Each file typically contains ~50 articles published within a short time window.
+        # Each file typically contains ~200 to ~400 articles published within a short time window.
         "sitemap_pages": 3,
     },
     {
         "name": "kathimerini",
-        "seed_urls": [
-            "https://www.kathimerini.gr/politics/",
-            "https://www.kathimerini.gr/society/",
-        ],
+        # RSS-based strategy — seed_urls are not used by KathimeriniScraper.
+        # See scrapers/news/kathimerini.py for the RSS-driven crawl() override.
+        "seed_urls": [],
+        "rss_url": "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
     },
     {
         "name": "iefimerida",
