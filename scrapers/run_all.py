@@ -16,6 +16,7 @@ import logging
 from scrapers.news.protothema import ProtothemaScraper
 from scrapers.news.kathimerini import KathimeriniScraper
 from scrapers.news.iefimerida import IefimeriadaScraper
+from scrapers.news.tanea import TaneaScraper
 from scrapers.utils.storage import save_records
 
 # Register all scraper classes here. As new spiders are added,
@@ -24,6 +25,7 @@ SCRAPER_CLASSES = [
     ProtothemaScraper,
     KathimeriniScraper,
     IefimeriadaScraper,
+    TaneaScraper,
 ]
 
 logging.basicConfig(

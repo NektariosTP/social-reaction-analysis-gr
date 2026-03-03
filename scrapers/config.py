@@ -90,6 +90,14 @@ NEWS_SOURCES: list[dict] = [
             "https://www.iefimerida.gr/politiki",
         ],
     },
+    {
+        "name": "tanea",
+        # Sitemap-based strategy — seed_urls are not used by TaneaScraper.
+        # See scrapers/news/tanea.py for the sitemap-driven crawl() override.
+        "seed_urls": [],
+        # Single flat Google News sitemap (no sitemap index level).
+        "sitemap_url": "https://www.tanea.gr/wp-content/uploads/json/sitemap-news.xml",
+    },
 ]
 
 # ------------------------------------------------------------------
