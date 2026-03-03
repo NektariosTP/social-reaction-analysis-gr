@@ -34,15 +34,20 @@ SCRAPE_INTERVAL_SECONDS: int = int(os.getenv("SCRAPE_INTERVAL_SECONDS", "3600"))
 # Greek social-reaction keywords (used to seed crawls / filter results)
 # ------------------------------------------------------------------
 REACTION_KEYWORDS: list[str] = [
-    # Mass Mobilization
+    # Mass Mobilization — noun + verb/derived forms (lemmatized at runtime by nlp.py)
     "διαδήλωση",
+    "διαδηλωτής",   # spaCy lemma for: διαδηλωτές, διαδηλωτών, διαδηλωτή…
+    "διαδηλώνω",    # spaCy lemma for: διαδηλώνουν, διαδηλώνει…
     "συγκέντρωση",
+    "συγκεντρώνω",  # spaCy lemma for: συγκεντρώνει, συγκεντρώνουν…
     "πορεία",
     "μπλόκο",
     "κατάληψη",
     "πλατεία",
     # Labor & Economic
     "απεργία",
+    "απεργούν",     # spaCy lemma→απεργώ: covers απεργούν, απεργεί, απεργούσαν…
+    "απεργιακός",   # spaCy lemma for: απεργιακή, απεργιακό, απεργιακών…
     "στάση εργασίας",
     "μποϊκοτάζ",
     # Institutional & Political

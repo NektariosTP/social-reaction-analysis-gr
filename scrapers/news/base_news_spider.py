@@ -14,13 +14,19 @@ from datetime import datetime, timezone
 from crawl4ai import CrawlResult
 
 from scrapers.base_scraper import BaseScraper
-from scrapers.config import REACTION_KEYWORDS
+from scrapers.utils.nlp import contains_keyword_lemmatized
 
 
 def _contains_keyword(text: str) -> bool:
-    """Return True if *text* contains at least one Greek reaction keyword (case-insensitive)."""
-    lowered = text.lower()
-    return any(kw.lower() in lowered for kw in REACTION_KEYWORDS)
+    """
+    Return True if *text* contains at least one Greek reaction keyword.
+
+    Uses lemma-based matching (via spaCy el_core_news_sm) to capture
+    morphological variants of each keyword (e.g. "απεργία" matches
+    "απεργούν", "απεργιακό", "απεργιών").  Falls back to raw case-insensitive
+    substring matching if spaCy is unavailable.
+    """
+    return contains_keyword_lemmatized(text)
 
 
 def _clean_text(raw: str) -> str:
