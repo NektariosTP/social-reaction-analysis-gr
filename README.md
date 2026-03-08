@@ -5,7 +5,7 @@ This project involves the design and implementation of a platform that detects, 
 
 ## Key Objectives
 *   **Real-time Monitoring:** Tracking social movements and reactions as they happen.
-*   **Data Mining:** Utilizing Web Crawlers for automated information extraction from multiple sources, including news websites and social media (e.g., Twitter/X).
+*   **Data Mining:** Utilizing Web Crawlers for automated information extraction from multiple sources, including news websites.
 *   **NLP (Natural Language Processing):** Applying Machine Learning techniques for:
     *   Processing written text.
     *   Detecting locations and dates.

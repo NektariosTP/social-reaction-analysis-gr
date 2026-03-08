@@ -31,6 +31,17 @@ REQUEST_DELAY_SECONDS: float = float(os.getenv("REQUEST_DELAY_SECONDS", "2"))
 SCRAPE_INTERVAL_SECONDS: int = int(os.getenv("SCRAPE_INTERVAL_SECONDS", "3600"))
 
 # ------------------------------------------------------------------
+# GDELT
+# ------------------------------------------------------------------
+# Number of 15-minute GDELT 2.0 update files to process per run.
+# 4 = last 60 minutes. Increase for less frequent scheduled runs.
+GDELT_LOOKBACK_FILES: int = int(os.getenv("GDELT_LOOKBACK_FILES", "4"))
+
+# Time window (minutes) for the GDELT DOC API query.
+# 1440 = last 24 hours. Increase to 2880 for a 48-hour window.
+GDELT_TIMESPAN_MINUTES: int = int(os.getenv("GDELT_TIMESPAN_MINUTES", "1440"))
+
+# ------------------------------------------------------------------
 # Greek social-reaction keywords (used to seed crawls / filter results)
 # ------------------------------------------------------------------
 REACTION_KEYWORDS: list[str] = [
@@ -112,8 +123,3 @@ NEWS_SOURCES: list[dict] = [
         "sitemap_url": "https://www.eleftherostypos.gr/sitemap_news.xml",
     },
 ]
-
-# ------------------------------------------------------------------
-# Twitter / X (populated from .env — never hard-code tokens here)
-# ------------------------------------------------------------------
-TWITTER_BEARER_TOKEN: str | None = os.getenv("TWITTER_BEARER_TOKEN")

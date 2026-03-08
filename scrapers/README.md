@@ -55,9 +55,6 @@ Web crawlers target Greek news portals and aggregate content that may report on 
 
 Additional sources (regional portals, labor publications) can be added by appending entries to `NEWS_SOURCES` in `config.py`.
 
-### Social Media (planned)
-- **Twitter / X:** Retrieval of tweets via the Twitter API (v2), filtered by Greek-language keywords, hashtags, and geolocations relevant to the tracked categories.
-
 ---
 
 ## Directory Structure
@@ -133,7 +130,7 @@ Sensitive credentials and tunable parameters are managed via the `.env` file at 
 
 | Variable | Description |
 |----------|-------------|
-| `TWITTER_BEARER_TOKEN` | Bearer token for the Twitter API v2 |
+
 | `SCRAPE_INTERVAL_SECONDS` | How often the scheduled crawl runs (default: `3600`) |
 | `OUTPUT_DIR` | Directory where raw scraped data is saved (default: `data/raw/`) |
 | `REQUEST_DELAY_SECONDS` | Politeness delay between HTTP requests (default: `2`) |
@@ -200,6 +197,5 @@ Each scraper produces newline-delimited JSON (`.ndjson`) files saved under `data
 
 - All scrapers respect `robots.txt` rules.
 - Request rate limiting and polite crawl delays are enforced via `REQUEST_DELAY_SECONDS` for all news spiders.
-- Twitter/X data will be collected exclusively through the official API, in compliance with the platform's Terms of Service.
 - No personal data beyond what is publicly available is stored.
 - Crawl4AI is licensed under the Apache 2.0 License.

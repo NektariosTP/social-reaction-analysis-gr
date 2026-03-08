@@ -19,6 +19,8 @@ from scrapers.news.iefimerida import IefimeriadaScraper
 from scrapers.news.tanea import TaneaScraper
 from scrapers.news.eleftherostypos import EleftherotyposScraper
 from scrapers.news.googlenews import GoogleNewsRSSScraper
+from scrapers.news.gdelt_doc import GDELTDocScraper
+from scrapers.news.gdelt_events import GDELTEventsScraper
 from scrapers.utils.storage import save_records
 
 # Register all scraper classes here. As new spiders are added,
@@ -30,6 +32,8 @@ SCRAPER_CLASSES = [
     TaneaScraper,
     EleftherotyposScraper,
     GoogleNewsRSSScraper,
+    GDELTDocScraper,
+    GDELTEventsScraper,
 ]
 
 logging.basicConfig(
