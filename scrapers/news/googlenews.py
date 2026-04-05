@@ -70,8 +70,8 @@ _GOOGLE_NEWS_RSS_TEMPLATE = (
 )
 
 # Maximum articles to keep per keyword query (applied before deduplication).
-# Prevents runaway crawls when a broad keyword returns hundreds of results.
-_MAX_ARTICLES_PER_KEYWORD: int = 10
+# Raised from 10 → 30 now that this is the sole broad-coverage scraper.
+_MAX_ARTICLES_PER_KEYWORD: int = 15
 
 # Minimum body length (chars) for trafilatura output to be considered usable.
 _MIN_BODY_LENGTH: int = 50

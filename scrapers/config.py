@@ -42,6 +42,26 @@ GDELT_LOOKBACK_FILES: int = int(os.getenv("GDELT_LOOKBACK_FILES", "4"))
 GDELT_TIMESPAN_MINUTES: int = int(os.getenv("GDELT_TIMESPAN_MINUTES", "1440"))
 
 # ------------------------------------------------------------------
+# ACLED
+# ------------------------------------------------------------------
+# myACLED account credentials (required for OAuth2 token authentication).
+ACLED_EMAIL: str | None = os.getenv("ACLED_EMAIL")
+ACLED_PASSWORD: str | None = os.getenv("ACLED_PASSWORD")
+
+# Historical bulk-load mode.
+# Set ACLED_HISTORICAL_MODE=true in .env to perform a one-time fetch of all
+# accessible ACLED events (from ACLED_HISTORICAL_SINCE to today−12 months).
+# Leave false for the recurring "rolling release" mode (default).
+ACLED_HISTORICAL_MODE: bool = os.getenv("ACLED_HISTORICAL_MODE", "false").lower() == "true"
+
+# Earliest date for the one-time historical bulk load.
+ACLED_HISTORICAL_SINCE: str = os.getenv("ACLED_HISTORICAL_SINCE", "2018-01-01")
+
+# Rolling-release window: number of days before the 12-month cutoff to fetch
+# per scheduled run (i.e. how many newly-released ACLED days to retrieve).
+ACLED_LOOKBACK_DAYS: int = int(os.getenv("ACLED_LOOKBACK_DAYS", "7"))
+
+# ------------------------------------------------------------------
 # Greek social-reaction keywords (used to seed crawls / filter results)
 # ------------------------------------------------------------------
 REACTION_KEYWORDS: list[str] = [
@@ -77,49 +97,4 @@ REACTION_KEYWORDS: list[str] = [
     "πετροπόλεμος",
 ]
 
-# ------------------------------------------------------------------
-# News source definitions
-# Each entry: { "name": str, "seed_urls": list[str] }
-# ------------------------------------------------------------------
-NEWS_SOURCES: list[dict] = [
-    {
-        "name": "protothema",
-        # Sitemap-based strategy — seed_urls are not used by ProtothemaScraper.
-        # See scrapers/news/protothema.py for the sitemap-driven crawl() override.
-        "seed_urls": [],
-        "sitemap_index_url": "https://www.protothema.gr/sitemap/NewsArticles/sitemap_index.xml",
-        # Number of most-recent individual sitemap files to scan per run.
-        # Each file typically contains ~200 to ~400 articles published within a short time window.
-        "sitemap_pages": 3,
-    },
-    {
-        "name": "kathimerini",
-        # RSS-based strategy — seed_urls are not used by KathimeriniScraper.
-        # See scrapers/news/kathimerini.py for the RSS-driven crawl() override.
-        "seed_urls": [],
-        "rss_url": "https://www.kathimerini.gr/infeeds/rss/nx-rss-feed.xml",
-    },
-    {
-        "name": "iefimerida",
-        "seed_urls": [
-            "https://www.iefimerida.gr/ellada",
-            "https://www.iefimerida.gr/politiki",
-        ],
-    },
-    {
-        "name": "tanea",
-        # Sitemap-based strategy — seed_urls are not used by TaneaScraper.
-        # See scrapers/news/tanea.py for the sitemap-driven crawl() override.
-        "seed_urls": [],
-        # Single flat Google News sitemap (no sitemap index level).
-        "sitemap_url": "https://www.tanea.gr/wp-content/uploads/json/sitemap-news.xml",
-    },
-    {
-        "name": "eleftherostypos",
-        # Sitemap-based strategy — seed_urls are not used by EleftherotyposScraper.
-        # See scrapers/news/eleftherostypos.py for the sitemap-driven crawl() override.
-        "seed_urls": [],
-        # Single flat Google News sitemap (no sitemap index level).
-        "sitemap_url": "https://www.eleftherostypos.gr/sitemap_news.xml",
-    },
-]
+

@@ -13,24 +13,18 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from scrapers.news.protothema import ProtothemaScraper
-from scrapers.news.kathimerini import KathimeriniScraper
-from scrapers.news.iefimerida import IefimeriadaScraper
-from scrapers.news.tanea import TaneaScraper
-from scrapers.news.eleftherostypos import EleftherotyposScraper
 from scrapers.news.googlenews import GoogleNewsRSSScraper
 from scrapers.news.gdelt_doc import GDELTDocScraper
 from scrapers.news.gdelt_events import GDELTEventsScraper
 from scrapers.utils.storage import save_records
 
-# Register all scraper classes here. As new spiders are added,
-# import them and append to this list.
+# Register all active scraper classes here.
+# Note: AcledScraper is implemented (scrapers/news/acled.py) but disabled — the
+# Research API tier only provides data older than 12 months (not useful for
+# current event monitoring). Re-enable when the ACLED account tier is upgraded,
+# or run the one-time historical bulk load manually:
+#   ACLED_HISTORICAL_MODE=true python -m scrapers.run_all
 SCRAPER_CLASSES = [
-    ProtothemaScraper,
-    KathimeriniScraper,
-    IefimeriadaScraper,
-    TaneaScraper,
-    EleftherotyposScraper,
     GoogleNewsRSSScraper,
     GDELTDocScraper,
     GDELTEventsScraper,
