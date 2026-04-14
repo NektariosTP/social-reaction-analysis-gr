@@ -75,6 +75,12 @@ CLUSTER_MIN_ARTICLES: int = int(os.getenv("CLUSTER_MIN_ARTICLES", "2"))
 # Clusters below this threshold are treated as noise.  Set to 0.0 to disable.
 CLUSTER_MIN_INTRA_SIM: float = float(os.getenv("CLUSTER_MIN_INTRA_SIM", "0.0"))
 
+# Minimum cosine similarity to the *best-matching* reaction category description
+# required for a cluster to be retained.  Clusters whose titles score below
+# this threshold against all 5 category descriptions are off-topic (e.g. Iran,
+# Trump) and are demoted to noise.  Set to 0.0 to disable.
+CLUSTER_MIN_RELEVANCE_SIM: float = float(os.getenv("CLUSTER_MIN_RELEVANCE_SIM", "0.25"))
+
 # ------------------------------------------------------------------
 # Deduplication
 # ------------------------------------------------------------------

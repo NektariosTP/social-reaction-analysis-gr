@@ -27,6 +27,7 @@ fastuuid==0.14.0
 filelock==3.24.3
 frozenlist==1.8.0
 fsspec==2026.2.0
+geopy==2.4.1
 greenlet==3.3.2
 h11==0.16.0
 h2==4.3.0
@@ -49,6 +50,7 @@ jsonschema-specifications==2025.9.1
 jusText==3.0.2
 lark==1.3.1
 litellm==1.81.14
+deep-translator>=1.11,<2.0
 lxml==5.4.0
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
@@ -98,6 +100,22 @@ typer-slim==0.24.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
+
+# --- Phase 3: NLP & Semantic Analysis ---
+chromadb>=0.5,<2.0
+sentence-transformers>=3.0,<4.0
+hdbscan>=0.8,<1.0
+scikit-learn>=1.3
 xxhash==3.6.0
+
+# --- Notebooks / Analytics ---
+umap-learn>=0.5
+matplotlib>=3.8
+seaborn>=0.13
+ipykernel>=6.0
 yarl==1.22.0
 zipp==3.23.0
+
+# --- Phase 5: Backend API ---
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.27

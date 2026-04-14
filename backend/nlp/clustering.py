@@ -23,6 +23,7 @@ from backend.nlp.config import (
     HDBSCAN_MIN_SAMPLES,
     CLUSTER_MIN_ARTICLES,
     CLUSTER_MIN_INTRA_SIM,
+    CLUSTER_MIN_RELEVANCE_SIM,
 )
 from backend.nlp.event_registry import EventRegistry
 from backend.nlp import vectorstore
@@ -115,6 +116,30 @@ def cluster_articles() -> dict[str, int]:
                 n_filtered += 1
                 continue
 
+        # ------------------------------------------------------------------
+        # Relevance filter: discard off-topic clusters (e.g. Iran, Trump)
+        # ------------------------------------------------------------------
+        if CLUSTER_MIN_RELEVANCE_SIM > 0.0:
+            from backend.llm.classify import _get_category_embeddings  # noqa: PLC0415
+            cat_embeddings = _get_category_embeddings()
+            centroid_tmp = member_embeddings.mean(axis=0)
+            norm_tmp = float(np.linalg.norm(centroid_tmp))
+            if norm_tmp > 0:
+                centroid_tmp = centroid_tmp / norm_tmp
+            best_sim = max(
+                float(np.dot(centroid_tmp, cat_vec))
+                for cat_vec in cat_embeddings.values()
+            )
+            if best_sim < CLUSTER_MIN_RELEVANCE_SIM:
+                logger.debug(
+                    "[clustering] Cluster label=%d demoted (best_cat_sim=%.3f < %.3f).",
+                    label, best_sim, CLUSTER_MIN_RELEVANCE_SIM,
+                )
+                for rid in member_ids:
+                    id_to_cluster[rid] = -1
+                n_filtered += 1
+                continue
+
         # L2-normalised centroid
         centroid = member_embeddings.mean(axis=0)
         norm = float(np.linalg.norm(centroid))
@@ -137,10 +162,11 @@ def cluster_articles() -> dict[str, int]:
     if n_filtered > 0:
         logger.info(
             "[clustering] Post-filter: %d cluster(s) demoted to noise "
-            "(min_articles=%d, min_intra_sim=%.2f).",
+            "(min_articles=%d, min_intra_sim=%.2f, min_relevance_sim=%.2f).",
             n_filtered,
             CLUSTER_MIN_ARTICLES,
             CLUSTER_MIN_INTRA_SIM,
+            CLUSTER_MIN_RELEVANCE_SIM,
         )
     closed = registry.close_unseen(seen_event_ids)
     registry.save()
