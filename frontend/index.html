@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Reaction Analysis GR</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ═══ TOPBAR ═══ -->
+    <header id="topbar">
+        <div class="topbar-left">
+            <div class="topbar-brand">
+                <span class="brand-icon">◉</span>
+                <span class="brand-name">SOCIAL REACTION ANALYSIS</span>
+                <span class="brand-region">GR</span>
+            </div>
+            <a id="github-badge" class="github-badge" href="https://github.com/nektariostp/social-reaction-analysis-gr" target="_blank" rel="noopener">
+                <svg class="github-icon" viewBox="0 0 16 16" width="14" height="14">
+                    <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                <span id="github-stars" class="github-stars">★ —</span>
+            </a>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-status">
+                <span class="status-dot"></span>
+                <span class="status-text">LIVE</span>
+            </div>
+            <button id="btn-fullscreen" class="topbar-btn" title="Toggle fullscreen">
+                <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+            <button id="btn-settings" class="topbar-btn" title="Settings">
+                <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══ ERROR BANNER ═══ -->
+    <div id="error-banner"></div>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main id="content">
+
+        <!-- ── MAP PANEL ── -->
+        <section id="map-panel" class="panel" data-panel="map">
+            <div class="panel-handle" title="Drag to reorder">⋮⋮</div>
+            <div class="panel-topbar">
+                <span class="panel-label">SITUATION MAP</span>
+                <span id="map-last-update" class="panel-timestamp">Last update: —</span>
+            </div>
+            <div id="map-wrapper">
+                <div id="map"></div>
+
+                <!-- Basemap Switcher -->
+                <div id="basemap-switcher" class="map-control top-right">
+                    <button class="basemap-btn active" data-basemap="dark" title="Dark">🌑</button>
+                    <button class="basemap-btn" data-basemap="streets" title="Streets">🗺️</button>
+                    <button class="basemap-btn" data-basemap="satellite" title="Satellite">🛰️</button>
+                    <button class="basemap-btn" data-basemap="topo" title="Topographic">⛰️</button>
+                </div>
+
+                <!-- Civic Response Map Layer -->
+                <div id="civic-layer" class="map-control bottom-left">
+                    <div id="civic-toggle" class="civic-header">
+                        <span>Civic Response Map Layer</span>
+                        <span class="civic-arrow">▾</span>
+                    </div>
+                    <div id="civic-options" class="civic-body hidden">
+                        <label class="civic-option">
+                            <input type="checkbox" data-layer="solidarity"> Solidarity Networks (Δίκτυα Αλληλεγγύης)
+                        </label>
+                        <label class="civic-option">
+                            <input type="checkbox" data-layer="clinics"> Social Clinics
+                        </label>
+                        <label class="civic-option">
+                            <input type="checkbox" data-layer="kitchens"> Community Kitchens
+                        </label>
+                        <label class="civic-option">
+                            <input type="checkbox" data-layer="disaster"> Post-Disaster Help Centers
+                        </label>
+                        <label class="civic-option">
+                            <input type="checkbox" data-layer="volunteering"> Volunteering Programs
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Category Legend (bottom center of map) -->
+                <div id="map-legend" class="map-control bottom-center"></div>
+            </div>
+        </section>
+
+        <!-- ── DASHBOARD PANEL ── -->
+        <section id="dashboard-panel" class="panel" data-panel="dashboard">
+            <div class="panel-handle" title="Drag to reorder">⋮⋮</div>
+
+            <!-- Breaking News Ticker -->
+            <div id="breaking-news">
+                <span class="breaking-label">BREAKING</span>
+                <div class="ticker-wrap">
+                    <div id="ticker" class="ticker"></div>
+                </div>
+            </div>
+
+            <!-- Dashboard Navigation -->
+            <nav id="dashboard-nav">
+                <button class="nav-btn active" data-view="country">Country</button>
+                <button class="nav-btn" data-view="categories">Social Reaction Categories</button>
+                <button class="nav-btn" data-view="events">Events</button>
+            </nav>
+
+            <!-- Dashboard Content (dynamically rendered) -->
+            <div id="dashboard-content"></div>
+        </section>
+
+    </main>
+
+    <!-- ═══ SETTINGS MODAL ═══ -->
+    <div id="settings-overlay" class="modal-overlay hidden">
+        <div id="settings-modal" class="modal">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button id="settings-close" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label class="setting-label">API Endpoint</label>
+                    <input id="setting-api" class="setting-input" type="text" value="http://localhost:8000">
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Map Provider</label>
+                    <select id="setting-map-provider" class="setting-select">
+                        <option value="free">Free Tile Providers (no API key)</option>
+                        <option value="maptiler">MapTiler (requires API key)</option>
+                        <option value="mapbox">Mapbox (requires API key)</option>
+                    </select>
+                </div>
+                <div id="setting-apikey-group" class="setting-group hidden">
+                    <label class="setting-label">Map API Key</label>
+                    <input id="setting-map-apikey" class="setting-input" type="text" placeholder="Enter API key">
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Language</label>
+                    <select id="setting-lang" class="setting-select">
+                        <option value="en">English</option>
+                        <option value="el">Ελληνικά</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <input id="setting-regions" type="checkbox" checked>
+                        Show Greece Regions Overlay
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="settings-save" class="modal-btn-primary">Save &amp; Reload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ SCRIPTS ═══ -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

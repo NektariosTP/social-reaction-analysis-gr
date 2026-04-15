@@ -3,6 +3,16 @@
 ## Project Overview
 This project involves the design and implementation of a platform that detects, analyzes, and geographically visualizes various forms of social reactions across Greece in real-time.
 
+<p align="center">
+  <img src="docs/images/thesis1.png" alt="Country view — Interactive map with event markers and dashboard showing Greece overview" width="100%">
+</p>
+<p align="center">
+  <img src="docs/images/thesis2.png" alt="Categories view — Social reaction categories with civic response map layer expanded" width="100%">
+</p>
+<p align="center">
+  <img src="docs/images/thesis3.png" alt="Event detail view — Selected event with article list and map location" width="100%">
+</p>
+
 ## Key Objectives
 *   **Real-time Monitoring:** Tracking social movements and reactions as they happen.
 *   **Data Mining:** Utilizing Web Crawlers for automated information extraction from multiple sources, including news websites.
