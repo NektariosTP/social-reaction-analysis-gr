@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Sync dev dependencies
+        run: uv sync --group dev
+
+      - name: ruff check
+        run: uv run ruff check api/ ingestion/ nlp/ enrich/ tests/
+
+      - name: ruff format check
+        run: uv run ruff format --check api/ ingestion/ nlp/ enrich/ tests/
+
+      - name: mypy
+        run: uv run mypy api/ ingestion/ nlp/ enrich/
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Sync dev dependencies
+        run: uv sync --group dev
+
+      - name: pytest
+        run: uv run pytest tests/ -v --tb=short
