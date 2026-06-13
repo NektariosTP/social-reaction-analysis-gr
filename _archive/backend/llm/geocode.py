@@ -39,6 +39,7 @@ from backend.llm.config import (
     LLM_MODEL,
     LLM_TEMPERATURE,
 )
+from backend.llm.geo_validate import is_within_greece
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class GeocodeResult:
 # all member articles, avoiding redundant LLM and Nominatim calls.
 # ---------------------------------------------------------------------------
 
-_cluster_geo_cache: dict[int, GeocodeResult] = {}
+_cluster_geo_cache: dict[int, list[GeocodeResult]] = {}
 
 # Secondary cache for Nominatim calls: place string → GeocodeResult | None
 _nominatim_cache: dict[str, GeocodeResult | None] = {}
@@ -88,9 +89,8 @@ def _get_geocoder() -> Nominatim:
 # ---------------------------------------------------------------------------
 
 def _within_greece(lat: float, lon: float) -> bool:
-    """Return True if the coordinate falls within Greece's bounding box."""
-    lon_min, lat_min, lon_max, lat_max = GREECE_BBOX
-    return lat_min <= lat <= lat_max and lon_min <= lon <= lon_max
+    """Return True if the coordinate falls within Greece's territory polygon."""
+    return is_within_greece(lat, lon)
 
 
 # Nominatim OSM classes that represent actual geographic places.
@@ -119,6 +119,8 @@ def _nominatim_query(place: str) -> GeocodeResult | None:
             addressdetails=True,
             language="el",
             country_codes="gr",
+            viewbox=[(GREECE_BBOX[1], GREECE_BBOX[0]), (GREECE_BBOX[3], GREECE_BBOX[2])],
+            bounded=True,
         )
         if not results:
             _nominatim_cache[place] = None
@@ -133,10 +135,14 @@ def _nominatim_query(place: str) -> GeocodeResult | None:
             if not _within_greece(lat, lon):
                 continue
             addr = raw.get("address", {})
+            # Prefer specific place names over administrative units
             location_name = (
                 addr.get("city")
                 or addr.get("town")
                 or addr.get("village")
+                or addr.get("suburb")
+                or addr.get("neighbourhood")
+                or addr.get("municipality")
                 or addr.get("county")
                 or addr.get("state")
                 or location.address.split(",")[0]
@@ -157,21 +163,22 @@ def _nominatim_query(place: str) -> GeocodeResult | None:
 
 # LLM system prompt for location extraction.
 _LOCATION_SYSTEM_PROMPT = (
-    "Given a Greek news article, return the primary Greek place the event is about.\n"
-    "The place can be a city, region, municipality, landmark, or institution "
+    "Given a Greek news article, return ALL distinct Greek places where the event is happening.\n"
+    "Each place can be an address, city, region, municipality, landmark, or institution "
     "(e.g. 'Θεσσαλονίκη', 'Κρήτη', 'ΑΠΘ', 'Πολυτεχνείο', 'Ακρόπολη').\n"
     "If the event is outside Greece or no specific place can be found, return null.\n"
-    'Respond ONLY with JSON: {"location": "<place in Greek>"} or {"location": null}'
+    'Respond ONLY with JSON: {"locations": ["<place1 in Greek>", "<place2 in Greek>"]} '
+    'or {"locations": null}'
 )
 
 
-def _llm_extract_location(title: str, body: str) -> str | None:
+def _llm_extract_location(title: str, body: str) -> list[str]:
     """
-    Use the LLM to extract the primary Greek location from *title* + *body*.
+    Use the LLM to extract Greek locations from *title* + *body*.
 
-    Returns the place name string (in Greek) or None if the LLM could not
-    identify a location within Greece.  Body is truncated to 500 characters
-    to keep token usage low.
+    Returns a list of place name strings (in Greek), or an empty list if the
+    LLM could not identify any location within Greece.
+    Body is truncated to 500 characters to keep token usage low.
     """
     body_snippet = body[:500] if body else ""
     user_content = f"Title: {title}\n\nBody: {body_snippet}"
@@ -183,28 +190,31 @@ def _llm_extract_location(title: str, body: str) -> str | None:
                 {"role": "user", "content": user_content},
             ],
             temperature=LLM_TEMPERATURE,
-            max_tokens=64,
+            max_tokens=128,
         )
         raw = response.choices[0].message.content or ""
         # Strip markdown code fences if present
         raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.DOTALL)
         parsed = json.loads(raw)
-        location = parsed.get("location")
-        if location and isinstance(location, str) and location.strip():
-            return location.strip()
-        return None
+        # Support both new {"locations": [...]} and legacy {"location": "..."}
+        locations = parsed.get("locations") or parsed.get("location")
+        if locations is None:
+            return []
+        if isinstance(locations, str):
+            locations = [locations]
+        return [loc.strip() for loc in locations if isinstance(loc, str) and loc.strip()]
     except Exception as exc:
         logger.warning("[geocode] LLM location extraction failed: %s", exc)
-        return None
+        return []
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def geocode_cluster(cluster_id: int, title: str, body: str) -> GeocodeResult:
+def geocode_cluster(cluster_id: int, title: str, body: str) -> list[GeocodeResult]:
     """
-    Resolve location for an entire cluster using one LLM call + Nominatim.
+    Resolve location(s) for an entire cluster using one LLM call + Nominatim.
 
     This is the primary entry point for the geocoding pipeline step.
     Results are cached by *cluster_id* — call this once per cluster, then
@@ -221,41 +231,43 @@ def geocode_cluster(cluster_id: int, title: str, body: str) -> GeocodeResult:
 
     Returns
     -------
-    GeocodeResult
-        Populated with coordinates if a Greek location was found; otherwise
-        all fields are empty / None.
+    list[GeocodeResult]
+        One or more resolved locations. Empty list if no Greek location found.
     """
     if cluster_id in _cluster_geo_cache:
         return _cluster_geo_cache[cluster_id]
 
-    result = GeocodeResult()
+    results: list[GeocodeResult] = []
 
-    place = _llm_extract_location(title, body)
-    logger.debug("[geocode] Cluster %d — LLM extracted: %r", cluster_id, place)
+    places = _llm_extract_location(title, body)
+    logger.debug("[geocode] Cluster %d — LLM extracted: %r", cluster_id, places)
 
-    if place:
+    for place in places:
         nominatim_result = _nominatim_query(place)
         if nominatim_result and nominatim_result.lat is not None:
-            result = nominatim_result
+            results.append(nominatim_result)
             logger.info(
                 "[geocode] Cluster %d — %r → lat=%.4f lon=%.4f (%s)",
-                cluster_id, place, result.lat, result.lon, result.location_name,
+                cluster_id, place, nominatim_result.lat, nominatim_result.lon,
+                nominatim_result.location_name,
             )
         else:
             logger.debug(
                 "[geocode] Cluster %d — %r did not resolve within Greece.",
                 cluster_id, place,
             )
-    else:
-        logger.debug("[geocode] Cluster %d — LLM returned null location.", cluster_id)
 
-    _cluster_geo_cache[cluster_id] = result
-    return result
+    if not results and not places:
+        logger.debug("[geocode] Cluster %d — LLM returned no locations.", cluster_id)
+
+    _cluster_geo_cache[cluster_id] = results
+    return results
 
 
 def geocode_record(meta: dict, text: str) -> GeocodeResult:
     """
-    Retrieve the cached geocoding result for the cluster this record belongs to.
+    Retrieve the primary cached geocoding result for the cluster this record
+    belongs to (first location in the list).
 
     This function is called per-record by the pipeline's metadata write step.
     It assumes ``geocode_cluster`` has already been called for the cluster and
@@ -278,4 +290,5 @@ def geocode_record(meta: dict, text: str) -> GeocodeResult:
     cluster_id = meta.get("cluster_id", -1)
     if cluster_id == -1:
         return GeocodeResult()
-    return _cluster_geo_cache.get(cluster_id, GeocodeResult())
+    results = _cluster_geo_cache.get(cluster_id, [])
+    return results[0] if results else GeocodeResult()

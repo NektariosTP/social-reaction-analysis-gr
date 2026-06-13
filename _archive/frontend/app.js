@@ -122,6 +122,42 @@ const BASEMAPS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// Civic Layer Configuration
+// ═══════════════════════════════════════════════════════════════
+const CIVIC_LAYER_CONFIG = {
+    solidarity: {
+        label: "Solidarity Networks",
+        icon: "🤝",
+        color: "#4a7070",  // muted teal
+    },
+    clinics: {
+        label: "Social Clinics",
+        icon: "🩺",
+        color: "#4a6878",  // muted steel blue
+    },
+    kitchens: {
+        label: "Community Kitchens",
+        icon: "🍲",
+        color: "#5a6848",  // muted olive
+    },
+    disaster: {
+        label: "Post-Disaster Help Centers",
+        icon: "🏠",
+        color: "#586070",  // muted slate
+    },
+    volunteering: {
+        label: "Volunteering Programs",
+        icon: "🙋",
+        color: "#605870",  // muted mauve
+    },
+    rehab: {
+        label: "Rehab Centers (Κέντρα Απεξάρτησης)",
+        icon: "⚕️",
+        color: "#685858",  // muted dusty rose
+    },
+};
+
+// ═══════════════════════════════════════════════════════════════
 // Application State
 // ═══════════════════════════════════════════════════════════════
 const state = {
@@ -137,6 +173,7 @@ const state = {
     selectedEvent: null,
     regionsLayer: null,
     regionsVisible: true,
+    civicLayers: {},       // keyed by layer key → L.layerGroup or null
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -404,13 +441,66 @@ function initCivicLayer() {
         arrow.classList.toggle("open");
     });
 
-    // Checkboxes are placeholders — actual data layers TBD
     document.querySelectorAll("#civic-options input[type=checkbox]").forEach(cb => {
         cb.addEventListener("change", () => {
-            // Future: toggle corresponding map layer group
-            console.log(`Civic layer "${cb.dataset.layer}" ${cb.checked ? "ON" : "OFF"}`);
+            const key = cb.dataset.layer;
+            if (cb.checked) {
+                loadCivicLayer(key);
+            } else {
+                unloadCivicLayer(key);
+            }
         });
     });
+}
+
+function createCivicIcon(config) {
+    return L.divIcon({
+        className: "civic-marker",
+        html: `<div class="civic-marker-inner" style="border-color:${config.color}">${config.icon}</div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+        popupAnchor: [0, -13],
+    });
+}
+
+function loadCivicLayer(key) {
+    const config = CIVIC_LAYER_CONFIG[key];
+    const records = CIVIC_DATA[key];
+    if (!config || !records || !records.length) return;
+
+    const group = L.layerGroup();
+    const icon = createCivicIcon(config);
+
+    for (const rec of records) {
+        const marker = L.marker([rec.lat, rec.lon], { icon });
+
+        const nameElHtml = rec.nameEl
+            ? `<p class="popup-meta" style="font-style:italic">${escapeHtml(rec.nameEl)}</p>` : "";
+        const addrHtml = rec.address
+            ? `<p class="popup-meta">📍 ${escapeHtml(rec.address)}</p>` : "";
+        const linkHtml = rec.url
+            ? `<p class="popup-meta"><a href="${escapeAttr(rec.url)}" target="_blank" rel="noopener">🔗 Website</a></p>` : "";
+
+        marker.bindPopup(
+            `<div class="event-popup">
+                <span class="popup-badge" style="background:${config.color}">${config.icon} ${config.label}</span>
+                <p class="popup-summary">${escapeHtml(rec.name)}</p>
+                ${nameElHtml}${addrHtml}${linkHtml}
+            </div>`,
+            { maxWidth: 300 }
+        );
+        marker.addTo(group);
+    }
+
+    state.civicLayers[key] = group;
+    group.addTo(state.map);
+}
+
+function unloadCivicLayer(key) {
+    if (state.civicLayers[key]) {
+        state.map.removeLayer(state.civicLayers[key]);
+        state.civicLayers[key] = null;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════

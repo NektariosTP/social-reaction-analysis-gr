@@ -6,7 +6,7 @@ venv/
 .env
 
 # Data & Models (Crucial for your project)
-data/
+_archive/data/
 *.csv
 *.json
 *.sqlite

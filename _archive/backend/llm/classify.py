@@ -130,9 +130,9 @@ def classify_event_embedding(titles: list[str]) -> ClassificationResult | None:
                 best_sim = sim
                 best_cat = cat
 
-        if best_sim > 0.50:
+        if best_sim > 0.55:
             confidence: Literal["high", "medium", "low"] = "high"
-        elif best_sim > 0.35:
+        elif best_sim > 0.40:
             confidence = "medium"
         else:
             confidence = "low"

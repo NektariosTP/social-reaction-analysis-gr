@@ -54,10 +54,11 @@ _SYSTEM_PROMPT_FULL = (
     "You are a news analyst and summarizer specialising in Greek civil society.\n"
     "Given a set of Greek news articles describing the same social reaction event:\n"
     "  1. Classify the event into exactly ONE of these categories:\n"
-    + "\n".join(f"     {i+1}. {cat}" for i, cat in enumerate(REACTION_CATEGORIES))
+    + "\n".join(f"     - {cat}" for cat in REACTION_CATEGORIES)
     + "\n  2. Write a concise summary IN GREEK ONLY (1-2 sentences).\n\n"
     'Respond ONLY with a JSON object matching this schema:\n'
-    '{"category": "<exact category name>", "summary": "<1-2 sentence summary in Greek>"}'
+    '{"category": "<exact category name from the list above>", "summary": "<1-2 sentence summary in Greek>"}\n'
+    'IMPORTANT: The "category" value MUST be copied exactly from the list above — do not add numbers or prefixes.'
 )
 
 _MAX_ARTICLES = 5

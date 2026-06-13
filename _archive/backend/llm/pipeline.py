@@ -203,11 +203,16 @@ def _run_geocoding(
 
     For each cluster, the best canonical article (longest body among
     non-duplicates, or first member as fallback) is selected and passed to
-    ``geocode_cluster``.  The resolved GeocodeResult is cached by cluster_id
-    inside ``geocode.py``; subsequent calls to ``geocode_record`` in the
-    metadata write step retrieve the cached result for every member article.
+    ``geocode_cluster``.  The resolved GeocodeResult list is cached by
+    cluster_id inside ``geocode.py``; subsequent calls to ``geocode_record``
+    in the metadata write step retrieve the cached result for every member.
 
-    Returns mapping {record_id: {lat, lon, location_name, location_country}}.
+    When multiple locations are resolved for a single cluster, the primary
+    location (first) is written to all member records. Additional locations
+    are stored as JSON in the ``extra_locations`` metadata field so the API
+    layer can split multi-location events.
+
+    Returns mapping {record_id: {lat, lon, location_name, location_country, extra_locations}}.
     """
     id_to_geo: dict[str, dict] = {}
 
@@ -215,7 +220,7 @@ def _run_geocoding(
         if cid == -1:
             # Noise records get no geocoding result.
             for rec_id, _, _ in members:
-                id_to_geo[rec_id] = {"lat": None, "lon": None, "location_name": "", "location_country": ""}
+                id_to_geo[rec_id] = {"lat": None, "lon": None, "location_name": "", "location_country": "", "extra_locations": ""}
             continue
 
         # Pick the best canonical article: prefer non-duplicates, longest body.
@@ -228,14 +233,32 @@ def _run_geocoding(
         best_rec_id, best_doc, best_meta = max(canonical, key=lambda t: len(t[1]))
         title = best_meta.get("title", "")
 
-        result = geocode_cluster(cid, title, best_doc)
+        results = geocode_cluster(cid, title, best_doc)
 
-        geo_dict = {
-            "lat": result.lat,
-            "lon": result.lon,
-            "location_name": result.location_name,
-            "location_country": result.location_country,
+        # Primary location (first result, or empty)
+        primary = results[0] if results else None
+        geo_dict: dict = {
+            "lat": primary.lat if primary else None,
+            "lon": primary.lon if primary else None,
+            "location_name": primary.location_name if primary else "",
+            "location_country": primary.location_country if primary else "",
+            "extra_locations": "",
         }
+
+        # Additional locations (if multi-location event)
+        if len(results) > 1:
+            import json as _json
+            extra = [
+                {
+                    "lat": r.lat,
+                    "lon": r.lon,
+                    "location_name": r.location_name,
+                    "location_country": r.location_country,
+                }
+                for r in results[1:]
+            ]
+            geo_dict["extra_locations"] = _json.dumps(extra, ensure_ascii=False)
+
         for rec_id, _, _ in members:
             id_to_geo[rec_id] = geo_dict
 
@@ -356,6 +379,8 @@ def run_pipeline(cluster_ids: set[int] | None = None) -> None:
                 meta_copy["location_name"] = geo["location_name"]
             if geo.get("location_country"):
                 meta_copy["location_country"] = geo["location_country"]
+            if geo.get("extra_locations"):
+                meta_copy["extra_locations"] = geo["extra_locations"]
             if id_to_category:
                 meta_copy["reaction_category"] = id_to_category.get(rec_id, "Unknown")
 

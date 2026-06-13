@@ -6,6 +6,7 @@ GET /stats  — aggregate statistics over all event clusters.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 
 from fastapi import APIRouter
@@ -14,6 +15,14 @@ from backend.api.models import DateCount, StatsResponse
 from backend.nlp.vectorstore import get_all
 
 router = APIRouter(prefix="/stats", tags=["stats"])
+
+# Strip leading numeric prefixes that old LLM runs may have written into
+# ChromaDB metadata (e.g. "1. Mass Mobilization & Street Actions" → canonical).
+_NUMBERED_PREFIX = re.compile(r"^\d+\.\s*")
+
+
+def _normalize_category(raw: str) -> str:
+    return _NUMBERED_PREFIX.sub("", raw).strip()
 
 
 @router.get("", response_model=StatsResponse)
@@ -24,14 +33,14 @@ def get_stats() -> StatsResponse:
     total_articles = len(metadatas)
     geocoded_articles = sum(1 for m in metadatas if m.get("lat") is not None)
 
-    # One representative metadata per cluster (first encountered).
-    event_metas: dict[int, dict] = {}
+    # One representative metadata per stable event_id (matches /events grouping).
+    event_metas: dict[str, dict] = {}
     for meta in metadatas:
-        cid = int(meta.get("cluster_id", -1))
-        if cid == -1:
+        eid = meta.get("event_id", "")
+        if not eid:
             continue
-        if cid not in event_metas:
-            event_metas[cid] = meta
+        if eid not in event_metas:
+            event_metas[eid] = meta
 
     total_events = len(event_metas)
 
@@ -40,7 +49,8 @@ def get_stats() -> StatsResponse:
     by_date: Counter[str] = Counter()
 
     for meta in event_metas.values():
-        categories[meta.get("reaction_category", "Unknown")] += 1
+        raw_cat = meta.get("reaction_category", "Unknown")
+        categories[_normalize_category(raw_cat)] += 1
 
         country = meta.get("location_country")
         if country:

@@ -79,7 +79,7 @@ CLUSTER_MIN_INTRA_SIM: float = float(os.getenv("CLUSTER_MIN_INTRA_SIM", "0.0"))
 # required for a cluster to be retained.  Clusters whose titles score below
 # this threshold against all 5 category descriptions are off-topic (e.g. Iran,
 # Trump) and are demoted to noise.  Set to 0.0 to disable.
-CLUSTER_MIN_RELEVANCE_SIM: float = float(os.getenv("CLUSTER_MIN_RELEVANCE_SIM", "0.25"))
+CLUSTER_MIN_RELEVANCE_SIM: float = float(os.getenv("CLUSTER_MIN_RELEVANCE_SIM", "0.35"))
 
 # ------------------------------------------------------------------
 # Deduplication

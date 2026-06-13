@@ -27,7 +27,7 @@ def _auto_model() -> str:
     if explicit:
         return explicit
     if os.getenv("GROQ_API_KEY"):
-        return "groq/llama-3.3-70b-versatile"
+        return "groq/meta-llama/llama-4-scout-17b-16e-instruct"
     if os.getenv("GEMINI_API_KEY"):
         return "gemini/gemini-2.0-flash"
     return "ollama/gemma3:4b"
@@ -61,14 +61,17 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
     "Mass Mobilization & Street Actions": (
         "Συλλαλητήριο διαδήλωση πορεία πλατεία Σύνταγμα κινητοποίηση διαμαρτυρία "
         "αντιπολεμικό αντικυβερνητικό συγκέντρωση μαζική κινητοποίηση εκδήλωση "
-        "πολίτες δρόμος παρέλαση μαθητές φοιτητές πανεκπαιδευτικό "
-        "protest rally demonstration street march mobilization gathering crowd citizens"
+        "πολίτες δρόμος παρέλαση μαθητές φοιτητές πανεκπαιδευτικό κατάληψη "
+        "μπλόκο αγρότες μπλόκα τρακτέρ αποκλεισμός δρόμου κόμβος "
+        "protest rally demonstration street march mobilization gathering crowd citizens blockade"
     ),
     "Labor & Economic Reaction": (
         "Απεργία στάση εργασίας σωματείο ΓΣΕΕ ΑΔΕΔΥ εργαζόμενοι συνδικάτο "
         "24ωρη 48ωρη πανελλαδική εργολαβικοί ΟΛΜΕ ΔΟΕ ΔΕΗ λιμενεργάτες ΜΜΜ "
         "εκπαιδευτικοί νοσοκομείο αίτημα μισθοί συμβάσεις ΚΑΕ εργοδότης "
-        "strike labor union workers stoppage wages collective agreement industry"
+        "κινητοποίηση εκπαιδευτικών ημέρα δράσης ιδιωτικοποίηση δημόσια παιδεία "
+        "κλαδική σύμβαση εργατικό κέντρο ομοσπονδία σύλλογος εργασιακά δικαιώματα "
+        "strike labor union workers stoppage wages collective agreement industry education action day"
     ),
     "Institutional & Political Behavior": (
         "Βουλή κυβέρνηση υπουργός πρωθυπουργός κόμμα ΝΔ ΣΥΡΙΖΑ ΠΑΣΟΚ ΚΚΕ "
@@ -83,10 +86,11 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
         "viral campaign digital protest online reaction trending hashtag social media post shares"
     ),
     "Conflict Reaction": (
-        "Επεισόδια σύγκρουση συμπλοκή επίθεση βία ξύλο τραυματίες πετροπόλεμος "
+        "Επεισόδια σύγκρουση συμπλοκή βία ξύλο τραυματίες πετροπόλεμος "
         "μολότοφ χημικά δακρυγόνα οπαδοί προσαγωγές συλλήψεις πυροβολισμοί "
         "μαχαίρι ληστεία χειροπέδες αστυνομία βιαιοπραγία ξυλοδαρμός "
-        "conflict violence attack fight brawl clashes injury arrest police shooting crime"
+        "ένοπλη σωματική βία ταραχές αιματηρό φόνος δολοφονία αυτοδικία "
+        "clashes violence brawl fight injury arrest police shooting crime riot"
     ),
 }
 # User-agent string required by Nominatim fair-use policy.

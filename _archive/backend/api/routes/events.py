@@ -7,6 +7,7 @@ GET /events/{event_id}     — detail for a single event by stable event_id
 
 from __future__ import annotations
 
+import json
 import time
 from collections import Counter, defaultdict
 from statistics import mean
@@ -60,34 +61,51 @@ def _build_event_list() -> list[dict]:
         cids = [int(m.get("cluster_id", -1)) for _, m in members]
         dominant_cid = Counter(cids).most_common(1)[0][0]
 
-        computed_events.append(
+        articles_list = [
             {
-                "event_id": eid,
-                "cluster_id": dominant_cid,
-                "reaction_category": rep_meta.get("reaction_category", "Unknown"),
-                "summary_en": rep_meta.get("summary_en", ""),
-                "summary_el": rep_meta.get("summary_el", ""),
-                "event_date": rep_meta.get("event_date", ""),
-                "lat": mean(lats) if lats else None,
-                "lon": mean(lons) if lons else None,
-                "location_name": rep_meta.get("location_name"),
-                "location_country": dominant_country,
-                "article_count": len(members),
-                "sources": sorted({m.get("source", "") for _, m in members}),
-                "articles": [
-                    {
-                        "id": rec_id,
-                        "source": m.get("source", ""),
-                        "url": m.get("url", ""),
-                        "title": m.get("title", ""),
-                        "published_at": m.get("published_at", ""),
-                        "lat": float(m["lat"]) if m.get("lat") is not None else None,
-                        "lon": float(m["lon"]) if m.get("lon") is not None else None,
-                    }
-                    for rec_id, m in members
-                ],
+                "id": rec_id,
+                "source": m.get("source", ""),
+                "url": m.get("url", ""),
+                "title": m.get("title", ""),
+                "published_at": m.get("published_at", ""),
+                "lat": float(m["lat"]) if m.get("lat") is not None else None,
+                "lon": float(m["lon"]) if m.get("lon") is not None else None,
             }
-        )
+            for rec_id, m in members
+        ]
+
+        base_event = {
+            "event_id": eid,
+            "cluster_id": dominant_cid,
+            "reaction_category": rep_meta.get("reaction_category", "Unknown"),
+            "summary_en": rep_meta.get("summary_en", ""),
+            "summary_el": rep_meta.get("summary_el", ""),
+            "event_date": rep_meta.get("event_date", ""),
+            "lat": mean(lats) if lats else None,
+            "lon": mean(lons) if lons else None,
+            "location_name": rep_meta.get("location_name"),
+            "location_country": dominant_country,
+            "article_count": len(members),
+            "sources": sorted({m.get("source", "") for _, m in members}),
+            "articles": articles_list,
+        }
+        computed_events.append(base_event)
+
+        # Multi-location events: create additional entries for extra locations
+        extra_raw = rep_meta.get("extra_locations", "")
+        if extra_raw:
+            try:
+                extra_locs = json.loads(extra_raw)
+                for idx, loc in enumerate(extra_locs, start=2):
+                    sub_event = dict(base_event)
+                    sub_event["event_id"] = f"{eid}-{idx}"
+                    sub_event["lat"] = loc.get("lat")
+                    sub_event["lon"] = loc.get("lon")
+                    sub_event["location_name"] = loc.get("location_name", "")
+                    sub_event["location_country"] = loc.get("location_country", dominant_country)
+                    computed_events.append(sub_event)
+            except (json.JSONDecodeError, TypeError):
+                pass
 
     _event_cache = computed_events
     _event_cache_ts = now
@@ -127,7 +145,12 @@ def list_events(
 @router.get("/{event_id}", response_model=EventDetail)
 def get_event(event_id: str) -> EventDetail:
     events = _build_event_list()
+    # Match exact event_id or base event_id (for sub-events like "abc123-2")
     event = next((e for e in events if e["event_id"] == event_id), None)
+    if event is None:
+        # Try matching the base event_id (strip the -N suffix)
+        base_id = event_id.rsplit("-", 1)[0] if "-" in event_id else event_id
+        event = next((e for e in events if e["event_id"] == base_id), None)
     if event is None:
         raise HTTPException(
             status_code=404,
