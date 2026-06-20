@@ -1,0 +1,38 @@
+# Greek social-reaction keywords for relevance pre-filtering.
+# Matched by lemma (spaCy) — inflected forms are covered automatically.
+# Multi-word phrases: each token is lemmatised independently.
+
+mass_mobilization:
+  - διαδήλωση
+  - διαδηλωτής
+  - διαδηλώνω
+  - συγκέντρωση
+  - συγκεντρώνω
+  - πορεία
+  - μπλόκο
+  - κατάληψη
+  - πλατεία
+
+labor_economic:
+  - απεργία
+  - απεργούν
+  - απεργιακός
+  - στάση εργασίας
+  - μποϊκοτάζ
+
+institutional_political:
+  - αποχή
+  - λευκό
+  - άκυρο
+
+digital:
+  - hacktivism
+  - καταγγελία
+  - whistleblower
+
+conflict:
+  - επεισόδια
+  - συμπλοκές
+  - χημικά
+  - δακρυγόνα
+  - πετροπόλεμος
