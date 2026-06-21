@@ -44,5 +44,10 @@ jobs:
       - name: Sync dev dependencies
         run: uv sync --group dev
 
+      - name: Download spaCy models
+        run: |
+          uv run python -m spacy download el_core_news_md
+          uv run python -m spacy download el_core_news_sm
+
       - name: pytest
         run: uv run pytest tests/ -v --tb=short
