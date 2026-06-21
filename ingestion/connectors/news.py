@@ -1,10 +1,11 @@
 """Google News RSS connector: keyword queries → trafilatura article extraction."""
+
 from __future__ import annotations
 
 import asyncio
 import logging
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
@@ -42,9 +43,8 @@ _DEFAULT_KEYWORDS_PATH = Path(__file__).parent.parent / "filters" / "keywords.ym
 
 def _default_keywords() -> list[str]:
     import yaml
-    raw: dict[str, list[str]] = yaml.safe_load(
-        _DEFAULT_KEYWORDS_PATH.read_text(encoding="utf-8")
-    )
+
+    raw: dict[str, list[str]] = yaml.safe_load(_DEFAULT_KEYWORDS_PATH.read_text(encoding="utf-8"))
     return [kw for group in raw.values() for kw in group]
 
 
@@ -54,7 +54,7 @@ def _encode_kw(keyword: str) -> str:
 
 def _parse_pubdate(raw: str) -> datetime | None:
     try:
-        return parsedate_to_datetime(raw).replace(tzinfo=timezone.utc)
+        return parsedate_to_datetime(raw).replace(tzinfo=UTC)
     except Exception:
         return None
 
@@ -180,9 +180,7 @@ class GoogleNewsConnector(SourceConnector):
         try:
             resp = await client.get(url)
             if resp.status_code == 200:
-                body = trafilatura.extract(
-                    resp.text, include_comments=False, include_tables=False
-                )
+                body = trafilatura.extract(resp.text, include_comments=False, include_tables=False)
                 if body and len(body.strip()) >= _MIN_BODY_LEN:
                     return body.strip()
         except Exception as exc:

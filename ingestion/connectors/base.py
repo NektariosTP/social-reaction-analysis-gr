@@ -1,4 +1,5 @@
 """Abstract base class for all ingestion source connectors."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

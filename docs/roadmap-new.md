@@ -51,7 +51,6 @@
 |---|---|---|---|---|---|
 | `SourceConnector` interface → `RawDocument` contract | 🔲 Not Started | 🔴 High | S | ✨ | Adding a source never touches the pipeline |
 | Greek news connector: Google News RSS (`feedparser`) + `trafilatura` extraction | 🔲 Not Started | 🔴 High | M | 🧬 | Primary backbone; replaces Crawl4AI |
-| Official connector: `apergia.gr` (`httpx` + `selectolax`) | 🔲 Not Started | 🔴 High | M | ✨ | Structured strike/protest announcements |
 | Greek relevance filter (spaCy `el_core_news_md`, YAML keyword config) | 🔲 Not Started | 🟡 Medium | M | 🧬 | Lemma-based gate, behind `RelevanceFilter` interface |
 | Idempotent ingestion via `content_hash` (SHA-256) | 🔲 Not Started | 🔴 High | S | 🧬 | Re-runs never double-insert |
 | Playwright fallback (per-source opt-in) | 🔲 Not Started | 🟢 Low | M | 🧬 | Only for JS-heavy sources |
@@ -178,6 +177,7 @@
 
 | Item | Notes |
 |---|---|
+| `apergia.gr` official connector | CSS-selector scraping approach is fragile; revisit with a more robust method (check for an RSS feed, structured API, or Playwright-backed scrape) before implementing |
 | Keyword coverage gaps | Review category keyword YAML for solidarity-economy / volunteering terms |
 | Bluesky connector | Open API, growing journalist presence; cleaner than X for *Digital Reaction* |
 | Diaspora / international reactions | Detect non-Greek sources referencing Greek events |

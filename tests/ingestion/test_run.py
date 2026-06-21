@@ -1,10 +1,9 @@
 """Tests for ingestion orchestrator."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from ingestion.models import RawDocument
 from ingestion.run import run_ingestion
@@ -57,7 +56,9 @@ async def test_run_ingestion_filters_irrelevant_docs() -> None:
 
     with (
         patch("ingestion.run.GoogleNewsConnector", return_value=mock_news),
-        patch("ingestion.run.upsert_article", new_callable=AsyncMock, return_value=True) as mock_upsert,
+        patch(
+            "ingestion.run.upsert_article", new_callable=AsyncMock, return_value=True
+        ) as mock_upsert,
         patch("ingestion.run._make_session_factory") as mock_sf,
     ):
         mock_session = AsyncMock()

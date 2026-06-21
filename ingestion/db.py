@@ -1,4 +1,5 @@
 """Async DB helpers for the ingestion pipeline."""
+
 from __future__ import annotations
 
 import uuid as uuid_mod

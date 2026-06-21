@@ -1,4 +1,5 @@
 """Greek social-reaction relevance filter (spaCy lemma-based)."""
+
 from __future__ import annotations
 
 import unicodedata
@@ -19,9 +20,7 @@ def _fold(text: str) -> str:
     accent-insensitive without altering the original text seen by NLP.
     """
     return "".join(
-        c
-        for c in unicodedata.normalize("NFD", text.lower())
-        if unicodedata.category(c) != "Mn"
+        c for c in unicodedata.normalize("NFD", text.lower()) if unicodedata.category(c) != "Mn"
     )
 
 

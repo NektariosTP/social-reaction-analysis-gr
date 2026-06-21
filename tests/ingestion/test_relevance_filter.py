@@ -1,4 +1,5 @@
 """Tests for SpacyRelevanceFilter."""
+
 from pathlib import Path
 
 import pytest

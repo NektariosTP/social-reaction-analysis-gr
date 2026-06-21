@@ -3,6 +3,7 @@
 Usage:
     uv run python -m ingestion.run
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -72,7 +73,5 @@ async def run_ingestion(engine: AsyncEngine | None = None) -> dict[str, int]:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
     asyncio.run(run_ingestion())

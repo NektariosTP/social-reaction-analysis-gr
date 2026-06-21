@@ -1,4 +1,5 @@
 """Shared data contract for all ingestion connectors."""
+
 from __future__ import annotations
 
 import hashlib
@@ -19,7 +20,7 @@ class RawDocument(BaseModel):
     content_hash: str = ""
 
     @model_validator(mode="after")
-    def _compute_hash(self) -> "RawDocument":
+    def _compute_hash(self) -> RawDocument:
         if not self.content_hash:
             raw = self.canonical_url.strip() + "|" + self.title.strip().lower()
             self.content_hash = hashlib.sha256(raw.encode()).hexdigest()

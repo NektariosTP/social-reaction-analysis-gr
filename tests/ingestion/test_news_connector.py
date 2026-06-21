@@ -1,4 +1,5 @@
 """Tests for GoogleNewsConnector."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -54,7 +55,9 @@ async def test_fetch_deduplicates_by_canonical_url(mock_decoder) -> None:
         "</channel>",
         """<item>
           <title>Duplicate - Ελευθεροτυπία</title>
-          <link>""" + _GOOGLE_URL + """</link>
+          <link>"""
+        + _GOOGLE_URL
+        + """</link>
           <pubDate>Fri, 13 Jun 2026 09:00:00 GMT</pubDate>
         </item></channel>""",
     )
@@ -86,9 +89,7 @@ async def test_fetch_skips_failed_url_decode() -> None:
 
 @respx.mock
 async def test_fetch_skips_rss_network_error() -> None:
-    respx.get(url__startswith="https://news.google.com/rss/search").mock(
-        return_value=Response(503)
-    )
+    respx.get(url__startswith="https://news.google.com/rss/search").mock(return_value=Response(503))
     connector = GoogleNewsConnector(keywords=["απεργία"], request_delay=0.0)
     docs = await connector.fetch()
     assert docs == []
