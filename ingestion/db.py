@@ -37,4 +37,4 @@ async def upsert_article(doc: RawDocument, session: AsyncSession) -> bool:
             "content_hash": doc.content_hash,
         },
     )
-    return result.first() is not None
+    return result.rowcount > 0
