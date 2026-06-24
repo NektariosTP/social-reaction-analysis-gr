@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
+from typing import cast
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def _load_model() -> SentenceTransformer:
     logger.info("[embed] Loading model: %s", settings.embedding_model)
-    return SentenceTransformer(settings.embedding_model)
+    return cast(SentenceTransformer, SentenceTransformer(settings.embedding_model))
 
 
 async def embed_articles(session: AsyncSession) -> int:
