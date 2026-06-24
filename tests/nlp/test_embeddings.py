@@ -13,7 +13,7 @@ async def test_embed_articles_skips_already_embedded() -> None:
     mock_session = AsyncMock()
     # Simulate: no un-embedded articles
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
+    mock_result.all.return_value = []
     mock_session.execute.return_value = mock_result
 
     with patch("nlp.embeddings._load_model") as mock_model:
@@ -32,7 +32,7 @@ async def test_embed_articles_calls_model_for_unembedded() -> None:
     fake_row.body_text = "Μεγάλη απεργία"
 
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [fake_row]
+    mock_result.all.return_value = [fake_row]
     mock_session.execute.return_value = mock_result
 
     fake_embedding = np.random.rand(768).astype(np.float32)

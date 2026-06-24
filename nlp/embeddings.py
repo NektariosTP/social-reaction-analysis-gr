@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def _load_model() -> SentenceTransformer:
     logger.info("[embed] Loading model: %s", settings.embedding_model)
-    return cast(SentenceTransformer, SentenceTransformer(settings.embedding_model))
+    return cast(SentenceTransformer, SentenceTransformer(settings.embedding_model, device="cpu"))
 
 
 async def embed_articles(session: AsyncSession) -> int:
@@ -30,7 +30,7 @@ async def embed_articles(session: AsyncSession) -> int:
             "ORDER BY ingested_at ASC"
         )
     )
-    rows = result.scalars().all()
+    rows = result.all()
     if not rows:
         logger.info("[embed] No un-embedded articles found.")
         return 0
@@ -52,7 +52,7 @@ async def embed_articles(session: AsyncSession) -> int:
     for row, vec in zip(rows, embeddings):
         await session.execute(
             text(
-                "UPDATE articles SET embedding = :vec::vector WHERE id = :id"
+                "UPDATE articles SET embedding = CAST(:vec AS vector) WHERE id = :id"
             ),
             {"vec": f"[{','.join(str(v) for v in vec.tolist())}]", "id": str(row.id)},
         )

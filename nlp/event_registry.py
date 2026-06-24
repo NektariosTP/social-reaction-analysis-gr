@@ -67,7 +67,7 @@ async def assign_event_id(
         await session.execute(
             text("""
                 INSERT INTO events (id, centroid, article_count, first_seen, last_seen, status)
-                VALUES (:id, :centroid::vector, :count, :now, :now, 'detected')
+                VALUES (:id, CAST(:centroid AS vector), :count, :now, :now, 'detected')
             """),
             {"id": event_id, "centroid": centroid_str, "count": len(article_ids), "now": now},
         )
@@ -76,7 +76,7 @@ async def assign_event_id(
         await session.execute(
             text("""
                 UPDATE events
-                SET centroid = :centroid::vector,
+                SET centroid = CAST(:centroid AS vector),
                     article_count = article_count + :count,
                     last_seen = :now
                 WHERE id = :id

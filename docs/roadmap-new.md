@@ -194,6 +194,7 @@
 | Queue-based decomposition (Redis/RQ) | Only if near-real-time becomes a requirement (see system-design Appendix A) |
 | SSE / WebSocket push | Stream new events to the frontend as the worker publishes them |
 | Incremental re-clustering strategy | Tune window size / re-cluster cadence for stability vs freshness |
+| **Pipeline concurrency hardening** | Three targeted wins: (1) `asyncio.gather` over the per-cluster dedup+registry loop in `nlp/pipeline.py` (clusters are independent — biggest wallclock gain); (2) wrap `model.encode()` and `run_hdbscan()` in `asyncio.to_thread()` so the event loop stays unblocked during CPU work; (3) run multiple ingestion connectors concurrently via `asyncio.gather` and replace per-doc `upsert_article` awaits with a bulk `INSERT … ON CONFLICT`. Low priority at current data volume; revisit if pipeline cycle time exceeds ~60 s. |
 
 ### NLP & ML
 
@@ -204,6 +205,10 @@
 | Sentiment / tone scoring per article | Positive / negative / neutral alongside reaction category |
 | Event intensity score | Composite of article count + source diversity + geo spread |
 | Clustering hyperparameter tuning | `min_cluster_size` / `min_samples` on real data |
+| **"Roundup" article detection and handling** | Some articles (e.g. "Συγκεντρώσεις και κινητοποιήσεις σε Αθήνα και Θεσσαλονίκη σήμερα") describe multiple simultaneous events in one piece rather than one specific event. Their embedding is a semantic average of several events, which pollutes clusters — they either form a spurious catch-all cluster or pull unrelated articles together. Mitigation options: (a) detect roundup articles via headline/body cues ("Ποιοι κλάδοι απεργούν", "Όλες οι συγκεντρώσεις") and exclude them from HDBSCAN input while still using them for enrichment; (b) sub-sentence segmentation + per-sentence embedding to identify multi-event structure before clustering; (c) flag them post-hoc and surface as "aggregator" nodes in the event graph. This is also important for the enrichment phase — extracting structured info (locations, actors, axes) from roundup articles requires understanding that they reference multiple distinct events. |
+| **Cluster-level relevance gate** | Some clusters pass article-level relevance filtering but the cluster as a whole is off-topic (e.g. Iran-related news grouped by geopolitical protest similarity). Add a post-clustering step that scores the cluster centroid against the core keyword/axis vocabulary and discards clusters below a threshold before they enter the event registry. |
+| **Event registry merge threshold tuning** | Observed clusters that should be one event being registered as two separate events (confirmed in prod data: two clusters about the same 24-Jun-2026 strike wave). `event_registry_sim_threshold` may need raising, or a secondary merge pass using both cosine similarity and temporal proximity (`last_seen` overlap). |
+| **Stale-article bleed-in** | Older articles (weeks/months back) occasionally land in a cluster with recent articles when their topic recurs (e.g. Εργατική Πρωτομαγιά article from May mixing with June strike clusters). The current `cluster_window_days` gate should prevent this, but check whether ingestion `ingested_at` vs `published_at` mismatch is causing old articles to appear inside the window. Long-term: weight embeddings by recency or hard-filter by `published_at` in the HDBSCAN input query. |
 
 ### LLM & Processing
 
