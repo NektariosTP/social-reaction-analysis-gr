@@ -18,6 +18,11 @@ dependencies = [
     "selectolax>=0.3",
     "spacy>=3.7",
     "pyyaml>=6.0",
+    # Phase 2 — NLP
+    "sentence-transformers>=3.0",
+    "hdbscan>=0.8",
+    "scikit-learn>=1.4",
+    "numpy>=1.26",
 ]
 
 [dependency-groups]
