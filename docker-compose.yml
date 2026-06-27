@@ -44,7 +44,28 @@ services:
     depends_on:
       - api
 
+  # Nominatim — self-hosted geocoder (Greece extract).
+  # First run downloads the PBF and imports.
+  nominatim:
+    image: mediagis/nominatim:4.3
+    environment:
+      PBF_URL: "https://download.geofabrik.de/europe/greece-latest.osm.pbf"
+      REPLICATION_URL: "https://download.geofabrik.de/europe/greece-updates/"
+      IMPORT_WIKIPEDIA: "false"
+      IMPORT_STYLE: "extratags"
+    volumes:
+      - nominatim_data:/var/lib/postgresql/14/main
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 600s
+
 volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  nominatim_data:
