@@ -26,6 +26,9 @@ class EnrichSettings(BaseSettings):
     embedding_model: str = (
         "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
     )
+    # Force CPU to avoid CUDA architecture mismatches on the embedding model.
+    # Set to "cuda" only if PyTorch was built for the exact GPU compute capability.
+    embedding_device: str = "cpu"
 
     # Retry / batching
     llm_max_retries: int = 3

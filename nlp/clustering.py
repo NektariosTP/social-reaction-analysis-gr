@@ -87,6 +87,7 @@ async def cluster_articles_from_db(
             FROM articles
             WHERE embedding IS NOT NULL
               AND is_duplicate = FALSE
+              AND event_id IS NULL
               AND ingested_at >= NOW() - INTERVAL '1 day' * :window_days
             ORDER BY ingested_at ASC
             """

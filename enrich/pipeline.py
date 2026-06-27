@@ -6,6 +6,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -75,7 +76,7 @@ async def _enrich_event(session: AsyncSession, event: Any) -> None:
         "thematic_fields": classification.thematic_fields,
         "channel": classification.channel,
         "intensity": classification.intensity,
-        "confidence": str(classification.confidence),
+        "confidence": json.dumps(classification.confidence),
         "summary_el": summary.summary_el if summary else None,
         "summary_en": summary.summary_en if summary else None,
         "lat": primary_geo.lat if primary_geo else None,
@@ -90,11 +91,11 @@ async def _enrich_event(session: AsyncSession, event: Any) -> None:
                 thematic_fields = :thematic_fields,
                 channel = :channel,
                 intensity = :intensity,
-                classification_confidence = :confidence::jsonb,
+                classification_confidence = CAST(:confidence AS jsonb),
                 summary_el = :summary_el,
                 summary_en = :summary_en,
-                primary_location = CASE WHEN :lat IS NOT NULL
-                    THEN ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography
+                primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL
+                    THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography
                     ELSE NULL END,
                 status = 'enriched'
             WHERE id = :id
@@ -149,7 +150,8 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
         n_failed = 0
         for event in events:
             try:
-                await _enrich_event(session, event)
+                async with session.begin_nested():
+                    await _enrich_event(session, event)
                 n_enriched += 1
             except Exception as exc:
                 logger.warning("[enrich] Failed on event %s: %s", str(event.id)[:8], exc)

@@ -81,7 +81,7 @@ def _get_axis_embeddings() -> dict[str, np.ndarray]:
     from enrich.config import settings
 
     all_labels = AXIS_ACTION_FORMS + AXIS_THEMATIC_FIELDS + AXIS_CHANNEL + AXIS_INTENSITY
-    model = SentenceTransformer(settings.embedding_model)
+    model = SentenceTransformer(settings.embedding_model, device=settings.embedding_device)
     vecs: np.ndarray = model.encode(all_labels, normalize_embeddings=True)
     return {label: vec for label, vec in zip(all_labels, vecs)}
 

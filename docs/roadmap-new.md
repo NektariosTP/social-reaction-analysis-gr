@@ -81,7 +81,7 @@
 | LLM provider abstraction (Groq → Gemini → Ollama) | 🔲 Not Started | 🔴 High | M | 🧬 | Ollama = offline/reproducible path (no API keys) |
 | Embedding zero-shot classification (primary, no tokens) | 🔲 Not Started | 🔴 High | M | 🧬 | Four-axis multi-label model: Action Form (multi-label), Thematic Field (multi-label), Channel (single), Intensity (ordinal) |
 | LLM classification fallback (low-confidence clusters only) | 🔲 Not Started | 🟡 Medium | S | 🧬 | `instructor` + Pydantic structured output |
-| Location extraction: gazetteer-first → spaCy NER → LLM fallback | 🔲 Not Started | 🔴 High | M | 🧬 | Cheaper/precise vs LLM-first |
+| Location extraction: LLM multi-location primary (venue+city per location) → Nominatim parallel geocode → gazetteer/spaCy NER fallback | 🔲 Not Started | 🔴 High | M | 🧬 | Returns list[GeocodeResult]; city field enables zoom-out view; all locations written to event_locations |
 | Self-hosted Nominatim (Greece extract) container | 🔲 Not Started | 🔴 High | M | ✨ | Removes public-API rate-limit fragility |
 | PostGIS point-in-polygon validation (official ELSTAT periphery polygons) | 🔲 Not Started | 🔴 High | M | 🧬 | Replaces shapely + ad-hoc GeoJSON |
 | Multi-location event support (`event_locations`) | 🔲 Not Started | 🟡 Medium | S | 🧬 | |

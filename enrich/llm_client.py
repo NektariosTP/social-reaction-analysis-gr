@@ -18,7 +18,7 @@ _AUTO_CHAIN = [
 _OLLAMA_FALLBACK = "ollama/gemma3:4b"
 
 
-def get_llm_client_and_model() -> tuple[object, str]:
+def get_llm_client_and_model() -> tuple[instructor.Instructor, str]:
     """
     Detect the first available LLM provider and return (instructor_client, model_string).
 
@@ -45,7 +45,7 @@ def get_llm_client_and_model() -> tuple[object, str]:
     return _build_client(_OLLAMA_FALLBACK), _OLLAMA_FALLBACK
 
 
-def _build_client(model: str, api_key: str | None = None) -> object:
+def _build_client(model: str, api_key: str | None = None) -> instructor.Instructor:
     """Build an instructor-patched litellm client."""
     import litellm
 
