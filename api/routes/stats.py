@@ -1,6 +1,8 @@
 """GET /stats — aggregated distributions for the dashboard."""
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,11 +13,11 @@ from api.models import DistributionItem, StatsResponse
 router = APIRouter(tags=["stats"])
 
 
-async def _compute_stats(session: AsyncSession) -> dict:
+async def _compute_stats(session: AsyncSession) -> dict[str, Any]:
     total_events = (await session.execute(text("SELECT COUNT(*) FROM events WHERE status = 'enriched'"))).scalar() or 0
     total_articles = (await session.execute(text("SELECT COUNT(*) FROM articles WHERE is_duplicate = FALSE"))).scalar() or 0
 
-    async def _unnest_dist(column: str, table: str = "events", condition: str = "status = 'enriched'") -> list[dict]:
+    async def _unnest_dist(column: str, table: str = "events", condition: str = "status = 'enriched'") -> list[dict[str, Any]]:
         result = await session.execute(text(
             f"SELECT unnest({column}) AS label, COUNT(*) AS count "
             f"FROM {table} WHERE {condition} "
@@ -23,7 +25,7 @@ async def _compute_stats(session: AsyncSession) -> dict:
         ))
         return [{"label": r[0], "count": r[1]} for r in result.all() if r[0]]
 
-    async def _single_dist(column: str, table: str = "events", condition: str = "status = 'enriched'") -> list[dict]:
+    async def _single_dist(column: str, table: str = "events", condition: str = "status = 'enriched'") -> list[dict[str, Any]]:
         result = await session.execute(text(
             f"SELECT {column} AS label, COUNT(*) AS count "
             f"FROM {table} WHERE {condition} AND {column} IS NOT NULL "
@@ -31,7 +33,7 @@ async def _compute_stats(session: AsyncSession) -> dict:
         ))
         return [{"label": r[0], "count": r[1]} for r in result.all()]
 
-    async def _date_dist() -> list[dict]:
+    async def _date_dist() -> list[dict[str, Any]]:
         result = await session.execute(text(
             "SELECT DATE(first_seen) AS label, COUNT(*) AS count "
             "FROM events WHERE status = 'enriched' AND first_seen IS NOT NULL "

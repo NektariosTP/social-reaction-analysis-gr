@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
+from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db import get_db
@@ -39,9 +40,9 @@ async def _fetch_events(
     bbox: str | None = None,
     limit: int = 50,
     offset: int = 0,
-) -> list:
+) -> list[Row[Any]]:
     conditions = ["status = 'enriched'"]
-    params: dict = {"limit": limit, "offset": offset}
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
 
     if action_form:
         conditions.append(":action_form = ANY(action_forms)")
@@ -87,10 +88,10 @@ async def _fetch_events(
         ),
         params,
     )
-    return result.all()
+    return list(result.all())
 
 
-async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> object | None:
+async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] | None:
     result = await session.execute(
         text(
             "SELECT id::text, action_forms, thematic_fields, channel, intensity, "
@@ -106,7 +107,7 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> object | N
     return result.first()
 
 
-async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list:
+async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list[Row[Any]]:
     result = await session.execute(
         text(
             "SELECT id::text, source_id, source_type, url, title, published_at "
@@ -115,7 +116,7 @@ async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list:
         ),
         {"eid": event_id},
     )
-    return result.all()
+    return list(result.all())
 
 
 # ---------------------------------------------------------------------------
