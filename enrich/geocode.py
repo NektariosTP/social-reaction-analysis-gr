@@ -72,7 +72,10 @@ async def geocode_text(
     if _delay > 0:
         await asyncio.sleep(_delay)
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(
+            timeout=10.0,
+            headers={"User-Agent": "social-reaction-analysis-gr/1.0 (nektarios.tp@gmail.com)"},
+        ) as client:
             resp = await client.get(
                 f"{base_url}/search",
                 params={
@@ -132,7 +135,7 @@ async def geocode_event(
     """
     all_text = summary_el + " " + " ".join(article_titles[:5])
 
-    # 1. LLM extraction (primary path — venue + city per location, parallel Nominatim calls)
+    # 1. LLM extraction → Nominatim (primary path, parallel requests)
     mentions = _extract_locations_llm(all_text)
     if mentions:
         queries = [f"{m.venue}, {m.city}" if m.venue else m.city for m in mentions]
@@ -146,7 +149,7 @@ async def geocode_event(
             if r is not None
         ]
         if results:
-            logger.debug("[geocode] LLM extracted %d location(s).", len(results))
+            logger.debug("[geocode] LLM+Nominatim resolved %d location(s).", len(results))
             return results
 
     # 2. Gazetteer fallback (no LLM or LLM found nothing)

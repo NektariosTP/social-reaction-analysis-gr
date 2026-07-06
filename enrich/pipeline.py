@@ -27,11 +27,17 @@ from enrich.summarize import summarize_event
 logger = logging.getLogger(__name__)
 
 
-async def _enrich_event(session: AsyncSession, event: Any) -> None:
-    """Classify, geocode, and summarize a single event row."""
+async def _enrich_event(
+    session: AsyncSession,
+    event: Any,
+    *,
+    needs_classify: bool = True,
+    needs_geocode: bool = True,
+    needs_summary: bool = True,
+) -> None:
+    """Classify, geocode, and/or summarize a single event row (skipping completed steps)."""
     event_id = str(event.id)
 
-    # Fetch article titles + bodies for this event
     art_result = await session.execute(
         text(
             "SELECT title, body_text FROM articles "
@@ -47,63 +53,79 @@ async def _enrich_event(session: AsyncSession, event: Any) -> None:
     titles = [r[0] or "" for r in articles]
     bodies = [r[1] or "" for r in articles]
 
+    update_params: dict[str, Any] = {"id": event_id}
+    set_clauses: list[str] = []
+
     # 1. Classify
-    centroid_text = getattr(event, "centroid", None)
-    if centroid_text:
-        centroid = np.array(
-            [float(v) for v in str(centroid_text).strip("[]").split(",")],
-            dtype=np.float32,
+    if needs_classify:
+        centroid_text = getattr(event, "centroid", None)
+        if centroid_text:
+            centroid = np.array(
+                [float(v) for v in str(centroid_text).strip("[]").split(",")],
+                dtype=np.float32,
+            )
+        else:
+            centroid = np.zeros(768, dtype=np.float32)
+
+        classification = classify_with_llm_fallback(centroid=centroid, article_titles=titles)
+        update_params.update(
+            {
+                "action_forms": classification.action_forms,
+                "thematic_fields": classification.thematic_fields,
+                "channel": classification.channel,
+                "intensity": classification.intensity,
+                "confidence": json.dumps(classification.confidence),
+            }
         )
-    else:
-        centroid = np.zeros(768, dtype=np.float32)
+        set_clauses.extend(
+            [
+                "action_forms = :action_forms",
+                "thematic_fields = :thematic_fields",
+                "channel = :channel",
+                "intensity = :intensity",
+                "classification_confidence = CAST(:confidence AS jsonb)",
+            ]
+        )
 
-    classification = classify_with_llm_fallback(centroid=centroid, article_titles=titles)
-
-    # 2. Geocode (returns all locations for this event, primary first)
-    summary_el_hint = " ".join(titles[:3])
-    geo_results = await geocode_event(summary_el=summary_el_hint, article_titles=titles)
-    primary_geo = geo_results[0] if geo_results else None
+    # 2. Geocode
+    geo_results: list[Any] = []
+    if needs_geocode:
+        summary_el_hint = " ".join(titles[:3])
+        geo_results = await geocode_event(summary_el=summary_el_hint, article_titles=titles)
+        primary_geo = geo_results[0] if geo_results else None
+        update_params.update(
+            {
+                "lat": primary_geo.lat if primary_geo else None,
+                "lon": primary_geo.lon if primary_geo else None,
+                "location_name": primary_geo.location_name if primary_geo else None,
+            }
+        )
+        set_clauses.append(
+            "primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL "
+            "THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography "
+            "ELSE NULL END"
+        )
 
     # 3. Summarize
-    summary = summarize_event(
-        article_titles=titles, article_bodies=bodies, n_sources=len(articles)
-    )
+    if needs_summary:
+        summary = summarize_event(
+            article_titles=titles, article_bodies=bodies, n_sources=len(articles)
+        )
+        update_params.update(
+            {
+                "summary_el": summary.summary_el if summary else None,
+                "summary_en": summary.summary_en if summary else None,
+            }
+        )
+        set_clauses.extend(["summary_el = :summary_el", "summary_en = :summary_en"])
 
-    # Write-back: classification + summary + primary location → events table
-    update_params: dict[str, Any] = {
-        "id": event_id,
-        "action_forms": classification.action_forms,
-        "thematic_fields": classification.thematic_fields,
-        "channel": classification.channel,
-        "intensity": classification.intensity,
-        "confidence": json.dumps(classification.confidence),
-        "summary_el": summary.summary_el if summary else None,
-        "summary_en": summary.summary_en if summary else None,
-        "lat": primary_geo.lat if primary_geo else None,
-        "lon": primary_geo.lon if primary_geo else None,
-        "location_name": primary_geo.location_name if primary_geo else None,
-    }
+    set_clauses.append("status = 'enriched'")
 
     await session.execute(
-        text("""
-            UPDATE events
-            SET action_forms = :action_forms,
-                thematic_fields = :thematic_fields,
-                channel = :channel,
-                intensity = :intensity,
-                classification_confidence = CAST(:confidence AS jsonb),
-                summary_el = :summary_el,
-                summary_en = :summary_en,
-                primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL
-                    THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography
-                    ELSE NULL END,
-                status = 'enriched'
-            WHERE id = :id
-        """),
+        text(f"UPDATE events SET {', '.join(set_clauses)} WHERE id = :id"),  # noqa: S608
         update_params,
     )
 
-    # Write all geocoded locations to event_locations (primary + secondaries)
     for loc in geo_results:
         await session.execute(
             text("""
@@ -127,11 +149,27 @@ async def _enrich_event(session: AsyncSession, event: Any) -> None:
             },
         )
 
-    logger.debug("[enrich] Event %s enriched (%d location(s)).", event_id[:8], len(geo_results))
+    steps = (
+        ("classify" if needs_classify else "")
+        + (" geocode" if needs_geocode else "")
+        + (" summarize" if needs_summary else "")
+    ).strip()
+    logger.debug(
+        "[enrich] Event %s done (%s, %d location(s)).",
+        event_id[:8],
+        steps or "no-op",
+        len(geo_results),
+    )
 
 
 async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, Any]:
-    """Enrich all events that haven't been enriched yet. Returns metrics dict."""
+    """Enrich all events that haven't been enriched yet or are partially enriched.
+
+    Picks up:
+      - status='detected' (never enriched)
+      - status='enriched' with NULL summary_el or primary_location (partial failure)
+    Skips steps already completed to avoid unnecessary LLM calls.
+    """
     _engine = engine or create_async_engine(settings.database_url)
     session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
         _engine, expire_on_commit=False
@@ -141,17 +179,31 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
 
     async with session_factory() as session:
         result = await session.execute(
-            text("SELECT id, centroid FROM events WHERE status = 'detected'")
+            text("""
+                SELECT id, centroid,
+                       action_forms IS NULL AS needs_classify,
+                       summary_el IS NULL    AS needs_summary,
+                       primary_location IS NULL AS needs_geocode
+                FROM events
+                WHERE status = 'detected'
+                   OR (status = 'enriched' AND (summary_el IS NULL OR primary_location IS NULL))
+            """)
         )
         events = result.all()
-        logger.info("[enrich] %d unenriched events to process.", len(events))
+        logger.info("[enrich] %d event(s) to process.", len(events))
 
         n_enriched = 0
         n_failed = 0
         for event in events:
             try:
                 async with session.begin_nested():
-                    await _enrich_event(session, event)
+                    await _enrich_event(
+                        session,
+                        event,
+                        needs_classify=bool(event.needs_classify),
+                        needs_geocode=bool(event.needs_geocode),
+                        needs_summary=bool(event.needs_summary),
+                    )
                 n_enriched += 1
             except Exception as exc:
                 logger.warning("[enrich] Failed on event %s: %s", str(event.id)[:8], exc)

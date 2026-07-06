@@ -217,6 +217,7 @@
 | Fine-tuned classifier head | Supervised 5-category classifier as an alternative to zero-shot + LLM fallback |
 | Prompt/version registry | Track prompt versions in `pipeline_runs` for reproducibility |
 | Multi-summary batching tuning | Optimise tokens-per-call vs quality |
+| **Expanded gazetteer** | Current `gazetteer.yml` covers only 20 cities. Expand to ~150–200 entries (all regional units, major towns, Athens/Thessaloniki suburbs, islands, notable squares/neighbourhoods). Useful as a zero-cost, zero-latency fallback when Groq token budget is exhausted or Nominatim is unavailable — validated on real data where the gazetteer correctly resolved events the LLM path couldn't due to rate limits. |
 
 ### API & Backend
 

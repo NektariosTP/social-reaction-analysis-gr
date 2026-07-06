@@ -19,7 +19,7 @@ class EnrichSettings(BaseSettings):
     llm_temperature: float = 0.0
 
     # Nominatim
-    nominatim_url: str = "http://nominatim:8080"
+    nominatim_url: str = "https://nominatim.openstreetmap.org"
     nominatim_delay_seconds: float = 1.1
 
     # Embedding model (for zero-shot classification — same as Phase 2)
