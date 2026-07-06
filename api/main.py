@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import health
+from api.routes import events, health
 
 app = FastAPI(
     title="Social Reaction Analysis GR",
@@ -19,3 +19,4 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(events.router)
