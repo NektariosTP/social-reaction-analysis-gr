@@ -119,7 +119,7 @@ async def _enrich_event(
         )
         set_clauses.extend(["summary_el = :summary_el", "summary_en = :summary_en"])
 
-    set_clauses.append("status = 'enriched'")
+    set_clauses.append("status = 'pending_review'")
 
     await session.execute(
         text(f"UPDATE events SET {', '.join(set_clauses)} WHERE id = :id"),  # noqa: S608
@@ -167,7 +167,8 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
 
     Picks up:
       - status='detected' (never enriched)
-      - status='enriched' with NULL summary_el or primary_location (partial failure)
+      - status='pending_review' or 'enriched' with NULL summary_el or primary_location
+        (partial failure)
     Skips steps already completed to avoid unnecessary LLM calls.
     """
     _engine = engine or create_async_engine(settings.database_url)
@@ -186,7 +187,8 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
                        primary_location IS NULL AS needs_geocode
                 FROM events
                 WHERE status = 'detected'
-                   OR (status = 'enriched' AND (summary_el IS NULL OR primary_location IS NULL))
+                   OR (status IN ('pending_review', 'enriched')
+                       AND (summary_el IS NULL OR primary_location IS NULL))
             """)
         )
         events = result.all()
