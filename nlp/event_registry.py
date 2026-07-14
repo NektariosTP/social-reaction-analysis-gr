@@ -33,9 +33,12 @@ def match_existing_event(
 
 
 async def load_existing_events(session: AsyncSession) -> list[tuple[str, np.ndarray]]:
-    """Load all event centroids from the DB."""
+    """Load all event centroids from the DB, excluding permanently closed/rejected events."""
     result = await session.execute(
-        text("SELECT id::text, centroid::text FROM events WHERE centroid IS NOT NULL")
+        text(
+            "SELECT id::text, centroid::text FROM events "
+            "WHERE centroid IS NOT NULL AND status NOT IN ('closed', 'rejected')"
+        )
     )
     rows = result.all()
     existing: list[tuple[str, np.ndarray]] = []
@@ -78,7 +81,8 @@ async def assign_event_id(
                 UPDATE events
                 SET centroid = CAST(:centroid AS vector),
                     article_count = article_count + :count,
-                    last_seen = :now
+                    last_seen = :now,
+                    status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END
                 WHERE id = :id
             """),
             {"id": event_id, "centroid": centroid_str, "count": len(article_ids), "now": now},

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import numpy as np
 import pytest
 
-from nlp.event_registry import assign_event_id, match_existing_event
+from nlp.event_registry import assign_event_id, load_existing_events, match_existing_event
 
 
 def _centroid(seed: int = 0) -> np.ndarray:
@@ -59,3 +59,35 @@ def test_match_returns_best_match() -> None:
         threshold=0.85,
     )
     assert result == id_close
+
+
+async def test_load_existing_events_excludes_closed_and_rejected() -> None:
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.all.return_value = []
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    await load_existing_events(mock_session)
+
+    executed_sql = str(mock_session.execute.call_args[0][0])
+    assert "status NOT IN ('closed', 'rejected')" in executed_sql
+
+
+async def test_assign_event_id_revives_archived_event_on_match() -> None:
+    centroid = _centroid(0)
+    existing_id = str(uuid.uuid4())
+    mock_session = AsyncMock()
+
+    with patch(
+        "nlp.event_registry.load_existing_events",
+        new_callable=AsyncMock,
+        return_value=[(existing_id, centroid)],
+    ):
+        event_id = await assign_event_id(
+            mock_session, centroid=centroid, article_ids=["a1"], threshold=0.85
+        )
+
+    assert event_id == existing_id
+    update_call = mock_session.execute.call_args_list[0]
+    executed_sql = str(update_call[0][0])
+    assert "status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END" in executed_sql
