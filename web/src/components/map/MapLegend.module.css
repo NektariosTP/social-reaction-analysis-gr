@@ -1,0 +1,44 @@
+.legend {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-2) var(--space-3);
+  font-size: 11px;
+  z-index: 2;
+}
+
+.title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  border-top: 1px dashed var(--color-border);
+  margin-top: 4px;
+  padding-top: 4px;
+}

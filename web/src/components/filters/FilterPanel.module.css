@@ -1,0 +1,16 @@
+.panel {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  padding: var(--space-3) var(--space-4);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 var(--space-5);
+}
+
+.timeRow {
+  grid-column: 1 / -1;
+}
+
+.col {
+  min-width: 0;
+}

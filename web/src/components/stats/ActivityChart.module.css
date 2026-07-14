@@ -1,0 +1,21 @@
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 90px;
+  padding: 0 2px;
+}
+
+.bar {
+  flex: 1;
+  background: var(--color-accent);
+  min-height: 2px;
+}
+
+.axisLabels {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 2px 0;
+  font-size: 9px;
+  color: var(--color-text-muted);
+}

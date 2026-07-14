@@ -1,0 +1,30 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.filled1 {
+  background: var(--color-axis4-low);
+}
+.filled2 {
+  background: var(--color-axis4-mid);
+}
+.filled3 {
+  background: var(--color-axis4-high);
+}

@@ -1,0 +1,38 @@
+/**
+ * Structural placeholder tokens — deliberately plain (not the wireframes'
+ * "paper zine" look). Swap these values in a later visual design pass;
+ * components consume tokens, not raw values, so restyling stays localized.
+ */
+:root {
+  --color-bg: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0f1f3;
+  --color-border: #d7d9de;
+  --color-text: #1b1d21;
+  --color-text-muted: #63666e;
+  --color-accent: #2451c9;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #b3261e;
+
+  --color-axis1: #2451c9;
+  --color-axis2: #63666e;
+  --color-axis3: #8a5cf6;
+  --color-axis4-low: #4f9d5c;
+  --color-axis4-mid: #d99a2b;
+  --color-axis4-high: #c23b3b;
+
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+}

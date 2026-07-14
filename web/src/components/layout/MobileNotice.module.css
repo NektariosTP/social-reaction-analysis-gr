@@ -1,0 +1,14 @@
+.notice {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .notice {
+    display: block;
+    background: var(--color-text);
+    color: var(--color-surface);
+    font-size: 12px;
+    padding: 10px 16px;
+    text-align: center;
+  }
+}
