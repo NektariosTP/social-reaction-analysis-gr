@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,6 +27,15 @@ router = APIRouter(prefix="/events", tags=["events"])
 # ---------------------------------------------------------------------------
 # DB helpers (thin wrappers — mocked in tests)
 # ---------------------------------------------------------------------------
+
+def _parse_iso_datetime(value: str, field: str) -> datetime:
+    """Parse to a native datetime — asyncpg needs the Python type, not a
+    string cast on the SQL side, to bind against a timestamptz column."""
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid {field!r}: {value!r}") from exc
+
 
 async def _fetch_events(
     session: AsyncSession,
@@ -60,11 +70,11 @@ async def _fetch_events(
         conditions.append("region_code = :region_code")
         params["region_code"] = region_code
     if date_from:
-        conditions.append("first_seen >= :date_from::timestamptz")
-        params["date_from"] = date_from
+        conditions.append("first_seen >= :date_from")
+        params["date_from"] = _parse_iso_datetime(date_from, "date_from")
     if date_to:
-        conditions.append("last_seen <= :date_to::timestamptz")
-        params["date_to"] = date_to
+        conditions.append("last_seen <= :date_to")
+        params["date_to"] = _parse_iso_datetime(date_to, "date_to")
     if bbox:
         # bbox = "west,south,east,north"
         parts = [float(p) for p in bbox.split(",")]
