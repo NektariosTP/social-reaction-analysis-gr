@@ -8,16 +8,20 @@ venv/
 # Data & Models (Crucial for your project)
 _archive/data/
 *.csv
-*.json
 *.sqlite
 *.bin
 models/
+.acled_token.json
 
 # Frontend
 node_modules/
 dist/
 build/
+*.tsbuildinfo
 .DS_Store
 
 # Claude files
 docs/superpowers/
+
+# Editor
+.vscode/
