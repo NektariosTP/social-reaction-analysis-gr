@@ -8,7 +8,7 @@ from starlette.responses import RedirectResponse
 
 from admin.auth import NotAuthenticated
 from admin.config import settings
-from admin.routes import login
+from admin.routes import events, login
 
 app = FastAPI(title="Social Reaction Analysis GR — Admin")
 app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
@@ -20,3 +20,4 @@ async def not_authenticated_handler(request: Request, exc: NotAuthenticated) -> 
 
 
 app.include_router(login.router)
+app.include_router(events.router)

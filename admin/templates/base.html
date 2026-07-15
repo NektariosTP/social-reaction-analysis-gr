@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Admin{% endblock %} — Social Reaction Analysis GR</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; vertical-align: top; }
+    nav a { margin-right: 1rem; }
+    .error { color: #b00020; }
+    form.inline { display: inline; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/events?status=pending_review">Queue</a>
+    <a href="/events?status=">Browse all</a>
+    <form class="inline" method="post" action="/logout"><button type="submit">Logout</button></form>
+  </nav>
+  <hr>
+  {% block content %}{% endblock %}
+</body>
+</html>

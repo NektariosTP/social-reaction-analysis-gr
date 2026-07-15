@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Events{% endblock %}
+{% block content %}
+<h1>Events</h1>
+<form method="get" action="/events">
+  <label>Status:
+    <select name="status">
+      <option value="" {% if not selected_status %}selected{% endif %}>All</option>
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if s == selected_status %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Region code: <input type="text" name="region_code" value="{{ region_code }}"></label>
+  <button type="submit">Filter</button>
+</form>
+
+<table>
+  <tr>
+    <th>Summary</th><th>Action forms</th><th>Thematic fields</th>
+    <th>Articles</th><th>First seen</th><th>Status</th><th>Actions</th>
+  </tr>
+  {% for e in events %}
+  <tr>
+    <td><a href="/events/{{ e.id }}">{{ e.summary_el or "(no summary)" }}</a></td>
+    <td>{{ e.action_forms | join(", ") }}</td>
+    <td>{{ e.thematic_fields | join(", ") }}</td>
+    <td>{{ e.article_count }}</td>
+    <td>{{ e.first_seen }}</td>
+    <td>{{ e.status }}</td>
+    <td>
+      {% if e.status == "pending_review" %}
+      <form class="inline" method="post" action="/events/{{ e.id }}/approve">
+        <button type="submit">Approve</button>
+      </form>
+      <form class="inline" method="post" action="/events/{{ e.id }}/reject">
+        <button type="submit">Reject</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
