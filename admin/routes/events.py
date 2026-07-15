@@ -300,3 +300,12 @@ async def edit_event_submit(
     await _save_event_locations(session, event_id, form)
     await session.commit()
     return RedirectResponse(url=f"/events/{event_id}", status_code=303)
+
+
+@router.post("/events/{event_id}/delete")
+async def delete_event(
+    event_id: str, session: AsyncSession = Depends(get_db)
+) -> RedirectResponse:
+    await session.execute(text("DELETE FROM events WHERE id = :id"), {"id": event_id})
+    await session.commit()
+    return RedirectResponse(url="/events", status_code=303)
