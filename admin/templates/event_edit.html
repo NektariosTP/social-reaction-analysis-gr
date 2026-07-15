@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Edit event{% endblock %}
+{% block content %}
+<h1>Edit event {{ event.id }}</h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form method="post" action="/events/{{ event.id }}">
+  <fieldset>
+    <legend>Action forms</legend>
+    {% for label in axis_action_forms %}
+    <label><input type="checkbox" name="action_forms" value="{{ label }}"
+      {% if label in event.action_forms %}checked{% endif %}> {{ label }}</label><br>
+    {% endfor %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Thematic fields</legend>
+    {% for label in axis_thematic_fields %}
+    <label><input type="checkbox" name="thematic_fields" value="{{ label }}"
+      {% if label in event.thematic_fields %}checked{% endif %}> {{ label }}</label><br>
+    {% endfor %}
+  </fieldset>
+
+  <label>Channel:
+    <select name="channel">
+      {% for c in axis_channel %}
+      <option value="{{ c }}" {% if c == event.channel %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </label><br>
+
+  <label>Intensity:
+    <select name="intensity">
+      {% for i in axis_intensity %}
+      <option value="{{ i }}" {% if i == event.intensity %}selected{% endif %}>{{ i }}</option>
+      {% endfor %}
+    </select>
+  </label><br>
+
+  <label>Status:
+    <select name="status">
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if s == event.status %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label><br>
+
+  <label>Summary (EL):<br><textarea name="summary_el" rows="3" cols="60">{{ event.summary_el or "" }}</textarea></label><br>
+  <label>Summary (EN):<br><textarea name="summary_en" rows="3" cols="60">{{ event.summary_en or "" }}</textarea></label><br>
+
+  <label>Primary latitude: <input type="text" name="lat" value="{{ event.lat if event.lat is not none else '' }}"></label>
+  <label>Primary longitude: <input type="text" name="lon" value="{{ event.lon if event.lon is not none else '' }}"></label>
+  <label>Region code: <input type="text" name="region_code" value="{{ event.region_code or '' }}"></label><br>
+
+  <fieldset>
+    <legend>Locations</legend>
+    <table>
+      <tr><th>Lat</th><th>Lon</th><th>Name</th><th>City</th><th>Primary</th><th>Delete</th></tr>
+      {% for loc in locations %}
+      <tr>
+        <td><input type="text" name="loc_lat" value="{{ loc.lat }}"></td>
+        <td><input type="text" name="loc_lon" value="{{ loc.lon }}"></td>
+        <td><input type="text" name="loc_name" value="{{ loc.location_name or '' }}"></td>
+        <td><input type="text" name="loc_city" value="{{ loc.city or '' }}"></td>
+        <td><input type="checkbox" name="loc_is_primary" value="{{ loop.index0 }}" {% if loc.is_primary %}checked{% endif %}></td>
+        <td>
+          <input type="checkbox" name="loc_delete" value="{{ loop.index0 }}">
+          <input type="hidden" name="loc_id" value="{{ loc.id }}">
+        </td>
+      </tr>
+      {% endfor %}
+      {% for _ in range(2) %}
+      <tr>
+        <td><input type="text" name="loc_lat" value=""></td>
+        <td><input type="text" name="loc_lon" value=""></td>
+        <td><input type="text" name="loc_name" value=""></td>
+        <td><input type="text" name="loc_city" value=""></td>
+        <td><input type="checkbox" name="loc_is_primary" value="{{ loop.index0 + locations|length }}"></td>
+        <td><input type="hidden" name="loc_id" value=""></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </fieldset>
+
+  <button type="submit">Save</button>
+</form>
+
+<form method="post" action="/events/{{ event.id }}/delete" onsubmit="return confirm('Delete this event permanently?');">
+  <button type="submit">Delete event</button>
+</form>
+
+<h2>Linked articles</h2>
+<ul>
+  {% for a in articles %}
+  <li><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a> — {{ a.source_type }} — {{ a.published_at }}</li>
+  {% endfor %}
+</ul>
+{% endblock %}
