@@ -32,6 +32,46 @@ services:
       sh -c "uv run alembic upgrade head &&
              uv run uvicorn api.main:app --host 0.0.0.0 --port 8000"
 
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/social_reaction
+      PIPELINE_MODE: ${PIPELINE_MODE:-scrape_only}
+      PIPELINE_INTERVAL_SECONDS: ${PIPELINE_INTERVAL_SECONDS:-1800}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      OLLAMA_API_BASE: http://host.docker.internal:11434
+      NOMINATIM_URL: http://nominatim:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "uv run alembic upgrade head &&
+             uv run python -m worker.run"
+
+  admin:
+    build:
+      context: .
+      dockerfile: docker/admin/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/social_reaction
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY}
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "uv run alembic upgrade head &&
+             uv run uvicorn admin.main:app --host 0.0.0.0 --port 8001"
+
   caddy:
     image: caddy:2-alpine
     ports:
