@@ -8,7 +8,7 @@ import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
 import { ClusterDetailPanel } from "../components/cluster";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock, EditorialBlock } from "../components/shell";
+import { HeaderBlock, EditorialBlock, UserControls } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import type { Region } from "../i18n/regions";
 import styles from "./MainView.module.css";
@@ -126,6 +126,10 @@ export function MainView() {
 
       <div className={styles.footerBar}>
         <Footer />
+      </div>
+
+      <div className={styles.topRightControls}>
+        <UserControls />
       </div>
 
       {!seen && <OnboardingOverlay onDismiss={dismiss} />}

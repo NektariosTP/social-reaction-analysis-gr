@@ -138,3 +138,10 @@
   bottom: 0;
   z-index: 2;
 }
+
+.topRightControls {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 3;
+}
