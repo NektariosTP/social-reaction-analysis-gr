@@ -51,6 +51,7 @@ export class Map {
     return 5.6;
   }
   easeTo() {}
+  flyTo() {}
 }
 
 export default { Map, Marker, NavigationControl, FullscreenControl };

@@ -9,17 +9,20 @@ import { MapView, MapLegend } from "../components/map";
 import { StoryCard } from "../components/cards";
 import { ClusterDetailPanel } from "../components/cluster";
 import { OnboardingOverlay } from "../components/onboarding";
+import { HeaderBlock } from "../components/shell";
 import { Spinner, ErrorState, EmptyState } from "../components/common";
+import type { Region } from "../i18n/regions";
 import styles from "./MainView.module.css";
 
 export function MainView() {
   const { t } = useTranslation();
   const [lang] = useLang();
   const { seen, dismiss } = useOnboardingSeen();
-  const { filters } = useFilterState();
+  const { filters, setFilters, toggleInList } = useFilterState();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [flyTo, setFlyTo] = useState<{ center: [number, number]; zoom?: number } | null>(null);
 
   const dateFrom = timeRangeToDateFrom(filters.timeRange);
   const eventsQuery = useEvents({
@@ -56,7 +59,12 @@ export function MainView() {
         ) : geojsonQuery.isError ? (
           <ErrorState />
         ) : (
-          <MapView features={geoFeatures} onSelectEvent={setSelectedEventId} selectedId={selectedEventId} />
+          <MapView
+            features={geoFeatures}
+            onSelectEvent={setSelectedEventId}
+            selectedId={selectedEventId}
+            flyTo={flyTo}
+          />
         )}
         <MapLegend />
         {selectedEventId && (
@@ -65,21 +73,14 @@ export function MainView() {
       </div>
 
       <div className={styles.blocks}>
-        <div className={styles.headerBlock}>
-          <div className={styles.brandRow}>
-            <span className={styles.mark}>R</span>
-            <span className={styles.brandName}>{t("brand")}</span>
-            <span className={styles.live}>● {t("live")}</span>
-          </div>
-          <div className={styles.searchRow}>
-            <input
-              className={styles.searchInput}
-              placeholder={t("search.placeholder")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+        <HeaderBlock
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelectRegion={(region: Region) => setFlyTo({ center: region.center, zoom: 8 })}
+          filters={filters}
+          onToggleFilterValue={toggleInList}
+          onSetFilters={setFilters}
+        />
 
         <div className={styles.editorialBlock}>
           <div className={styles.kpiStrip}>

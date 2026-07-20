@@ -18,9 +18,10 @@ interface MapViewProps {
   features: GeoJsonFeature[];
   onSelectEvent: (id: string) => void;
   selectedId?: string | null;
+  flyTo?: { center: [number, number]; zoom?: number } | null;
 }
 
-export function MapView({ features, onSelectEvent, selectedId }: MapViewProps) {
+export function MapView({ features, onSelectEvent, selectedId, flyTo }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -103,6 +104,12 @@ export function MapView({ features, onSelectEvent, selectedId }: MapViewProps) {
       markersRef.current = [];
     };
   }, [features, selectedId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !flyTo) return;
+    map.flyTo({ center: flyTo.center, zoom: flyTo.zoom ?? 8 });
+  }, [flyTo]);
 
   return (
     <div className={styles.container}>
