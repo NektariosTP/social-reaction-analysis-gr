@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
-import { createMarkerElement } from "./markerElement";
+import { buildClusterIndex, getClusterPoints } from "./clustering";
+import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
 import styles from "./MapView.module.css";
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
@@ -48,26 +49,51 @@ export function MapView({ features, onSelectEvent, selectedId }: MapViewProps) {
     const map = mapRef.current;
     if (!map) return;
 
-    const attach = () => {
+    const index = buildClusterIndex(features);
+
+    const render = () => {
       markersRef.current.forEach((m) => m.remove());
-      markersRef.current = features
-        .filter((f) => f.geometry.coordinates.length === 2)
-        .map((feature) => {
-          const [lon, lat] = feature.geometry.coordinates;
-          const el = createMarkerElement(
-            feature.properties,
-            feature.properties.article_count,
-            feature.properties.id === selectedId,
-          );
-          el.addEventListener("click", () => onSelectEventRef.current(feature.properties.id));
-          return new maplibregl.Marker({ element: el }).setLngLat([lon, lat]).addTo(map);
-        });
+      const bounds = map.getBounds().toArray();
+      const bbox: [number, number, number, number] = [
+        bounds[0][0],
+        bounds[0][1],
+        bounds[1][0],
+        bounds[1][1],
+      ];
+      const points = getClusterPoints(index, bbox, map.getZoom());
+
+      markersRef.current = points.map((point) => {
+        if (point.isCluster) {
+          const el = createClusterMarkerElement(point.pointCount ?? 0);
+          el.addEventListener("click", () => {
+            const zoom = index.getClusterExpansionZoom(point.clusterId!);
+            map.easeTo({ center: point.coordinates, zoom });
+          });
+          return new maplibregl.Marker({ element: el }).setLngLat(point.coordinates).addTo(map);
+        }
+        const feature = point.feature!;
+        const el = createMarkerElement(
+          feature.properties,
+          feature.properties.article_count,
+          feature.properties.id === selectedId,
+        );
+        el.addEventListener("click", () => onSelectEventRef.current(feature.properties.id));
+        return new maplibregl.Marker({ element: el }).setLngLat(point.coordinates).addTo(map);
+      });
+    };
+
+    const attach = () => {
+      render();
+      map.on("moveend", render);
+      map.on("zoomend", render);
     };
 
     if (map.isStyleLoaded()) attach();
     else map.once("load", attach);
 
     return () => {
+      map.off("moveend", render);
+      map.off("zoomend", render);
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
     };

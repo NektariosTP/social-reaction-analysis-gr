@@ -1,4 +1,5 @@
-import { markerStyle, type MarkerProperties } from "./markerStyle";
+import { markerStyle, MARKER_DIAMETER, type MarkerProperties } from "./markerStyle";
+import { INTENSITY_COLOR_NEUTRAL } from "./bubbleColors";
 import styles from "./MapView.module.css";
 
 export function createMarkerElement(
@@ -18,5 +19,16 @@ export function createMarkerElement(
     el.style.outline = "2px solid var(--color-accent)";
     el.style.outlineOffset = "2px";
   }
+  return el;
+}
+
+export function createClusterMarkerElement(pointCount: number): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = styles.bubble;
+  el.style.width = `${MARKER_DIAMETER}px`;
+  el.style.height = `${MARKER_DIAMETER}px`;
+  el.style.background = INTENSITY_COLOR_NEUTRAL;
+  el.style.borderStyle = "solid";
+  el.textContent = String(pointCount);
   return el;
 }
