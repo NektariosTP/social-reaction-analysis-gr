@@ -6,3 +6,6 @@ import i18n from "../i18n";
 beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
+
+// jsdom doesn't implement scrollIntoView.
+Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});

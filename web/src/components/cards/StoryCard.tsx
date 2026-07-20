@@ -11,16 +11,26 @@ import styles from "./StoryCard.module.css";
 interface StoryCardProps {
   event: EventSummary;
   variant?: "featured" | "compact";
+  onOpen?: (id: string) => void;
 }
 
-export function StoryCard({ event, variant = "compact" }: StoryCardProps) {
+export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const summary = lang === "el" ? event.summary_el : event.summary_en;
   const isFeatured = variant === "featured";
 
   return (
-    <Link to={`/cluster/${event.id}`} className={styles.card}>
+    <Link
+      to={`/cluster/${event.id}`}
+      className={styles.card}
+      onClick={(e) => {
+        if (onOpen && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+          e.preventDefault();
+          onOpen(event.id);
+        }
+      }}
+    >
       <div className={styles.tags}>
         {event.action_forms.map((v) => (
           <AxisTag key={v} value={v} variant="action" />

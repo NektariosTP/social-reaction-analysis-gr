@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
@@ -9,9 +8,10 @@ import styles from "./ClusterDetailPanel.module.css";
 interface ClusterDetailPanelProps {
   eventId: string;
   onClose: () => void;
+  onReadMore: (id: string) => void;
 }
 
-export function ClusterDetailPanel({ eventId, onClose }: ClusterDetailPanelProps) {
+export function ClusterDetailPanel({ eventId, onClose, onReadMore }: ClusterDetailPanelProps) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const { data: event, isLoading, isError } = useEvent(eventId);
@@ -70,9 +70,9 @@ export function ClusterDetailPanel({ eventId, onClose }: ClusterDetailPanelProps
               </div>
             ))}
 
-            <Link to={`/cluster/${event.id}`} className={styles.ctaBtn}>
-              {t("card.viewFullAnalysis")}
-            </Link>
+            <button className={styles.ctaBtn} onClick={() => onReadMore(event.id)}>
+              {t("card.readMore")}
+            </button>
           </>
         )}
       </div>

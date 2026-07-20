@@ -17,7 +17,7 @@ vi.mock("../api/queries", () => ({
   useEvents: () => ({ data: [], isLoading: false, isError: false }),
   useEventsGeoJSON: () => ({ data: { features: [] }, isLoading: false, isError: false }),
   useRecentEventsCount: () => ({ data: 0 }),
-  useEvent: () => ({ data: undefined, isLoading: false, isError: false }),
+  useEvent: () => ({ data: undefined, isLoading: true, isError: false }),
   applyClientFilters: (entities: unknown[]) => entities,
 }));
 
@@ -28,6 +28,7 @@ function renderMainView(initialPath = "/") {
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/" element={<MainView />} />
+          <Route path="/cluster/:id" element={<MainView />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -41,5 +42,12 @@ describe("MainView layout", () => {
     expect(screen.queryByText("Split + Editorial")).not.toBeInTheDocument();
     expect(screen.queryByText("Immersive")).not.toBeInTheDocument();
     expect(screen.getByText("GitHub")).toBeInTheDocument();
+  });
+});
+
+describe("MainView routed detail state", () => {
+  it("renders the editorial block in detail mode when mounted at /cluster/:id", () => {
+    renderMainView("/cluster/evt-1");
+    expect(screen.queryByText(/today's reactions/i)).not.toBeInTheDocument();
   });
 });

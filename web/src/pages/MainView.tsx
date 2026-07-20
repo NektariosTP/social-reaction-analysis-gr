@@ -1,28 +1,51 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEvents, useEventsGeoJSON, useRecentEventsCount, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
 import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
-import { StoryCard } from "../components/cards";
 import { ClusterDetailPanel } from "../components/cluster";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock } from "../components/shell";
-import { Spinner, ErrorState, EmptyState } from "../components/common";
+import { HeaderBlock, EditorialBlock } from "../components/shell";
+import { Spinner, ErrorState } from "../components/common";
 import type { Region } from "../i18n/regions";
 import styles from "./MainView.module.css";
 
 export function MainView() {
-  const { t } = useTranslation();
   const [lang] = useLang();
   const { seen, dismiss } = useOnboardingSeen();
   const { filters, setFilters, toggleInList } = useFilterState();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ center: [number, number]; zoom?: number } | null>(null);
+
+  const { id: routeClusterId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  const mode: "list" | "detail" = routeClusterId ? "detail" : "list";
+  const mapSelectedId = previewId ?? routeClusterId ?? null;
+
+  function handleSelectEventFromMap(id: string) {
+    if (mode === "detail") navigate(`/cluster/${id}`);
+    else setPreviewId(id);
+  }
+  function handleReadMore(id: string) {
+    setPreviewId(null);
+    navigate(`/cluster/${id}`);
+  }
+  function handleClosePreview() {
+    setPreviewId(null);
+  }
+  function handleSelectEventFromList(id: string) {
+    setPreviewId(null);
+    navigate(`/cluster/${id}`);
+  }
+  function handleBack() {
+    navigate("/");
+  }
 
   const dateFrom = timeRangeToDateFrom(filters.timeRange);
   const eventsQuery = useEvents({
@@ -61,14 +84,14 @@ export function MainView() {
         ) : (
           <MapView
             features={geoFeatures}
-            onSelectEvent={setSelectedEventId}
-            selectedId={selectedEventId}
+            onSelectEvent={handleSelectEventFromMap}
+            selectedId={mapSelectedId}
             flyTo={flyTo}
           />
         )}
         <MapLegend />
-        {selectedEventId && (
-          <ClusterDetailPanel eventId={selectedEventId} onClose={() => setSelectedEventId(null)} />
+        {mode === "list" && previewId && (
+          <ClusterDetailPanel eventId={previewId} onClose={handleClosePreview} onReadMore={handleReadMore} />
         )}
       </div>
 
@@ -83,36 +106,21 @@ export function MainView() {
         />
 
         <div className={styles.editorialBlock}>
-          <div className={styles.kpiStrip}>
-            <div className={styles.kpiCell}>
-              <div className={styles.kpiValue}>{eventsQuery.isLoading ? "—" : filteredEvents.length}</div>
-              <div className={styles.kpiLabel}>{t("kpi.active")}</div>
-            </div>
-            <div className={styles.kpiCell}>
-              <div className={styles.kpiValue}>{locationsCount}</div>
-              <div className={styles.kpiLabel}>{t("kpi.locations")}</div>
-            </div>
-            <div className={styles.kpiCell}>
-              <div className={styles.kpiValue}>+{recentCountQuery.data ?? "—"}</div>
-              <div className={styles.kpiLabel}>{t("kpi.newLastHour")}</div>
-            </div>
-          </div>
-          <div className={styles.feedHeader}>
-            <span>{t("feed.title")}</span>
-            <span>
-              {t("feed.nlpClustered")} · {filteredEvents.length}
-            </span>
-          </div>
-          <div className={styles.feedList}>
-            {eventsQuery.isLoading && <Spinner />}
-            {eventsQuery.isError && <ErrorState />}
-            {!eventsQuery.isLoading && !eventsQuery.isError && filteredEvents.length === 0 && (
-              <EmptyState />
-            )}
-            {filteredEvents.map((e, i) => (
-              <StoryCard key={e.id} event={e} variant={i === 0 ? "featured" : "compact"} />
-            ))}
-          </div>
+          <EditorialBlock
+            mode={mode}
+            kpi={{
+              active: eventsQuery.isLoading ? "—" : filteredEvents.length,
+              locations: locationsCount,
+              newLastHour: recentCountQuery.data ?? "—",
+            }}
+            events={filteredEvents}
+            eventsLoading={eventsQuery.isLoading}
+            eventsError={eventsQuery.isError}
+            highlightedEventId={previewId}
+            onSelectEvent={handleSelectEventFromList}
+            detailEventId={routeClusterId ?? ""}
+            onBack={handleBack}
+          />
         </div>
       </div>
 

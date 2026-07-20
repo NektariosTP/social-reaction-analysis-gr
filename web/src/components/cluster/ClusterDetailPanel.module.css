@@ -99,6 +99,9 @@
 .ctaBtn {
   display: block;
   width: 100%;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
   text-align: center;
   padding: 10px;
   margin-top: var(--space-3);
