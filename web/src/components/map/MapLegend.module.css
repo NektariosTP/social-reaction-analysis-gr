@@ -1,23 +1,46 @@
 .legend {
   position: absolute;
-  left: var(--space-3);
-  bottom: var(--space-3);
+  right: var(--space-3);
+  bottom: 100px; /* clears the default NavigationControl + FullscreenControl stack in the same corner */
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  padding: var(--space-2) var(--space-3);
   font-size: 11px;
   z-index: 2;
+  max-width: 220px;
 }
 
-.title {
+.toggle {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  margin-bottom: 6px;
+  text-align: left;
+}
+
+.content {
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+.section {
+  margin-bottom: var(--space-2);
+}
+
+.sectionTitle {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
 }
 
 .row {
@@ -27,11 +50,24 @@
   margin-bottom: 3px;
 }
 
-.dot {
-  width: 9px;
-  height: 9px;
+.swatch {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 2px solid;
+  flex-shrink: 0;
+}
+
+.borderSample {
+  width: 14px;
+  height: 0;
+  border-top: 2px solid var(--color-axis3);
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 12px;
+  width: 14px;
+  text-align: center;
   flex-shrink: 0;
 }
 

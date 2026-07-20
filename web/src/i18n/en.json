@@ -16,6 +16,8 @@
   "filters.axis3": "Channel",
   "filters.axis4": "Intensity",
   "filters.time": "Time range",
+  "legend.title": "Legend",
+  "legend.countHint": "Number on marker = article count",
   "time.24h": "Last 24h",
   "time.7d": "Last 7 days",
   "time.30d": "Last 30 days",

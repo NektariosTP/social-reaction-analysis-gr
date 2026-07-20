@@ -38,6 +38,11 @@ export function MapView({ features, onSelectEvent, selectedId }: MapViewProps) {
       zoom: GREECE_ZOOM,
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    const fullscreenTarget = document.getElementById("root") ?? undefined;
+    map.addControl(
+      new maplibregl.FullscreenControl({ container: fullscreenTarget }),
+      "bottom-right",
+    );
     mapRef.current = map;
     return () => {
       map.remove();
