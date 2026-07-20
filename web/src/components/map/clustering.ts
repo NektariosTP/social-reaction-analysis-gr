@@ -37,18 +37,18 @@ export function getClusterPoints(
 ): ClusterPoint[] {
   return index.getClusters(bbox, Math.round(zoom)).map((c) => {
     const coordinates = c.geometry.coordinates as [number, number];
-    if (c.properties.cluster) {
+    if ("cluster" in c.properties && c.properties.cluster) {
       return {
         isCluster: true,
-        clusterId: c.properties.cluster_id as number,
-        pointCount: c.properties.point_count as number,
+        clusterId: c.properties.cluster_id,
+        pointCount: c.properties.point_count,
         coordinates,
       };
     }
     return {
       isCluster: false,
       coordinates,
-      feature: (c.properties as unknown as IndexedProperties).__feature,
+      feature: c.properties.__feature,
     };
   });
 }
