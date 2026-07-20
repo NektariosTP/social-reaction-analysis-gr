@@ -1,29 +1,23 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useEvents, useEventsGeoJSON, useRecentEventsCount } from "../api/queries";
-import { applyClientFilters } from "../api/queries";
+import { useEvents, useEventsGeoJSON, useRecentEventsCount, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
 import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
-import { TopBar, Footer } from "../components/layout";
+import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
-import { FilterPanel } from "../components/filters";
 import { StoryCard } from "../components/cards";
 import { ClusterDetailPanel } from "../components/cluster";
 import { OnboardingOverlay } from "../components/onboarding";
 import { Spinner, ErrorState, EmptyState } from "../components/common";
 import styles from "./MainView.module.css";
 
-type ViewMode = "split" | "immersive";
-
 export function MainView() {
   const { t } = useTranslation();
   const [lang] = useLang();
   const { seen, dismiss } = useOnboardingSeen();
-  const { filters, setFilters, toggleInList } = useFilterState();
+  const { filters } = useFilterState();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("split");
-  const [filterOpen, setFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -50,40 +44,13 @@ export function MainView() {
     filters,
   ).map((p) => p.feature);
 
-  // region_code isn't populated for every event yet (geocoding pipeline gap) —
-  // fall back to rounded coordinates so the KPI reflects real geocoded spread
-  // rather than reporting zero whenever region_code is null.
   const locationKey = (e: (typeof events)[number]) =>
     e.region_code ?? (e.lat != null && e.lon != null ? `${e.lat.toFixed(2)},${e.lon.toFixed(2)}` : null);
   const locationsCount = new Set(events.map(locationKey).filter(Boolean)).size;
 
-  const kpiStrip = (
-    <>
-      <div>
-        <b>{eventsQuery.isLoading ? "—" : filteredEvents.length}</b> {t("kpi.active")}
-      </div>
-      <div>
-        <b>{locationsCount}</b> {t("kpi.locations")}
-      </div>
-      <div>
-        +<b>{recentCountQuery.data ?? "—"}</b> {t("kpi.newLastHour")}
-      </div>
-    </>
-  );
-
-  const searchInput = (
-    <input
-      className={styles.searchInput}
-      style={viewMode === "immersive" ? { width: "100%" } : undefined}
-      placeholder={t("search.placeholder")}
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-    />
-  );
-
-  if (viewMode === "immersive") {
-    return (
-      <div className={styles.immersive}>
+  return (
+    <div className={styles.page}>
+      <div className={styles.mapLayer}>
         {geojsonQuery.isLoading ? (
           <Spinner />
         ) : geojsonQuery.isError ? (
@@ -91,58 +58,30 @@ export function MainView() {
         ) : (
           <MapView features={geoFeatures} onSelectEvent={setSelectedEventId} selectedId={selectedEventId} />
         )}
-        <button className={styles.floatingBackBtn} onClick={() => setViewMode("split")}>
-          ⊞ {t("view.split")}
-        </button>
-        <div className={styles.floatingTop}>{searchInput}</div>
-        <div className={styles.floatingFeed}>
-          {filteredEvents.slice(0, 5).map((e) => (
-            <StoryCard key={e.id} event={e} variant="compact" />
-          ))}
-        </div>
-        <div className={styles.floatingKpi}>{kpiStrip}</div>
         <MapLegend />
         {selectedEventId && (
           <ClusterDetailPanel eventId={selectedEventId} onClose={() => setSelectedEventId(null)} />
         )}
-        {!seen && <OnboardingOverlay onDismiss={dismiss} />}
       </div>
-    );
-  }
 
-  return (
-    <div className={styles.page}>
-      <TopBar />
-      <div className={styles.viewTabs}>
-        <button className={`${styles.viewTab} ${styles.viewTabActive}`}>{t("view.split")}</button>
-        <button className={styles.viewTab} onClick={() => setViewMode("immersive")}>
-          {t("view.immersive")}
-        </button>
-      </div>
-      <div className={styles.searchRow}>
-        {searchInput}
-        <button className={styles.filterToggle} onClick={() => setFilterOpen((o) => !o)}>
-          {filterOpen ? "⋀" : "⋁"} {t("filters.title")}
-        </button>
-      </div>
-      {filterOpen && (
-        <FilterPanel filters={filters} onToggle={toggleInList} onSetFilters={setFilters} />
-      )}
-      <div className={styles.split}>
-        <div className={styles.mapPane}>
-          {geojsonQuery.isLoading ? (
-            <Spinner />
-          ) : geojsonQuery.isError ? (
-            <ErrorState />
-          ) : (
-            <MapView features={geoFeatures} onSelectEvent={setSelectedEventId} selectedId={selectedEventId} />
-          )}
-          <MapLegend />
-          {selectedEventId && (
-            <ClusterDetailPanel eventId={selectedEventId} onClose={() => setSelectedEventId(null)} />
-          )}
+      <div className={styles.blocks}>
+        <div className={styles.headerBlock}>
+          <div className={styles.brandRow}>
+            <span className={styles.mark}>R</span>
+            <span className={styles.brandName}>{t("brand")}</span>
+            <span className={styles.live}>● {t("live")}</span>
+          </div>
+          <div className={styles.searchRow}>
+            <input
+              className={styles.searchInput}
+              placeholder={t("search.placeholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
-        <div className={styles.editorialPane}>
+
+        <div className={styles.editorialBlock}>
           <div className={styles.kpiStrip}>
             <div className={styles.kpiCell}>
               <div className={styles.kpiValue}>{eventsQuery.isLoading ? "—" : filteredEvents.length}</div>
@@ -175,7 +114,11 @@ export function MainView() {
           </div>
         </div>
       </div>
-      <Footer />
+
+      <div className={styles.footerBar}>
+        <Footer />
+      </div>
+
       {!seen && <OnboardingOverlay onDismiss={dismiss} />}
     </div>
   );
