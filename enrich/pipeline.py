@@ -167,9 +167,14 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
 
     Picks up:
       - status='detected' (never enriched)
-      - status='pending_review' or 'enriched' with NULL summary_el or primary_location
-        (partial failure)
+      - status='pending_review' or 'enriched' with NULL channel, summary_el, or
+        primary_location (partial failure)
     Skips steps already completed to avoid unnecessary LLM calls.
+
+    Uses `channel IS NULL` (not `action_forms IS NULL`) to detect "not yet
+    classified": action_forms is `TEXT[] NOT NULL DEFAULT '{}'`, so it's never
+    actually NULL. channel has no default and stays NULL until classification
+    runs, then is always set to a non-null value — a reliable signal.
     """
     _engine = engine or create_async_engine(settings.database_url)
     session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
@@ -182,13 +187,13 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
         result = await session.execute(
             text("""
                 SELECT id, centroid,
-                       action_forms IS NULL AS needs_classify,
+                       channel IS NULL AS needs_classify,
                        summary_el IS NULL    AS needs_summary,
                        primary_location IS NULL AS needs_geocode
                 FROM events
                 WHERE status = 'detected'
                    OR (status IN ('pending_review', 'enriched')
-                       AND (summary_el IS NULL OR primary_location IS NULL))
+                       AND (channel IS NULL OR summary_el IS NULL OR primary_location IS NULL))
             """)
         )
         events = result.all()

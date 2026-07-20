@@ -4,7 +4,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from enrich.classify import ClassificationResult
-from enrich.pipeline import _enrich_event
+from enrich.pipeline import _enrich_event, run_enrich_pipeline
 
 
 def _fake_event(event_id: str = "evt-1") -> MagicMock:
@@ -54,3 +54,25 @@ async def test_enrich_event_sets_status_pending_review_not_enriched() -> None:
     executed_sql = str(update_call[0][0])
     assert "status = 'pending_review'" in executed_sql
     assert "status = 'enriched'" not in executed_sql
+
+
+async def test_run_enrich_pipeline_uses_channel_is_null_for_needs_classify() -> None:
+    """action_forms is TEXT[] NOT NULL DEFAULT '{}', so it's never NULL — using it
+    as the needs_classify signal means classification never runs. channel has no
+    default and is the reliable signal instead."""
+    mock_session = AsyncMock()
+    result = MagicMock()
+    result.all.return_value = []
+    mock_session.execute = AsyncMock(return_value=result)
+    mock_session.commit = AsyncMock()
+
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("enrich.pipeline.async_sessionmaker", return_value=mock_session_factory):
+        await run_enrich_pipeline(engine=MagicMock())
+
+    executed_sql = str(mock_session.execute.call_args_list[0][0][0])
+    assert "channel IS NULL AS needs_classify" in executed_sql
+    assert "action_forms IS NULL" not in executed_sql

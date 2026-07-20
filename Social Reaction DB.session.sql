@@ -8,8 +8,7 @@ SELECT
     e.intensity,
     e.classification_confidence,
     a.title,
-    e.summary_el,curl -s "http://localhost/events?channel=Φυσικό%20(offline)" | python -m json.tool
-
+    e.summary_el,
     e.summary_en,
     ST_Y(e.primary_location::geometry)           AS lat,
     ST_X(e.primary_location::geometry)           AS lon,
