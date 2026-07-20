@@ -20,6 +20,8 @@
 }
 
 .channel {
-  border: 1px dashed var(--color-axis3);
+  border-width: 1px;
+  border-color: var(--color-axis3);
+  border-style: dashed; /* default; overridden inline per channel value */
   color: var(--color-axis3);
 }
