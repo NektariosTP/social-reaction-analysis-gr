@@ -97,6 +97,13 @@
   margin-bottom: 4px;
 }
 
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
 .axisNote {
   font-size: 9px;
   color: var(--color-text-muted);
