@@ -1,20 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useLang } from "../../hooks/useLang";
-import { axisLabel } from "../../i18n";
 import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY } from "../../i18n/taxonomy";
+import { AxisValueChip, type ChipAxis } from "../common/AxisValueChip";
 import styles from "./OnboardingOverlay.module.css";
 
-const AXES = [
-  { titleKey: "filters.axis1", dict: ACTION_FORM },
-  { titleKey: "filters.axis2", dict: THEMATIC_FIELD },
-  { titleKey: "filters.axis3", dict: CHANNEL },
-  { titleKey: "filters.axis4", dict: INTENSITY },
-] as const;
+const AXES: { titleKey: string; axis: ChipAxis; values: string[] }[] = [
+  { titleKey: "filters.axis1", axis: "action", values: Object.keys(ACTION_FORM) },
+  { titleKey: "filters.axis2", axis: "theme", values: Object.keys(THEMATIC_FIELD) },
+  { titleKey: "filters.axis3", axis: "channel", values: Object.keys(CHANNEL) },
+  { titleKey: "filters.axis4", axis: "intensity", values: Object.keys(INTENSITY) },
+];
 
 export function OnboardingOverlay({ onDismiss }: { onDismiss: () => void }) {
   const { t } = useTranslation();
-  const [lang] = useLang();
   const navigate = useNavigate();
 
   return (
@@ -34,11 +32,13 @@ export function OnboardingOverlay({ onDismiss }: { onDismiss: () => void }) {
         <div className={styles.axesBox}>
           <div className={styles.axesTitle}>{t("onboarding.axesTitle")}</div>
           <div className={styles.axesGrid}>
-            {AXES.map(({ titleKey, dict }) => (
+            {AXES.map(({ titleKey, axis, values }) => (
               <div key={titleKey}>
                 <div className={styles.axisLabel}>{t(titleKey)}</div>
-                <div className={styles.axisValues}>
-                  {Object.keys(dict).map((v) => axisLabel(v, lang)).join(" · ")}
+                <div className={styles.chipRow} data-testid={`axis-${axis}-values`}>
+                  {values.map((v) => (
+                    <AxisValueChip key={v} axis={axis} value={v} />
+                  ))}
                 </div>
               </div>
             ))}

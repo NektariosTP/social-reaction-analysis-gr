@@ -96,9 +96,10 @@
   margin-bottom: 4px;
 }
 
-.axisValues {
-  font-size: 11px;
-  line-height: 1.5;
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .ctaRow {
