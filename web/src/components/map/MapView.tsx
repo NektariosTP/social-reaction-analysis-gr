@@ -12,7 +12,8 @@ const STYLE_URL = MAPTILER_KEY
   : "https://demotiles.maplibre.org/style.json";
 
 const GREECE_CENTER: [number, number] = [23.7, 38.5];
-const GREECE_ZOOM = 5.6;
+const GREECE_ZOOM = 7.5;
+const GREECE_MIN_ZOOM = 5.6;
 
 interface MapViewProps {
   features: GeoJsonFeature[];
@@ -37,6 +38,7 @@ export function MapView({ features, onSelectEvent, selectedId, flyTo }: MapViewP
       style: STYLE_URL,
       center: GREECE_CENTER,
       zoom: GREECE_ZOOM,
+      minZoom: GREECE_MIN_ZOOM,
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     const fullscreenTarget = document.getElementById("root") ?? undefined;

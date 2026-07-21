@@ -9,3 +9,8 @@ beforeAll(async () => {
 
 // jsdom doesn't implement scrollIntoView.
 Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
+
+// jsdom doesn't implement window.URL.createObjectURL
+if (!window.URL.createObjectURL) {
+  window.URL.createObjectURL = () => "blob:mock";
+}

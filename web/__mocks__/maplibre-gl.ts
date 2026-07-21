@@ -27,9 +27,16 @@ export class FullscreenControl {}
 
 type Handler = () => void;
 
+let lastMapInstance: Map | null = null;
+
 export class Map {
   private handlers: Record<string, Handler[]> = {};
-  constructor(_opts: unknown) {}
+  constructor(public opts: Record<string, unknown>) {
+    lastMapInstance = this;
+  }
+  static getLastInstance(): Map | null {
+    return lastMapInstance;
+  }
   addControl() {
     return this;
   }
