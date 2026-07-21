@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { AppShell } from "../components/layout";
 import { AxisValueChip } from "../components/common/AxisValueChip";
+import { AxisReferenceBlock } from "../components/common";
 import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY } from "../i18n/taxonomy";
 import styles from "./AboutPage.module.css";
 
@@ -75,32 +76,28 @@ export function AboutPage() {
 
         <div className={styles.col}>
           <div className={styles.colLabel}>The 4-axis classification system</div>
-          <div className={styles.axisBlock} style={{ borderColor: "var(--color-axis1)" }}>
-            <div className={styles.axisTitle}>{t("filters.axis1")} · multi-label</div>
+          <AxisReferenceBlock label={`${t("filters.axis1")} · multi-label`} color="var(--color-axis1)">
             <div className={styles.chipRow}>
               {Object.keys(ACTION_FORM).map((v) => (
                 <AxisValueChip key={v} axis="action" value={v} />
               ))}
             </div>
-          </div>
-          <div className={styles.axisBlock} style={{ borderColor: "var(--color-axis2)" }}>
-            <div className={styles.axisTitle}>{t("filters.axis2")} · multi-label</div>
+          </AxisReferenceBlock>
+          <AxisReferenceBlock label={`${t("filters.axis2")} · multi-label`} color="var(--color-axis2)">
             <div className={styles.chipRow}>
               {Object.keys(THEMATIC_FIELD).map((v) => (
                 <AxisValueChip key={v} axis="theme" value={v} />
               ))}
             </div>
-          </div>
-          <div className={styles.axisBlock} style={{ borderColor: "var(--color-axis3)" }}>
-            <div className={styles.axisTitle}>{t("filters.axis3")} · single-select</div>
+          </AxisReferenceBlock>
+          <AxisReferenceBlock label={`${t("filters.axis3")} · single-select`} color="var(--color-axis3)">
             <div className={styles.chipRow}>
               {Object.keys(CHANNEL).map((v) => (
                 <AxisValueChip key={v} axis="channel" value={v} />
               ))}
             </div>
-          </div>
-          <div className={styles.axisBlock}>
-            <div className={styles.axisTitle}>{t("filters.axis4")} · ordinal</div>
+          </AxisReferenceBlock>
+          <AxisReferenceBlock label={`${t("filters.axis4")} · ordinal`}>
             <div className={styles.chipRow}>
               {Object.keys(INTENSITY).map((v) => (
                 <AxisValueChip key={v} axis="intensity" value={v} />
@@ -109,7 +106,7 @@ export function AboutPage() {
             <div className={styles.axisNote}>
               Confidence is scored per-axis, not per-label — see a cluster's classification table.
             </div>
-          </div>
+          </AxisReferenceBlock>
         </div>
       </div>
 
