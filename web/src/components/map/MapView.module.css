@@ -10,6 +10,12 @@
   inset: 0;
 }
 
+.container :global(.maplibregl-ctrl-top-right) {
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+}
+
 .bubble {
   display: flex;
   align-items: center;

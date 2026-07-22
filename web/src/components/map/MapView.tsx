@@ -40,11 +40,11 @@ export function MapView({ features, onSelectEvent, selectedId, flyTo }: MapViewP
       zoom: GREECE_ZOOM,
       minZoom: GREECE_MIN_ZOOM,
     });
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     const fullscreenTarget = document.getElementById("root") ?? undefined;
     map.addControl(
       new maplibregl.FullscreenControl({ container: fullscreenTarget }),
-      "bottom-right",
+      "top-right",
     );
     mapRef.current = map;
     return () => {

@@ -1,7 +1,7 @@
 .legend {
   position: absolute;
   right: var(--space-3);
-  bottom: 100px; /* clears the default NavigationControl + FullscreenControl stack in the same corner */
+  bottom: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
