@@ -20,4 +20,9 @@ describe("MapLegend", () => {
     render(<MapLegend />);
     expect(screen.queryByText(/clusters here/i)).not.toBeInTheDocument();
   });
+
+  it("also renders the thematic field axis (previously missing from the legend)", () => {
+    render(<MapLegend />);
+    expect(screen.getByText("Labour")).toBeInTheDocument();
+  });
 });
