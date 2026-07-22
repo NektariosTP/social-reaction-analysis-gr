@@ -98,14 +98,16 @@ export function MainView() {
       </div>
 
       <div className={styles.blocks}>
-        <HeaderBlock
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSelectRegion={(region: Region) => setFlyTo({ center: region.center, zoom: 8 })}
-          filters={filters}
-          onToggleFilterValue={toggleInList}
-          onSetFilters={setFilters}
-        />
+        <div className={styles.headerBlock}>
+          <HeaderBlock
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectRegion={(region: Region) => setFlyTo({ center: region.center, zoom: 8 })}
+            filters={filters}
+            onToggleFilterValue={toggleInList}
+            onSetFilters={setFilters}
+          />
+        </div>
 
         <div className={styles.editorialBlock}>
           <EditorialBlock

@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MainView } from "./MainView";
+import styles from "./MainView.module.css";
 
 vi.mock("../components/map", () => ({
   MapView: () => <div data-testid="mock-map" />,
@@ -23,7 +24,7 @@ vi.mock("../api/queries", () => ({
 
 function renderMainView(initialPath = "/") {
   const queryClient = new QueryClient();
-  render(
+  return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
@@ -42,6 +43,11 @@ describe("MainView layout", () => {
     expect(screen.queryByText("Split + Editorial")).not.toBeInTheDocument();
     expect(screen.queryByText("Immersive")).not.toBeInTheDocument();
     expect(screen.getByText("GitHub")).toBeInTheDocument();
+  });
+
+  it("wraps the header block in the styled container that gives it a background", () => {
+    const { container } = renderMainView();
+    expect(container.querySelector(`.${styles.headerBlock}`)).not.toBeNull();
   });
 });
 

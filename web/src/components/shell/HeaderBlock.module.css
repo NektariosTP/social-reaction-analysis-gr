@@ -1,7 +1,3 @@
-.block {
-  padding: var(--space-3);
-}
-
 .brandRow {
   display: flex;
   align-items: center;

@@ -32,7 +32,7 @@ export function HeaderBlock({
   const { recent, addRecent } = useRecentSearches();
 
   return (
-    <div className={styles.block}>
+    <div>
       <div className={styles.brandRow}>
         <span className={styles.mark}>R</span>
         <span className={styles.brandName}>{t("brand")}</span>
