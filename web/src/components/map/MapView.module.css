@@ -24,3 +24,27 @@
   cursor: pointer;
   box-shadow: var(--shadow-card);
 }
+
+.markerWrapper {
+  position: relative;
+}
+
+.countBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+  border: 1.5px solid var(--color-surface);
+}
