@@ -69,6 +69,8 @@
   "error.generic": "Κάτι πήγε στραβά κατά τη φόρτωση.",
   "mobile.notice": "Το Reaction Map λειτουργεί καλύτερα σε μεγαλύτερη οθόνη. Η έκδοση για κινητά έρχεται σύντομα.",
   "footer.about": "Σχετικά",
-  "footer.methodology": "Μεθοδολογία",
-  "footer.github": "GitHub"
+  "footer.docs": "Τεκμηρίωση",
+  "footer.github": "GitHub",
+  "footer.contact": "Επικοινωνία",
+  "footer.privacy": "Πολιτική Απορρήτου"
 }

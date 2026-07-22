@@ -69,6 +69,8 @@
   "error.generic": "Something went wrong loading this data.",
   "mobile.notice": "Reaction Map is best experienced on a larger screen. A mobile layout is on the way.",
   "footer.about": "About",
-  "footer.methodology": "Methodology",
-  "footer.github": "GitHub"
+  "footer.docs": "Docs",
+  "footer.github": "GitHub",
+  "footer.contact": "Contact",
+  "footer.privacy": "Privacy Policy"
 }
