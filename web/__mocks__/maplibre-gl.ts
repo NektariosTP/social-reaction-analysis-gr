@@ -27,15 +27,12 @@ export class FullscreenControl {}
 
 type Handler = () => void;
 
-let lastMapInstance: Map | null = null;
+export const mapConstructorCalls: Record<string, unknown>[] = [];
 
 export class Map {
   private handlers: Record<string, Handler[]> = {};
   constructor(public opts: Record<string, unknown>) {
-    lastMapInstance = this;
-  }
-  static getLastInstance(): Map | null {
-    return lastMapInstance;
+    mapConstructorCalls.push(opts);
   }
   addControl() {
     return this;
@@ -61,4 +58,4 @@ export class Map {
   flyTo() {}
 }
 
-export default { Map, Marker, NavigationControl, FullscreenControl };
+export default { Map, Marker, NavigationControl, FullscreenControl, mapConstructorCalls };
