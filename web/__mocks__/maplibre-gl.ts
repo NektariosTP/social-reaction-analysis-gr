@@ -25,6 +25,37 @@ export class Marker {
 export class NavigationControl {}
 export class FullscreenControl {}
 
+export class Popup {
+  private container: HTMLElement | null = null;
+  private lngLat: [number, number] = [0, 0];
+  constructor(private options: Record<string, unknown> = {}) {}
+  setLngLat(lngLat: [number, number]) {
+    this.lngLat = lngLat;
+    return this;
+  }
+  getLngLat() {
+    return this.lngLat;
+  }
+  setDOMContent(el: HTMLElement) {
+    this.container = el;
+    return this;
+  }
+  addTo() {
+    if (this.container) document.body.appendChild(this.container);
+    return this;
+  }
+  remove() {
+    this.container?.remove();
+    return this;
+  }
+  on() {
+    return this;
+  }
+  off() {
+    return this;
+  }
+}
+
 type Handler = () => void;
 
 export const mapConstructorCalls: Record<string, unknown>[] = [];
@@ -58,4 +89,4 @@ export class Map {
   flyTo() {}
 }
 
-export default { Map, Marker, NavigationControl, FullscreenControl, mapConstructorCalls };
+export default { Map, Marker, Popup, NavigationControl, FullscreenControl, mapConstructorCalls };
