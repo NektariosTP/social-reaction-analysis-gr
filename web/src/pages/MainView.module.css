@@ -15,7 +15,7 @@
   top: var(--space-3);
   left: var(--space-3);
   z-index: 2;
-  width: 380px;
+  width: clamp(360px, 28vw, 480px);
   max-width: calc(100% - 24px);
   display: flex;
   flex-direction: column;
