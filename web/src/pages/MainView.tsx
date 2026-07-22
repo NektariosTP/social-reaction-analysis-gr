@@ -6,7 +6,6 @@ import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
-import { ClusterDetailPanel } from "../components/cluster";
 import { OnboardingOverlay } from "../components/onboarding";
 import { HeaderBlock, EditorialBlock, UserControls } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
@@ -38,6 +37,10 @@ export function MainView() {
   }
   function handleClosePreview() {
     setPreviewId(null);
+  }
+  function handleClosePopup() {
+    if (mode === "detail") handleBack();
+    else handleClosePreview();
   }
   function handleSelectEventFromList(id: string) {
     setPreviewId(null);
@@ -87,12 +90,11 @@ export function MainView() {
             onSelectEvent={handleSelectEventFromMap}
             selectedId={mapSelectedId}
             flyTo={flyTo}
+            onReadMorePopup={mode === "list" ? handleReadMore : undefined}
+            onClosePopup={handleClosePopup}
           />
         )}
         <MapLegend />
-        {mode === "list" && previewId && (
-          <ClusterDetailPanel eventId={previewId} onClose={handleClosePreview} onReadMore={handleReadMore} />
-        )}
       </div>
 
       <div className={styles.blocks}>

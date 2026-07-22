@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
 import { buildClusterIndex, getClusterPoints } from "./clustering";
 import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
+import { ClusterPopup } from "./ClusterPopup";
 import styles from "./MapView.module.css";
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
@@ -20,12 +21,22 @@ interface MapViewProps {
   onSelectEvent: (id: string) => void;
   selectedId?: string | null;
   flyTo?: { center: [number, number]; zoom?: number } | null;
+  onReadMorePopup?: (id: string) => void;
+  onClosePopup?: () => void;
 }
 
-export function MapView({ features, onSelectEvent, selectedId, flyTo }: MapViewProps) {
+export function MapView({
+  features,
+  onSelectEvent,
+  selectedId,
+  flyTo,
+  onReadMorePopup,
+  onClosePopup,
+}: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
   const onSelectEventRef = useRef(onSelectEvent);
   useEffect(() => {
     onSelectEventRef.current = onSelectEvent;
@@ -47,9 +58,11 @@ export function MapView({ features, onSelectEvent, selectedId, flyTo }: MapViewP
       "top-right",
     );
     mapRef.current = map;
+    setMapInstance(map);
     return () => {
       map.remove();
       mapRef.current = null;
+      setMapInstance(null);
     };
   }, []);
 
@@ -113,9 +126,22 @@ export function MapView({ features, onSelectEvent, selectedId, flyTo }: MapViewP
     map.flyTo({ center: flyTo.center, zoom: flyTo.zoom ?? 8 });
   }, [flyTo]);
 
+  const selectedFeature = selectedId
+    ? features.find((f) => f.properties.id === selectedId)
+    : undefined;
+
   return (
     <div className={styles.container}>
       <div ref={containerRef} className={styles.map} />
+      {mapInstance && selectedId && selectedFeature && onClosePopup && (
+        <ClusterPopup
+          map={mapInstance}
+          eventId={selectedId}
+          coordinates={selectedFeature.geometry.coordinates as [number, number]}
+          onReadMore={onReadMorePopup}
+          onClose={onClosePopup}
+        />
+      )}
     </div>
   );
 }
