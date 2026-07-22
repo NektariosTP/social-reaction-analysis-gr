@@ -33,6 +33,7 @@
 
 .markerWrapper {
   position: relative;
+  border-radius: 50%;
 }
 
 .countBadge {

@@ -43,7 +43,7 @@ describe("MapView", () => {
     render(<MapView features={[]} onSelectEvent={vi.fn()} />);
     const calls = (maplibregl as unknown as { mapConstructorCalls: Record<string, unknown>[] })
       .mapConstructorCalls;
-    expect(calls.at(-1)).toEqual(expect.objectContaining({ zoom: 7.5, minZoom: 5.6 }));
+    expect(calls.at(-1)).toEqual(expect.objectContaining({ zoom: 6.5, minZoom: 5.6 }));
   });
 
   it("renders the cluster popup when a selected feature and onClosePopup are provided", () => {

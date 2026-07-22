@@ -13,7 +13,7 @@ const STYLE_URL = MAPTILER_KEY
   : "https://demotiles.maplibre.org/style.json";
 
 const GREECE_CENTER: [number, number] = [23.7, 38.5];
-const GREECE_ZOOM = 7.5;
+const GREECE_ZOOM = 6.5;
 const GREECE_MIN_ZOOM = 5.6;
 
 interface MapViewProps {
