@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { HeaderBlock } from "./HeaderBlock";
 import type { FilterState } from "../../hooks/useFilterState";
@@ -26,19 +26,46 @@ function setup(overrides: Partial<React.ComponentProps<typeof HeaderBlock>> = {}
 }
 
 describe("HeaderBlock", () => {
-  beforeEach(() => sessionStorage.clear());
-
-  it("expands the search panel with region shortcuts on focus", () => {
+  it("shows the Browse by region option (not region chips directly) on search focus", () => {
     setup();
     fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    expect(screen.getByText("Browse by region")).toBeInTheDocument();
+    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
+  });
+
+  it("drills into region chips when Browse by region is clicked, with a back control", () => {
+    setup();
+    fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    fireEvent.click(screen.getByText("Browse by region"));
     expect(screen.getByText("Attica")).toBeInTheDocument();
+    expect(screen.getByText("‹ Back")).toBeInTheDocument();
+  });
+
+  it("returns to the options list when Back is clicked", () => {
+    setup();
+    fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    fireEvent.click(screen.getByText("Browse by region"));
+    fireEvent.click(screen.getByText("‹ Back"));
+    expect(screen.getByText("Browse by region")).toBeInTheDocument();
+    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
   });
 
   it("calls onSelectRegion and collapses when a region shortcut is clicked", () => {
     const props = setup();
     fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    fireEvent.click(screen.getByText("Browse by region"));
     fireEvent.click(screen.getByText("Crete"));
     expect(props.onSelectRegion).toHaveBeenCalledWith(expect.objectContaining({ en: "Crete" }));
+    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
+  });
+
+  it("resets to the options view each time the search panel is reopened", () => {
+    setup();
+    fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    fireEvent.click(screen.getByText("Browse by region"));
+    fireEvent.click(screen.getByText(/filters/i));
+    fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    expect(screen.getByText("Browse by region")).toBeInTheDocument();
     expect(screen.queryByText("Attica")).not.toBeInTheDocument();
   });
 
@@ -46,7 +73,7 @@ describe("HeaderBlock", () => {
     setup();
     fireEvent.focus(screen.getByPlaceholderText(/search/i));
     fireEvent.click(screen.getByText(/filters/i));
-    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
+    expect(screen.queryByText("Browse by region")).not.toBeInTheDocument();
     expect(screen.getByText("Clear")).toBeInTheDocument();
   });
 

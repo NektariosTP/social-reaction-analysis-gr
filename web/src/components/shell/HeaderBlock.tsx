@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../../hooks/useLang";
-import { useRecentSearches } from "../../hooks/useRecentSearches";
 import type { FilterState } from "../../hooks/useFilterState";
 import { REGIONS, type Region } from "../../i18n/regions";
 import { FilterPanel } from "../filters";
 import styles from "./HeaderBlock.module.css";
 
 type Expanded = "none" | "search" | "filter";
+type SearchView = "options" | "region";
 
 interface HeaderBlockProps {
   searchQuery: string;
@@ -29,7 +29,12 @@ export function HeaderBlock({
   const { t } = useTranslation();
   const [lang] = useLang();
   const [expanded, setExpanded] = useState<Expanded>("none");
-  const { recent, addRecent } = useRecentSearches();
+  const [searchView, setSearchView] = useState<SearchView>("options");
+
+  function closeSearch() {
+    setExpanded("none");
+    setSearchView("options");
+  }
 
   return (
     <div>
@@ -43,11 +48,11 @@ export function HeaderBlock({
           className={styles.searchInput}
           placeholder={t("search.placeholder")}
           value={searchQuery}
-          onFocus={() => setExpanded("search")}
-          onChange={(e) => onSearchChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") addRecent(searchQuery);
+          onFocus={() => {
+            setExpanded("search");
+            setSearchView("options");
           }}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
         <button
           className={styles.filterToggle}
@@ -57,28 +62,20 @@ export function HeaderBlock({
         </button>
       </div>
 
-      {expanded === "search" && (
+      {expanded === "search" && searchView === "options" && (
         <div className={styles.expansion}>
-          {recent.length > 0 && (
-            <>
-              <div className={styles.expansionLabel}>{t("search.recent")}</div>
-              <div className={styles.chipRow}>
-                {recent.map((term) => (
-                  <button
-                    key={term}
-                    className={styles.shortcutChip}
-                    onClick={() => {
-                      onSearchChange(term);
-                      setExpanded("none");
-                    }}
-                  >
-                    {term}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          <div className={styles.expansionLabel}>{t("search.browseByRegion")}</div>
+          <button className={styles.optionRow} onClick={() => setSearchView("region")}>
+            <span>{t("search.browseByRegion")}</span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
+      )}
+
+      {expanded === "search" && searchView === "region" && (
+        <div className={styles.expansion}>
+          <button className={styles.backRow} onClick={() => setSearchView("options")}>
+            {t("search.back")}
+          </button>
           <div className={styles.chipRow}>
             {REGIONS.map((region) => (
               <button
@@ -86,7 +83,7 @@ export function HeaderBlock({
                 className={styles.shortcutChip}
                 onClick={() => {
                   onSelectRegion(region);
-                  setExpanded("none");
+                  closeSearch();
                 }}
               >
                 {lang === "el" ? region.el : region.en}

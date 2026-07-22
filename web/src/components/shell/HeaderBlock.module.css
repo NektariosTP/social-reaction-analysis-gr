@@ -60,15 +60,6 @@
   border-top: 1px solid var(--color-border);
 }
 
-.expansionLabel {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin-bottom: 6px;
-}
-
 .chipRow {
   display: flex;
   flex-wrap: wrap;
@@ -82,6 +73,33 @@
   background: var(--color-surface);
   padding: 4px 10px;
   font-size: 12px;
+  cursor: pointer;
+}
+
+.optionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.backRow {
+  display: block;
+  border: none;
+  background: none;
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
