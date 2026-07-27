@@ -65,3 +65,20 @@ def validate_events(records: list[dict]) -> list[str]:
             if not r.get("action_forms") or not r.get("thematic_fields"):
                 violations.append(f"{eid}: real domestic event missing axis labels")
     return violations
+
+
+def binary_prf(tp: int, fp: int, fn: int) -> dict[str, float]:
+    """Compute binary classification precision, recall, and F1.
+
+    Args:
+        tp: True positives
+        fp: False positives
+        fn: False negatives
+
+    Returns:
+        Dictionary with keys "precision", "recall", "f1" (float values 0.0-1.0).
+    """
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return {"precision": precision, "recall": recall, "f1": f1}
