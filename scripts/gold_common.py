@@ -104,3 +104,21 @@ def pairwise_f1(pred: list[int], gold: list[int]) -> dict[str, float]:
     gold_pairs = {(i, j) for i, j in combinations(idx, 2) if gold[i] == gold[j]}
     tp = len(pred_pairs & gold_pairs)
     return binary_prf(tp, len(pred_pairs) - tp, len(gold_pairs) - tp)
+
+
+def multilabel_prf(pred: list[set], gold: list[set]) -> dict[str, float]:
+    """Compute micro-averaged precision/recall/F1 for multi-label classification.
+
+    Args:
+        pred: List of predicted label sets
+        gold: List of gold-standard label sets
+
+    Returns:
+        Dictionary with keys "precision", "recall", "f1" (float values 0.0-1.0).
+    """
+    tp = fp = fn = 0
+    for p, g in zip(pred, gold, strict=True):
+        tp += len(p & g)
+        fp += len(p - g)
+        fn += len(g - p)
+    return binary_prf(tp, fp, fn)
