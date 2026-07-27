@@ -1,6 +1,7 @@
 """Shared helpers for gold-eval scoring: tolerant JSONL loader, region vocab, validators."""
 from __future__ import annotations
 
+from itertools import combinations
 from json import JSONDecoder
 from pathlib import Path
 
@@ -82,3 +83,24 @@ def binary_prf(tp: int, fp: int, fn: int) -> dict[str, float]:
     recall = tp / (tp + fn) if (tp + fn) else 0.0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
     return {"precision": precision, "recall": recall, "f1": f1}
+
+
+def pairwise_f1(pred: list[int], gold: list[int]) -> dict[str, float]:
+    """Compute pairwise F1 for clustering.
+
+    Measures precision/recall/F1 over co-membership pairs: (i, j) pairs where
+    pred[i] == pred[j] or gold[i] == gold[j].
+
+    Args:
+        pred: Predicted cluster labels
+        gold: Gold standard cluster labels
+
+    Returns:
+        Dictionary with keys "precision", "recall", "f1" (float values 0.0-1.0).
+    """
+    assert len(pred) == len(gold)
+    idx = range(len(pred))
+    pred_pairs = {(i, j) for i, j in combinations(idx, 2) if pred[i] == pred[j]}
+    gold_pairs = {(i, j) for i, j in combinations(idx, 2) if gold[i] == gold[j]}
+    tp = len(pred_pairs & gold_pairs)
+    return binary_prf(tp, len(pred_pairs) - tp, len(gold_pairs) - tp)

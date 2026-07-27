@@ -1,5 +1,5 @@
 """Tests for gold-eval metrics."""
-from scripts.gold_common import binary_prf
+from scripts.gold_common import binary_prf, pairwise_f1
 
 
 def test_binary_prf():
@@ -12,3 +12,14 @@ def test_binary_prf():
 def test_binary_prf_zero_safe():
     m = binary_prf(tp=0, fp=0, fn=0)
     assert m["precision"] == 0.0 and m["recall"] == 0.0 and m["f1"] == 0.0
+
+
+def test_pairwise_f1_perfect():
+    labels = [0, 0, 1, 1, 2]
+    m = pairwise_f1(labels, labels)
+    assert m["f1"] == 1.0
+
+
+def test_pairwise_f1_all_singletons_vs_one_cluster():
+    m = pairwise_f1([0, 1, 2, 3], [0, 0, 0, 0])
+    assert m["recall"] == 0.0  # no predicted co-member pairs
