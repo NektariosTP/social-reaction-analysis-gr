@@ -29,11 +29,34 @@ re-read from the DB once written.
 |---|---|---|
 | `relevance.jsonl` | random sample of stored articles | `label`: `"relevant"` \| `"noise"` |
 | `clustering.jsonl` | one contiguous day/window of articles | `gold_group`: int — same number = same real-world event |
-| `events.jsonl` | sampled events (weighted toward known hard cases: embassy protests, foreign mentions) | `action_forms`, `thematic_fields`, `channel`, `intensity`, `true_lat`, `true_lon`, `true_region_code`, `true_municipality`, `is_foreign` |
+| `events.jsonl` | sampled events (weighted toward known hard cases: embassy protests, foreign mentions) | `action_forms`, `thematic_fields`, `channel`, `intensity`, `true_lat`, `true_lon`, `true_region_code`, `true_municipality`, `is_foreign`, `is_event` |
+| `event_precision.jsonl` | non-events split out of the events sample during triage | negatives only (`is_event: false`) — powers the event-precision metric |
 
 `events.jsonl` covers both the classification and geocoding metrics from
 §4 in one file — same event sample, one reading pass per event is more
 practical than labeling twice from two separate exports.
+
+### `events.jsonl` schema notes (added during finalization)
+
+- **`is_event`** (bool) — triage label: `true` = a genuine social/civic
+  reaction (an action form from the model: strike, rally, march, occupation,
+  blockade, boycott, abstention); `false` = noise that leaked into the
+  `events` table (sports, TV, celebrity, corporate "πορεία", legal/diplomatic
+  "μπλόκο" homonyms, crime, weather). Every `false` record lives in
+  `event_precision.jsonl`, not here; `events.jsonl` holds only `is_event:true`.
+- **`true_region_code`** — canonical English periphery name (the 13 `name`
+  values in `_archive/frontend/greece-regions.geojson`), not the Greek label.
+- **`notes`** (str, optional) — free-text labeler note lifted out of a trailing
+  `# …` comment on the JSON line (kept out of the JSON body so the file stays
+  valid JSONL).
+- **`should_merge_with`** (list[str], optional) — pipeline event-ids of other
+  fixture rows that refer to the *same* real-world event (the clusterer should
+  have merged them). Feeds the clustering/registry metric.
+- **Foreign real events** stay here with `is_foreign:true` and null coords —
+  they score foreign-detection, not distance/region. **Real-but-unlocatable**
+  domestic events were dropped during finalization.
+- **Multi-location** events carry list-valued `true_lat`/`true_lon`/
+  `true_region_code`/`true_municipality`.
 
 ## Known caveat: relevance sampling
 
