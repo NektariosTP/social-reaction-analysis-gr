@@ -1,6 +1,7 @@
 """Shared helpers for gold-eval scoring: tolerant JSONL loader, region vocab, validators."""
 from __future__ import annotations
 
+import math
 from itertools import combinations
 from json import JSONDecoder
 from pathlib import Path
@@ -122,3 +123,26 @@ def multilabel_prf(pred: list[set], gold: list[set]) -> dict[str, float]:
         fp += len(p - g)
         fn += len(g - p)
     return binary_prf(tp, fp, fn)
+
+
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate great-circle distance between two points in km.
+
+    Args:
+        lat1: Latitude of first point in degrees
+        lon1: Longitude of first point in degrees
+        lat2: Latitude of second point in degrees
+        lon2: Longitude of second point in degrees
+
+    Returns:
+        Distance in kilometers
+    """
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = (
+        math.sin(dp / 2) ** 2
+        + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    )
+    return 2 * r * math.asin(math.sqrt(a))

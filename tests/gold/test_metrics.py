@@ -1,6 +1,6 @@
 """Tests for gold-eval metrics."""
 
-from scripts.gold_common import binary_prf, multilabel_prf, pairwise_f1
+from scripts.gold_common import binary_prf, haversine_km, multilabel_prf, pairwise_f1
 
 
 def test_binary_prf():
@@ -32,3 +32,12 @@ def test_multilabel_prf_micro():
     m = multilabel_prf(pred, gold)  # tp=2 (A,C), fp=1 (B), fn=1 (D)
     assert round(m["precision"], 3) == 0.667
     assert round(m["recall"], 3) == 0.667
+
+
+def test_haversine_zero():
+    assert haversine_km(37.98, 23.73, 37.98, 23.73) == 0.0
+
+
+def test_haversine_athens_thessaloniki():
+    d = haversine_km(37.9838, 23.7275, 40.6401, 22.9444)
+    assert 290 < d < 320  # ~300 km
