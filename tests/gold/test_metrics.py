@@ -1,6 +1,20 @@
 """Tests for gold-eval metrics."""
 
-from scripts.gold_common import binary_prf, haversine_km, multilabel_prf, pairwise_f1
+from scripts.gold_common import (
+    binary_prf,
+    haversine_km,
+    multilabel_prf,
+    normalize_label,
+    pairwise_f1,
+)
+
+
+def test_normalize_label_strips_parenthetical():
+    assert normalize_label("Φυσικό (offline)") == "Φυσικό"
+    assert normalize_label("Διαταρακτική (μη βίαιη, παρεμποδιστική)") == "Διαταρακτική"
+    assert normalize_label("Ειρηνική") == "Ειρηνική"
+    # bare label with no annotation is unchanged; commerce label with slash kept
+    assert normalize_label("Απεργία/Στάση εργασίας") == "Απεργία/Στάση εργασίας"
 
 
 def test_binary_prf():

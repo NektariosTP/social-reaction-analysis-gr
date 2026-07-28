@@ -13,7 +13,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from enrich.classify import classify_zero_shot  # noqa: E402
 from nlp.embeddings import _load_model  # noqa: E402
-from scripts.gold_common import load_jsonl, multilabel_prf  # noqa: E402
+from scripts.gold_common import load_jsonl, multilabel_prf, normalize_label  # noqa: E402
 
 AXES = ["action_forms", "thematic_fields", "channel", "intensity"]
 
@@ -21,7 +21,8 @@ AXES = ["action_forms", "thematic_fields", "channel", "intensity"]
 def _to_set(v) -> set:
     if v is None:
         return set()
-    return set(v) if isinstance(v, list) else {v}
+    items = v if isinstance(v, list) else [v]
+    return {normalize_label(x) for x in items}
 
 
 def main() -> None:
@@ -37,10 +38,10 @@ def main() -> None:
             dtype=np.float32)
         result = classify_zero_shot(centroid)  # ClassificationResult
         preds = {
-            "action_forms": set(result.action_forms),
-            "thematic_fields": set(result.thematic_fields),
-            "channel": {result.channel} if result.channel else set(),
-            "intensity": {result.intensity} if result.intensity else set(),
+            "action_forms": {normalize_label(x) for x in result.action_forms},
+            "thematic_fields": {normalize_label(x) for x in result.thematic_fields},
+            "channel": {normalize_label(result.channel)} if result.channel else set(),
+            "intensity": {normalize_label(result.intensity)} if result.intensity else set(),
         }
         for a in AXES:
             per_axis_pred[a].append(preds[a])

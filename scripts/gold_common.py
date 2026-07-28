@@ -2,11 +2,23 @@
 from __future__ import annotations
 
 import math
+import re
 from itertools import combinations
 from json import JSONDecoder
 from pathlib import Path
 
 _DEC = JSONDecoder()
+
+# Classifier axis vocabularies carry parenthetical annotations
+# ("Φυσικό (offline)", "Διαταρακτική (μη βίαιη, παρεμποδιστική)") that gold
+# labels sometimes omit. Strip a trailing "(...)" so comparison is on the
+# canonical label, not its annotation style.
+_TRAILING_PAREN = re.compile(r"\s*\([^)]*\)\s*$")
+
+
+def normalize_label(label: str) -> str:
+    """Drop a trailing parenthetical annotation and surrounding whitespace."""
+    return _TRAILING_PAREN.sub("", label).strip()
 
 REGION_NAMES = frozenset({
     "East Macedonia and Thrace", "Central Macedonia", "West Macedonia", "Epirus",
