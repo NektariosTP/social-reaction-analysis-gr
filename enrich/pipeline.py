@@ -98,8 +98,10 @@ async def _enrich_event(
                 "lat": primary_geo.lat if primary_geo else None,
                 "lon": primary_geo.lon if primary_geo else None,
                 "location_name": primary_geo.location_name if primary_geo else None,
+                "region_code": primary_geo.region_code if primary_geo else None,
             }
         )
+        set_clauses.append("region_code = :region_code")
         set_clauses.append(
             "primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL "
             "THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography "

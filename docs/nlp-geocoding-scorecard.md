@@ -14,22 +14,24 @@ One column per landed milestone. See
 
 ## Scorecard
 
-| Metric | Script | Baseline (2026-07-28) | Target / notes |
-|---|---|---|---|
-| **Clustering** ARI | `eval_clustering` | **0.447** | ↑ with single-pass (A4) |
-| **Clustering** V-measure | `eval_clustering` | **0.929** | — |
-| **Clustering** pairwise P | `eval_clustering` | **1.000** | keep high |
-| **Clustering** pairwise R | `eval_clustering` | **0.291** | ↑↑ — over-fragments (254 pred vs 160 gold) |
-| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | ↑ with A4 |
-| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | → ~high after M1 (region_code is a dead path today) |
-| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | ↓↓ after M1/M2 (mis-pin fix) |
-| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | ↑ after M2 (point-in-Greece + is_foreign) |
-| **Event-precision** | `eval_geocode` | **0.390** (23 real / 59) | ↑ after M5 (NLI noise gate) |
-| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
-| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | cosine-to-label; weak precision (M5) |
-| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | ↑ after M5 (NLI) |
-| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | broken: 1/23 correct — *worse than majority-class* (all gold = Φυσικό → trivial predictor scores 1.0). Cosine-to-label fails here; top M5 target |
-| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | strong |
+| Metric | Script | Baseline (2026-07-28) | A1 · region backbone (2026-07-29) | Target / notes |
+|---|---|---|---|---|
+| **Clustering** ARI | `eval_clustering` | **0.447** | — | ↑ with single-pass (A4) |
+| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — |
+| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | keep high |
+| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | ↑↑ — over-fragments (254 pred vs 160 gold) |
+| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | ↑ with A4 |
+| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **0.556** (5/9) | region_code path now live (A1); ↑ further with A2 |
+| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **1.2 km** (n=9) ⚠ | ⚠ not comparable — n dropped (LLM non-determinism); mis-pin fix is A2, not A1 |
+| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **1.00 / 0.286 / 0.444** | R still low (relies on geocode-miss ⇒ foreign) → A2 point-in-Greece + is_foreign |
+| **Event-precision** | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | unchanged — A1 doesn't touch detection; ↑ after M5 (NLI noise gate) |
+| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
+| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | cosine-to-label; weak precision (M5) |
+| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | ↑ after M5 (NLI) |
+| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | broken: 1/23 correct — *worse than majority-class* (all gold = Φυσικό → trivial predictor scores 1.0). Cosine-to-label fails here; top M5 target |
+| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | strong |
+
+> **A1 caveat (region accuracy vs distance).** Region accuracy `0.000 → 0.556` is the clean A1 signal — `region_code` is now populated by point-in-polygon. The distance drop `112.6 → 1.2 km` is **confounded**: `eval_geocode`'s LLM extraction (`_extract_locations_llm`) is non-deterministic and Groq intermittently returns `tool_use_failed`, so fewer domestic events geocoded this run (n=17→9) and the survivors are the clean venue-level pins. Systematic mis-pin correction is A2 (drop country lock + point-in-Greece), not A1. Groq's tool-call flakiness on the `_LlmLocations` schema is a robustness risk for A2, which adds `is_foreign`/`embassy_of` to that same schema.
 
 ## How the baselines were captured
 

@@ -19,9 +19,14 @@ from pydantic import BaseModel
 
 from enrich.config import settings
 
+import json
+from shapely.geometry import Point, shape
+from shapely.prepared import prep
+
 logger = logging.getLogger(__name__)
 
 _GAZETTEER_PATH = Path(__file__).parent / "data" / "gazetteer.yml"
+_REGIONS_PATH = Path(__file__).parent / "data" / "regions.geojson"
 
 
 class GeocodeResult(BaseModel):
@@ -150,24 +155,24 @@ async def geocode_event(
         ]
         if results:
             logger.debug("[geocode] LLM+Nominatim resolved %d location(s).", len(results))
-            return results
+            return _finalize(results)
 
     # 2. Gazetteer fallback (no LLM or LLM found nothing)
     result = lookup_gazetteer(all_text)
     if result:
         logger.debug("[geocode] Gazetteer fallback hit: %s", result.location_name)
-        return [result]
+        return _finalize([result])
 
     # 3. spaCy NER fallback (no LLM key available)
     candidate = _extract_location_spacy(all_text)
     if candidate:
         result = await geocode_text(candidate, nominatim_url=nominatim_url)
         if result:
-            return [result]
+            return _finalize([result])
 
     # 4. Raw text Nominatim as last resort
     result = await geocode_text(all_text[:200], nominatim_url=nominatim_url)
-    return [result] if result else []
+    return _finalize([result]) if result else []
 
 
 @lru_cache(maxsize=1)
@@ -190,3 +195,34 @@ def _extract_location_spacy(text: str) -> str | None:
     except Exception as exc:
         logger.debug("[geocode] spaCy NER failed: %s", exc)
     return None
+
+
+@lru_cache(maxsize=1)
+def _load_regions() -> list[tuple[str, object]]:
+    """Load the 13 periphery polygons once, prepared for fast point queries.
+
+    Returns list of (canonical English name, prepared geometry). Coordinates in
+    the GeoJSON are [lon, lat] (GeoJSON standard), so query with Point(lon, lat).
+    """
+    data = json.loads(_REGIONS_PATH.read_text(encoding="utf-8"))
+    out: list[tuple[str, object]] = []
+    for feature in data["features"]:
+        name = feature["properties"]["name"]
+        out.append((name, prep(shape(feature["geometry"]))))
+    return out
+
+
+def region_for_point(lat: float, lon: float) -> str | None:
+    """Return the canonical English periphery name containing (lat, lon), or None."""
+    point = Point(lon, lat)
+    for name, geom in _load_regions():
+        if geom.contains(point):
+            return name
+    return None
+
+
+def _finalize(results: list[GeocodeResult]) -> list[GeocodeResult]:
+    """Stamp region_code on each geocoded result (A2 extends this with is_foreign)."""
+    for r in results:
+        r.region_code = region_for_point(r.lat, r.lon)
+    return results
