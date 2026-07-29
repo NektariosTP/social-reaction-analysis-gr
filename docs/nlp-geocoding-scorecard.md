@@ -14,22 +14,22 @@ One column per landed milestone. See
 
 ## Scorecard
 
-| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | Target / notes |
-|---|---|---|---|---|
-| **Clustering** ARI | `eval_clustering` | **0.447** | — | ↑ with single-pass (A4) |
-| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — |
-| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | keep high |
-| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | ↑↑ — over-fragments (254 pred vs 160 gold) |
-| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | ↑ with A4 |
-| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | region_code path live (A1); fairness fix applied (set match). Variance from public-Nominatim rate-limits; most misses are national/venueless strikes, not the region path — see note |
-| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | venue-level among events that geocode; the trustworthy A1 signal |
-| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | via geocode-miss ⇒ foreign (country lock still on); A2 makes it principled (point-in-Greece + is_foreign) |
-| **Event-precision** | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | unchanged — A1 doesn't touch detection; ↑ after M5 (NLI noise gate) |
-| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
-| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | cosine-to-label; weak precision (M5) |
-| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | ↑ after M5 (NLI) |
-| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | broken: 1/23 correct — *worse than majority-class* (all gold = Φυσικό → trivial predictor scores 1.0). Cosine-to-label fails here; top M5 target |
-| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | strong |
+| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | A2 · foreign + point-in-Greece (2026-07-30) | Target / notes |
+|---|---|---|---|---|---|
+| **Clustering** ARI | `eval_clustering` | **0.447** | — | — | ↑ with single-pass (A4) |
+| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — | — |
+| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | — | keep high |
+| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | — | ↑↑ — over-fragments (254 pred vs 160 gold) |
+| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | — | ↑ with A4 |
+| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | **0.789** (15/19) | ↑; 4 misses are the national/venueless class → A5 target |
+| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | **3.2 km** (n=19) | venue-level, full domestic coverage |
+| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | **1.00 / 1.00 / 1.00** | A2 goal met — point-in-Greece + is_foreign; all 4 foreign detected, no domestic misflagged |
+| **Event-precision** | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | **0.390** | unchanged — detection untouched; ↑ after M5 (NLI noise gate) |
+| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
+| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | — | cosine-to-label; weak precision (M5) |
+| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | — | ↑ after M5 (NLI) |
+| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | — | broken: 1/23 correct — *worse than majority-class* (all gold = Φυσικό → trivial predictor scores 1.0). Cosine-to-label fails here; top M5 target |
+| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | — | strong |
 
 > **A1 + A1b — how these were captured (and two gotchas).** Numbers are the representative run: `NOMINATIM_URL=https://nominatim.openstreetmap.org GROQ_API_KEY=… LLM_MODEL=groq/llama-3.3-70b-versatile uv run python scripts/eval_geocode.py`.
 > - **A1b (extraction robustness)** landed first: instructor JSON mode + salvage parser eliminated Groq's `tool_use_failed` drops, so extraction is reliable and the sample is stable (n=18 of 19 domestic-with-coords).

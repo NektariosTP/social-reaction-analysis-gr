@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 _GAZETTEER_PATH = Path(__file__).parent / "data" / "gazetteer.yml"
 _REGIONS_PATH = Path(__file__).parent / "data" / "regions.geojson"
+_EMBASSIES_PATH = Path(__file__).parent / "data" / "embassies.yml"
 
 
 class GeocodeResult(BaseModel):
@@ -36,6 +37,7 @@ class GeocodeResult(BaseModel):
     location_name: str
     city: str | None = None
     region_code: str | None = None
+    is_foreign: bool = False
     is_primary: bool = True
 
 
@@ -43,7 +45,8 @@ class LocationMention(BaseModel):
     venue: str | None = None  # specific place (e.g. "Πλατεία Συντάγματος")
     city: str               # city (e.g. "Αθήνα") — always required
     region: str | None = None
-
+    is_foreign: bool = False
+    embassy_of: str | None = None  # country name if this is a foreign embassy on Greek soil
 
 class _LlmLocations(BaseModel):
     locations: list[LocationMention]
@@ -88,7 +91,6 @@ async def geocode_text(
                     "q": text,
                     "format": "json",
                     "limit": 1,
-                    "countrycodes": "gr",
                     "accept-language": "el",
                 },
             )
@@ -119,7 +121,10 @@ def _extract_locations_llm(text: str) -> list[LocationMention]:
             messages=[{"role": "user", "content": (
                 "Extract all distinct locations where this Greek social reaction event "
                 "is taking place. Include specific venues (squares, streets, buildings) "
-                "and their city. Return up to 5 locations ordered by prominence.\n\n"
+                "and their city. For each location set is_foreign=true if it is outside "
+                "Greece, and set embassy_of to the country name if the location is a "
+                "foreign embassy/consulate on Greek soil. Return up to 5 locations "
+                "ordered by prominence.\n\n"
                 f"Text: {text[:800]}"
             )}],
         )
@@ -184,16 +189,20 @@ async def geocode_event(
     # 1. LLM extraction → Nominatim (primary path, parallel requests)
     mentions = _extract_locations_llm(all_text)
     if mentions:
-        queries = [f"{m.venue}, {m.city}" if m.venue else m.city for m in mentions]
-        raw_results = await asyncio.gather(*[
-            geocode_text(q, city=m.city, nominatim_url=nominatim_url)
-            for q, m in zip(queries, mentions)
-        ])
-        results = [
-            GeocodeResult(**{**r.model_dump(), "is_primary": i == 0})
-            for i, r in enumerate(raw_results)
-            if r is not None
-        ]
+        results: list[GeocodeResult] = []
+        for i, m in enumerate(mentions):
+            if m.embassy_of:
+                emb = lookup_embassy(m.embassy_of)
+                if emb:
+                    emb.is_primary = i == 0
+                    results.append(emb)
+                    continue
+            query = f"{m.venue}, {m.city}" if m.venue else m.city
+            r = await geocode_text(query, city=m.city, nominatim_url=nominatim_url)
+            if r is not None:
+                r.is_primary = i == 0
+                r.is_foreign = m.is_foreign  # _finalize confirms via point_in_greece
+                results.append(r)
         if results:
             logger.debug("[geocode] LLM+Nominatim resolved %d location(s).", len(results))
             return _finalize(results)
@@ -262,8 +271,34 @@ def region_for_point(lat: float, lon: float) -> str | None:
     return None
 
 
+def point_in_greece(lat: float, lon: float) -> bool:
+    """True iff (lat, lon) falls inside any of the 13 peripheries."""
+    return region_for_point(lat, lon) is not None
+
+
+@lru_cache(maxsize=1)
+def _load_embassies() -> dict[str, dict[str, float]]:
+    raw = yaml.safe_load(_EMBASSIES_PATH.read_text(encoding="utf-8")) or {}
+    return {k.lower(): v for k, v in raw.items()}
+
+
+def lookup_embassy(country: str) -> GeocodeResult | None:
+    """Return the Greek-soil coords of the given country's embassy, or None."""
+    data = _load_embassies().get(country.strip().lower())
+    if not data:
+        return None
+    return GeocodeResult(
+        lat=data["lat"],
+        lon=data["lon"],
+        location_name=f"Πρεσβεία ({country})",
+        city=data.get("city_name", "Αθήνα"),
+    )
+
+
 def _finalize(results: list[GeocodeResult]) -> list[GeocodeResult]:
-    """Stamp region_code on each geocoded result (A2 extends this with is_foreign)."""
+    """Stamp region_code + is_foreign on each geocoded result."""
     for r in results:
         r.region_code = region_for_point(r.lat, r.lon)
+        if not r.is_foreign:
+            r.is_foreign = not point_in_greece(r.lat, r.lon)
     return results
