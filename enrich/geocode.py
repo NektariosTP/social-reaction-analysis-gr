@@ -7,6 +7,7 @@ Fallback (no LLM or LLM fails): gazetteer → spaCy NER → raw-text Nominatim.
 """
 from __future__ import annotations
 
+import re
 import asyncio
 import logging
 from functools import lru_cache
@@ -114,6 +115,7 @@ def _extract_locations_llm(text: str) -> list[LocationMention]:
         client, _model = get_llm_client_and_model()
         result: _LlmLocations = client.chat.completions.create(
             response_model=_LlmLocations,
+            max_retries=2,
             messages=[{"role": "user", "content": (
                 "Extract all distinct locations where this Greek social reaction event "
                 "is taking place. Include specific venues (squares, streets, buildings) "
@@ -123,8 +125,47 @@ def _extract_locations_llm(text: str) -> list[LocationMention]:
         )
         return result.locations[:5]
     except Exception as exc:
+        raw = _extract_failed_generation(exc)
+        if raw:
+            salvaged = parse_locations_json(raw)
+            if salvaged:
+                logger.info("[geocode] Salvaged %d location(s) from a failed tool call.", len(salvaged))
+                return salvaged
         logger.debug("[geocode] LLM location extraction failed: %s", exc)
         return []
+
+
+
+def parse_locations_json(raw: str) -> list[LocationMention]:
+    """Best-effort recover LocationMentions from a raw/malformed model string.
+
+    Handles Groq's `<function=…>{…}<function/…>` wrapper and ```json fences by
+    slicing from the first `{` to the last `}` and validating via _LlmLocations.
+    Returns [] on any failure.
+    """
+    if not raw:
+        return []
+    start, end = raw.find("{"), raw.rfind("}")
+    if start == -1 or end <= start:
+        return []
+    try:
+        data = json.loads(raw[start : end + 1])
+        return _LlmLocations(**data).locations[:5]
+    except Exception:  # noqa: BLE001 — any malformed payload → give up cleanly
+        return []
+
+
+def _extract_failed_generation(exc: Exception) -> str | None:
+    """Recover `error.failed_generation` from a litellm/Groq BadRequestError string."""
+    match = re.search(r"\{.*\}", str(exc), re.DOTALL)
+    if not match:
+        return None
+    try:
+        body = json.loads(match.group(0))
+    except Exception:  # noqa: BLE001
+        return None
+    fg = body.get("error", {}).get("failed_generation")
+    return fg if isinstance(fg, str) else None
 
 
 async def geocode_event(

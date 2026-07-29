@@ -14,16 +14,16 @@ One column per landed milestone. See
 
 ## Scorecard
 
-| Metric | Script | Baseline (2026-07-28) | A1 · region backbone (2026-07-29) | Target / notes |
+| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | Target / notes |
 |---|---|---|---|---|
 | **Clustering** ARI | `eval_clustering` | **0.447** | — | ↑ with single-pass (A4) |
 | **Clustering** V-measure | `eval_clustering` | **0.929** | — | — |
 | **Clustering** pairwise P | `eval_clustering` | **1.000** | — | keep high |
 | **Clustering** pairwise R | `eval_clustering` | **0.291** | — | ↑↑ — over-fragments (254 pred vs 160 gold) |
 | **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | ↑ with A4 |
-| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **0.556** (5/9) | region_code path now live (A1); ↑ further with A2 |
-| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **1.2 km** (n=9) ⚠ | ⚠ not comparable — n dropped (LLM non-determinism); mis-pin fix is A2, not A1 |
-| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **1.00 / 0.286 / 0.444** | R still low (relies on geocode-miss ⇒ foreign) → A2 point-in-Greece + is_foreign |
+| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | region_code path live (A1); fairness fix applied (set match). Variance from public-Nominatim rate-limits; most misses are national/venueless strikes, not the region path — see note |
+| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | venue-level among events that geocode; the trustworthy A1 signal |
+| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | via geocode-miss ⇒ foreign (country lock still on); A2 makes it principled (point-in-Greece + is_foreign) |
 | **Event-precision** | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | unchanged — A1 doesn't touch detection; ↑ after M5 (NLI noise gate) |
 | **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
 | **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | cosine-to-label; weak precision (M5) |
@@ -31,7 +31,11 @@ One column per landed milestone. See
 | **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | broken: 1/23 correct — *worse than majority-class* (all gold = Φυσικό → trivial predictor scores 1.0). Cosine-to-label fails here; top M5 target |
 | **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | strong |
 
-> **A1 caveat (region accuracy vs distance).** Region accuracy `0.000 → 0.556` is the clean A1 signal — `region_code` is now populated by point-in-polygon. The distance drop `112.6 → 1.2 km` is **confounded**: `eval_geocode`'s LLM extraction (`_extract_locations_llm`) is non-deterministic and Groq intermittently returns `tool_use_failed`, so fewer domestic events geocoded this run (n=17→9) and the survivors are the clean venue-level pins. Systematic mis-pin correction is A2 (drop country lock + point-in-Greece), not A1. Groq's tool-call flakiness on the `_LlmLocations` schema is a robustness risk for A2, which adds `is_foreign`/`embassy_of` to that same schema.
+> **A1 + A1b — how these were captured (and two gotchas).** Numbers are the representative run: `NOMINATIM_URL=https://nominatim.openstreetmap.org GROQ_API_KEY=… LLM_MODEL=groq/llama-3.3-70b-versatile uv run python scripts/eval_geocode.py`.
+> - **A1b (extraction robustness)** landed first: instructor JSON mode + salvage parser eliminated Groq's `tool_use_failed` drops, so extraction is reliable and the sample is stable (n=18 of 19 domestic-with-coords).
+> - **Gotcha 1 — `NOMINATIM_URL`.** A bare `uv run …` uses the `.env` Docker hostname `http://nominatim:8080`, unreachable outside Compose → every geocode silently degrades to gazetteer-only (a deterministic `n=9 / 1.2 km / region 0.556` that must be discarded). Always override to public Nominatim for this eval.
+> - **Gotcha 2 — the misses are mostly real, not the eval.** Fixed the `_first`-only region comparison (now matches the full `set(true_region_code)`), but a spot-check found only **1** multi-location artifact (`Αψίδα Γαλερίου` → Central Macedonia, 0.1 km, correct). The genuine failures are a **class the pipeline doesn't model: national / sector-wide strikes & statements with no single venue.** The geocoder then pins a spuriously-mentioned or hallucinated city (`Πανελλαδική απεργία στο εμπόριο` → Ηράκλειο, 320 km; national strike w/ one Patra headline → Πάτρα; teacher-evaluation statement → Θεσσαλονίκη gazetteer centroid) or returns nothing (5 venueless `Στάση εργασίας` events), while gold uses an organizing-HQ point (Athens/Komotini). Also one real venue-disambiguation bug (`Πλατεία Ελευθερίας, Ηράκλειο` → the Athens square). **A2 (foreign/point-in-Greece) does not address this class — it needs its own milestone (detect panhellenic scope → HQ/Attica or abstain, instead of hallucinating a venue).**
+> - **Gotcha 3 — public Nominatim is non-reproducible.** Rate-limiting makes runs disagree (`12/18` then `10/19`, with 0 vs 5 no-geocodes). Trust median distance among successful pins (`~2.6 km`) over the region ratio; self-hosted Nominatim (M7) or LLM/geocode caching is a prerequisite for treating region deltas as signal.
 
 ## How the baselines were captured
 

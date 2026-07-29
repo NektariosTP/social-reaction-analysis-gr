@@ -24,6 +24,12 @@ def _first(v):
     return v[0] if isinstance(v, list) else v
 
 
+def _as_set(v) -> set:
+    if v is None:
+        return set()
+    return set(v) if isinstance(v, list) else {v}
+
+
 async def main() -> None:
     events = [
         r for r in load_jsonl(Path("tests/fixtures/gold/events.jsonl"))
@@ -56,7 +62,9 @@ async def main() -> None:
         elif not pred_foreign and gold_foreign:
             f_fp += 1  # wrongly mapped a foreign event
         if primary and not gold_foreign and r.get("true_lat") is not None:
-            if getattr(primary, "region_code", None) == _first(
+            # Multi-location gold events carry a list of regions; a primary that
+            # lands in ANY of them is correct (not just the first-listed one).
+            if getattr(primary, "region_code", None) in _as_set(
                 r["true_region_code"]
             ):
                 region_hits += 1
