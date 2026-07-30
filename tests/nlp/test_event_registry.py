@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
 
-from nlp.event_registry import assign_event_id, load_existing_events, match_existing_event
+from nlp.event_registry import assign_event_id, load_existing_events, match_existing_event, running_mean
 
 
 def _centroid(seed: int = 0) -> np.ndarray:
@@ -76,18 +76,68 @@ async def test_load_existing_events_excludes_closed_and_rejected() -> None:
 async def test_assign_event_id_revives_archived_event_on_match() -> None:
     centroid = _centroid(0)
     existing_id = str(uuid.uuid4())
-    mock_session = AsyncMock()
+    centroid_str = "[" + ",".join(str(v) for v in centroid.tolist()) + "]"
 
-    with patch(
-        "nlp.event_registry.load_existing_events",
-        new_callable=AsyncMock,
-        return_value=[(existing_id, centroid)],
-    ):
-        event_id = await assign_event_id(
-            mock_session, centroid=centroid, article_ids=["a1"], threshold=0.85
-        )
+    mock_session = AsyncMock()
+    # A3: assign_event_id matches via a single SQL nearest-neighbour SELECT whose
+    # .first() returns (id, centroid, article_count, distance). distance 0.0 is
+    # well within 1 - threshold, so this is a match.
+    select_result = MagicMock()
+    select_result.first.return_value = (existing_id, centroid_str, 3, 0.0)
+    mock_session.execute = AsyncMock(return_value=select_result)
+
+    event_id = await assign_event_id(
+        mock_session, centroid=centroid, article_ids=["a1"], threshold=0.85
+    )
 
     assert event_id == existing_id
-    update_call = mock_session.execute.call_args_list[0]
-    executed_sql = str(update_call[0][0])
-    assert "status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END" in executed_sql
+    # execute order is now SELECT, then UPDATE events, then article UPDATEs — find the UPDATE.
+    update_calls = [
+        c for c in mock_session.execute.await_args_list if "UPDATE events" in str(c.args[0])
+    ]
+    assert update_calls, "expected an UPDATE events call"
+    assert (
+        "status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END"
+        in str(update_calls[0].args[0])
+    )
+
+
+def test_running_mean_is_weighted_and_normalized() -> None:
+    old = np.array([1.0, 0.0], dtype=np.float32)
+    batch = np.array([0.0, 1.0], dtype=np.float32)
+    # equal weights → direction (0.5, 0.5), normalized → (0.707, 0.707)
+    out = running_mean(old, 1, batch, 1)
+    assert np.allclose(out, [0.70710678, 0.70710678], atol=1e-5)
+    assert abs(float(np.linalg.norm(out)) - 1.0) < 1e-5
+
+
+def test_running_mean_respects_counts() -> None:
+    old = np.array([1.0, 0.0], dtype=np.float32)
+    batch = np.array([0.0, 1.0], dtype=np.float32)
+    # old outweighs batch 3:1 → x-component dominates
+    out = running_mean(old, 3, batch, 1)
+    assert out[0] > out[1]
+
+
+async def test_assign_matches_via_sql_and_writes_weighted_centroid() -> None:
+    existing_id = "11111111-1111-1111-1111-111111111111"
+    old = np.array([1.0, 0.0] + [0.0] * 766, dtype=np.float32)
+    batch = np.array([1.0, 0.0] + [0.0] * 766, dtype=np.float32)  # identical → distance 0
+    old_str = "[" + ",".join(str(v) for v in old.tolist()) + "]"
+
+    session = AsyncMock()
+    # First execute() = nearest-match SELECT → return one row (id, centroid, count, distance)
+    select_result = MagicMock()
+    select_result.first.return_value = (existing_id, old_str, 4, 0.0)
+    session.execute = AsyncMock(return_value=select_result)
+
+    got = await assign_event_id(session, centroid=batch, article_ids=["a1"], threshold=0.85)
+    assert got == existing_id
+
+    # The UPDATE must carry the weighted centroid (old_count=4, batch_count=1), not raw batch.
+    update_calls = [c for c in session.execute.await_args_list if "UPDATE events" in str(c.args[0])]
+    assert update_calls, "expected an UPDATE events call"
+    written = update_calls[0].args[1]["centroid"]
+    expected = running_mean(old, 4, batch, 1)
+    expected_str = "[" + ",".join(str(v) for v in expected.tolist()) + "]"
+    assert written == expected_str
