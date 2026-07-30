@@ -7,7 +7,13 @@ from unittest.mock import AsyncMock, MagicMock
 import numpy as np
 import pytest
 
-from nlp.event_registry import assign_event_id, load_existing_events, match_existing_event, running_mean
+from nlp.event_registry import (
+    apply_merges,
+    assign_event_id,
+    load_existing_events,
+    match_existing_event,
+    running_mean,
+)
 
 
 def _centroid(seed: int = 0) -> np.ndarray:
@@ -61,7 +67,7 @@ def test_match_returns_best_match() -> None:
     assert result == id_close
 
 
-async def test_load_existing_events_excludes_closed_and_rejected() -> None:
+async def test_load_existing_events_excludes_closed_rejected_and_merged() -> None:
     mock_session = AsyncMock()
     mock_result = MagicMock()
     mock_result.all.return_value = []
@@ -70,7 +76,7 @@ async def test_load_existing_events_excludes_closed_and_rejected() -> None:
     await load_existing_events(mock_session)
 
     executed_sql = str(mock_session.execute.call_args[0][0])
-    assert "status NOT IN ('closed', 'rejected')" in executed_sql
+    assert "status NOT IN ('closed', 'rejected', 'merged')" in executed_sql
 
 
 async def test_assign_event_id_revives_archived_event_on_match() -> None:
@@ -141,3 +147,80 @@ async def test_assign_matches_via_sql_and_writes_weighted_centroid() -> None:
     expected = running_mean(old, 4, batch, 1)
     expected_str = "[" + ",".join(str(v) for v in expected.tolist()) + "]"
     assert written == expected_str
+
+
+def _vec_str(v: np.ndarray) -> str:
+    return "[" + ",".join(str(x) for x in v.tolist()) + "]"
+
+
+def _merge_session(kept_id: str, kept: np.ndarray, kept_count: int,
+                   absorbed_id: str, absorbed: np.ndarray, absorbed_count: int) -> AsyncMock:
+    """Mock session whose SELECT returns the kept + absorbed event rows."""
+    select_result = MagicMock()
+    select_result.all.return_value = [
+        (kept_id, _vec_str(kept), kept_count),
+        (absorbed_id, _vec_str(absorbed), absorbed_count),
+    ]
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=select_result)
+    return session
+
+
+async def test_apply_merges_empty_returns_zero_and_writes_nothing() -> None:
+    session = AsyncMock()
+    session.execute = AsyncMock()
+    n = await apply_merges(session, merges=[])
+    assert n == 0
+    session.execute.assert_not_awaited()
+
+
+async def test_apply_merges_reassigns_articles_to_kept() -> None:
+    kept_id = "11111111-1111-1111-1111-111111111111"
+    absorbed_id = "22222222-2222-2222-2222-222222222222"
+    kept = _centroid(0)
+    absorbed = _centroid(1)
+    session = _merge_session(kept_id, kept, 4, absorbed_id, absorbed, 1)
+
+    n = await apply_merges(session, merges=[(absorbed_id, kept_id)])
+    assert n == 1
+
+    reassign = [
+        c for c in session.execute.await_args_list if "UPDATE articles" in str(c.args[0])
+    ]
+    assert reassign, "expected an UPDATE articles call"
+    params = reassign[0].args[1]
+    assert params["kept"] == kept_id
+    assert params["absorbed"] == absorbed_id
+
+
+async def test_apply_merges_folds_weighted_centroid_into_kept() -> None:
+    kept_id = "11111111-1111-1111-1111-111111111111"
+    absorbed_id = "22222222-2222-2222-2222-222222222222"
+    kept = _centroid(0)
+    absorbed = _centroid(7)
+    session = _merge_session(kept_id, kept, 4, absorbed_id, absorbed, 1)
+
+    await apply_merges(session, merges=[(absorbed_id, kept_id)])
+
+    kept_update = [
+        c for c in session.execute.await_args_list
+        if "UPDATE events" in str(c.args[0]) and "article_count = article_count" in str(c.args[0])
+    ]
+    assert kept_update, "expected an UPDATE events call folding the centroid"
+    expected = running_mean(kept, 4, absorbed, 1)
+    assert kept_update[0].args[1]["centroid"] == _vec_str(expected)
+
+
+async def test_apply_merges_marks_absorbed_event_merged() -> None:
+    kept_id = "11111111-1111-1111-1111-111111111111"
+    absorbed_id = "22222222-2222-2222-2222-222222222222"
+    session = _merge_session(kept_id, _centroid(0), 4, absorbed_id, _centroid(1), 1)
+
+    await apply_merges(session, merges=[(absorbed_id, kept_id)])
+
+    absorbed_update = [
+        c for c in session.execute.await_args_list
+        if "UPDATE events" in str(c.args[0]) and "status = 'merged'" in str(c.args[0])
+    ]
+    assert absorbed_update, "expected the absorbed event to be marked 'merged'"
+    assert absorbed_update[0].args[1]["id"] == absorbed_id

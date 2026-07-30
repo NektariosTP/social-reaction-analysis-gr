@@ -20,12 +20,11 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-
-from nlp.clustering import cluster_articles_from_db
+from nlp.clustering import find_merges, single_pass_cluster_from_db
 from nlp.config import settings
 from nlp.deduplication import find_duplicates_in_cluster, mark_duplicates
 from nlp.embeddings import embed_articles
-from nlp.event_registry import assign_event_id
+from nlp.event_registry import apply_merges, assign_event_id, load_existing_events
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +69,10 @@ async def run_nlp_pipeline(engine: AsyncEngine | None = None) -> dict[str, objec
         "cluster_min_articles": settings.cluster_min_articles,
         "cluster_min_intra_sim": settings.cluster_min_intra_sim,
         "event_registry_sim_threshold": settings.event_registry_sim_threshold,
+        "event_merge_threshold": settings.event_merge_threshold,
         "dedup_cosine_threshold": settings.dedup_cosine_threshold,
         "dedup_time_window_hours": settings.dedup_time_window_hours,
+        "cluster_tau": settings.cluster_tau,
     }
 
     metrics: dict[str, object] = {}
@@ -82,12 +83,11 @@ async def run_nlp_pipeline(engine: AsyncEngine | None = None) -> dict[str, objec
         await session.commit()
         metrics["n_embedded"] = n_embedded
 
-        # Stage 2: Cluster
-        cluster_results = await cluster_articles_from_db(
+        # Stage 2: Cluster (single-pass incremental)
+        cluster_results = await single_pass_cluster_from_db(
             session,
             window_days=settings.cluster_window_days,
-            min_cluster_size=settings.hdbscan_min_cluster_size,
-            min_samples=settings.hdbscan_min_samples,
+            tau=settings.cluster_tau,
             min_articles=settings.cluster_min_articles,
             min_intra_sim=settings.cluster_min_intra_sim,
         )
@@ -135,6 +135,16 @@ async def run_nlp_pipeline(engine: AsyncEngine | None = None) -> dict[str, objec
         await session.commit()
         metrics["n_dupes"] = n_dupes
         metrics["n_events"] = len(event_ids)
+
+        # Stage 4: Merge converged/duplicate events. assign_event_id matches each
+        # cluster against a single nearest event, so within-batch duplicates and
+        # centroids that drift together over time leave near-identical events behind.
+        # find_merges catches those pairwise; apply_merges folds them and marks the
+        # absorbed event 'merged' so it drops out of future matching.
+        existing = await load_existing_events(session)
+        merges = find_merges(existing, merge_threshold=settings.event_merge_threshold)
+        metrics["n_merges"] = await apply_merges(session, merges)
+        await session.commit()
 
         # Compute silhouette if we have ≥2 clusters (quality signal for thesis)
         # Silhouette is computed here as a best-effort — skipped if data too small.
