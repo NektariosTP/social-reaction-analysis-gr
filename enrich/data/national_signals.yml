@@ -1,0 +1,11 @@
+# Signals that an event is panhellenic / national in scope (no single venue).
+# Matched case-insensitively as substrings; keep precision high — do NOT add
+# signals that also fire on genuinely localized events.
+keywords:
+  - πανελλαδικ      # πανελλαδική / -ό / -ής
+  - πανελλήνι
+  - πανεθνικ
+  - σε όλη τη χώρα
+  - σε ολη τη χωρα
+  - σε ολόκληρη τη χώρα
+  - σε ολοκληρη τη χωρα

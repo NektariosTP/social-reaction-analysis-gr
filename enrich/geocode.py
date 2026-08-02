@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 _GAZETTEER_PATH = Path(__file__).parent / "data" / "gazetteer.yml"
 _REGIONS_PATH = Path(__file__).parent / "data" / "regions.geojson"
 _EMBASSIES_PATH = Path(__file__).parent / "data" / "embassies.yml"
+_NATIONAL_SIGNALS_PATH = Path(__file__).parent / "data" / "national_signals.yml"
 
 
 class GeocodeResult(BaseModel):
@@ -67,6 +68,19 @@ def lookup_gazetteer(text: str) -> GeocodeResult | None:
             city_name = name.title()
             return GeocodeResult(lat=coords["lat"], lon=coords["lon"], location_name=city_name, city=city_name)
     return None
+
+
+@lru_cache(maxsize=1)
+def _load_national_signals() -> list[str]:
+    raw = yaml.safe_load(_NATIONAL_SIGNALS_PATH.read_text(encoding="utf-8")) or {}
+    signals = list(raw.get("keywords", []))
+    return [s.lower() for s in signals]
+
+
+def detect_national_scope(text: str) -> bool:
+    """True when the text carries panhellenic/national-scope signals."""
+    t = text.lower()
+    return any(sig in t for sig in _load_national_signals())
 
 
 async def geocode_text(
@@ -187,7 +201,15 @@ async def geocode_event(
     all_text = summary_el + " " + " ".join(article_titles[:5])
 
     # 1. LLM extraction → Nominatim (primary path, parallel requests)
+    national = detect_national_scope(all_text)
     mentions = _extract_locations_llm(all_text)
+    has_venue = any(getattr(m, "venue", None) for m in mentions) or len(mentions) == 1
+
+    # National scope + no specific venue → leave unlocated (don't pin a stray/hallucinated city)
+    if national and not has_venue:
+        logger.debug("[geocode] National scope, no venue → leaving event unlocated.")
+        return []
+
     if mentions:
         results: list[GeocodeResult] = []
         for i, m in enumerate(mentions):

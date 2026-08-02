@@ -53,7 +53,7 @@ async def main() -> None:
             article_titles=r["article_titles"],
         )
         primary = results[0] if results else None
-        pred_foreign = (primary is None) or getattr(primary, "is_foreign", False)
+        pred_foreign = primary is not None and getattr(primary, "is_foreign", False)
         gold_foreign = bool(r.get("is_foreign"))
         if pred_foreign and gold_foreign:
             f_tp += 1

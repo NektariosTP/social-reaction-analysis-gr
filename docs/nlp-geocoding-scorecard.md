@@ -14,22 +14,22 @@ One column per landed milestone. See
 
 ## Scorecard
 
-| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | A2 · foreign + point-in-Greece (2026-07-30) | A3 · centroid running-mean + SQL match (2026-07-30) | A4 · single-pass clustering τ=0.72 (2026-07-30) ⚠️ in-sample | Target / notes |
-|---|---|---|---|---|---|---|---|
-| **Clustering** ARI | `eval_clustering` | **0.447** | — | — | **0.447** | **0.879** | ↑ with single-pass — **met (A4)** |
-| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — | **0.929** | **0.978** | ↑ (A4) |
-| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | — | **1.000** | **0.952** | keep high — small dip, big R gain (A4) |
-| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | — | **0.291** | **0.819** | ↑↑ **met** — over-fragmentation fixed (170 pred vs 160 gold, was 254) (A4) |
-| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | — | **0.450** | **0.881** | ↑ **met (A4)** |
-| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | **0.789** (15/19) | — | — | ↑; 4 misses are the national/venueless class → A5 target |
-| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | **3.2 km** (n=19) | — | — | venue-level, full domestic coverage |
-| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | **1.00 / 1.00 / 1.00** | — | — | A2 goal met — point-in-Greece + is_foreign; all 4 foreign detected, no domestic misflagged |
-| **Event-precision** | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | **0.390** | — | — | unchanged — detection untouched; ↑ after M5 (NLI noise gate) |
-| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | — | — | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
-| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | — | — | — | cosine-to-label; weak precision (M5) |
-| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | — | — | — | ↑ after M5 (NLI) |
-| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | — | — | — | broken: 1/23 correct — *worse than majority-class* (all gold = Φυσικό → trivial predictor scores 1.0). Cosine-to-label fails here; top M5 target |
-| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | — | — | — | strong |
+| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | A2 · foreign + point-in-Greece (2026-07-30) | A3 · centroid running-mean + SQL match (2026-07-30) | A4 · single-pass clustering τ=0.72 (2026-07-30) ⚠️ in-sample | A5 · panhellenic-scope, no HQ fallback (2026-08-03) | Target / notes |
+|---|---|---|---|---|---|---|---|---|
+| **Clustering** ARI | `eval_clustering` | **0.447** | — | — | **0.447** | **0.879** | — | ↑ with single-pass — **met (A4)** |
+| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — | **0.929** | **0.978** | — | ↑ (A4) |
+| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | — | **1.000** | **0.952** | — | keep high — small dip, big R gain (A4) |
+| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | — | **0.291** | **0.819** | — | ↑↑ **met** — over-fragmentation fixed (170 pred vs 160 gold, was 254) (A4) |
+| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | — | **0.450** | **0.881** | — | ↑ **met (A4)** |
+| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | **0.789** (15/19) | — | — | **0.750** (12/16) | ↑; 4 misses are the national/venueless class → A5 target |
+| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | **3.2 km** (n=19) | — | — | **2.9 km** (n=16) | venue-level, full domestic coverage |
+| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | **1.00 / 1.00 / 1.00** | — | — | **1.00 / 1.00 / 1.00** | A2 goal met — point-in-Greece + is_foreign; all 4 foreign detected, no domestic misflagged |
+| **Event-precision** | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | **0.390** | — | — | **0.390** | unchanged — detection untouched; ↑ after M5 (NLI noise gate) |
+| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | — | — | — | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
+| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | — | — | — | — | cosine-to-label; weak precision (M5) |
+| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | — | — | — | — | ↑ after M5 (NLI) |
+| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | — | — | — | — | broken: 1/23 correct — *worse than majority-class* (all gold = Φυσικό → trivial predictor scores 1.0). Cosine-to-label fails here; top M5 target |
+| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | — | — | — | — | strong |
 
 > **A1 + A1b — how these were captured (and two gotchas).** Numbers are the representative run: `NOMINATIM_URL=https://nominatim.openstreetmap.org GROQ_API_KEY=… LLM_MODEL=groq/llama-3.3-70b-versatile uv run python scripts/eval_geocode.py`.
 > - **A1b (extraction robustness)** landed first: instructor JSON mode + salvage parser eliminated Groq's `tool_use_failed` drops, so extraction is reliable and the sample is stable (n=18 of 19 domestic-with-coords).
@@ -42,6 +42,12 @@ One column per landed milestone. See
 > **A4 — single-pass incremental clustering (τ=0.72).** First column that actually re-clusters the fixture: `uv run python scripts/eval_clustering.py --single-pass` embeds each fixture article with mpnet and groups via `single_pass_cluster` at the τ chosen by `scripts/tune_tau.py`. Over-fragmentation collapses (254→**170** predicted groups vs 160 gold): pairwise **R 0.291→0.819**, **F1 0.450→0.881**, **ARI 0.447→0.879**, **V-measure 0.929→0.978**, at a small precision cost (**P 1.000→0.952**). No external services — sklearn + mpnet over the frozen fixture, reproducible.
 >
 > ⚠️ **These A4 numbers are in-sample (optimistic).** τ=0.72 was selected by `tune_tau.py` to **maximize pairwise-F1 on `clustering.jsonl`**, then scored on the same fixture — train-on-test. The HDBSCAN baseline column was *not* tuned on this fixture (it's live-production `pipeline_event_id`), so part of the F1 jump is A4's tuning advantage, not pure algorithm. The τ-surface is a **narrow peak, not a plateau** (F1 by τ: 0.70→0.741, **0.72→0.881**, 0.74→0.868, 0.76→0.763, then ↓ to 0.23 by 0.90), so a held-out τ plausibly scores ~0.10–0.14 F1 lower. Read **0.881 as an upper bound**; the *direction* (≫ baseline 0.450) is robust — even the worst adjacent τ (0.741) beats it. A proper estimate needs a held-out / k-fold τ selection, blocked on there being no second labeled clustering fixture.
+
+> **A5 — how this column was captured.** A5 makes domestic national-scope-no-venue events correctly return `[]` instead of pinning a stray/hallucinated city (e.g. `Πανελλαδική απεργία στο εμπόριο` no longer forces a guess between Ηράκλειο/Θεσσαλονίκη/Κέρκυρα/Βόλος). Validating it surfaced two bugs, both fixed before this column was recorded:
+> - `eval_geocode.py`'s `pred_foreign = (primary is None) or is_foreign` treated *any* empty result as "predicted foreign" — harmless pre-A5 (every domestic event got some pin) but wrong now that A5 legitimately empties some domestic results. Fixed to `pred_foreign = primary is not None and is_foreign`.
+> - `has_venue` originally required the LLM's `venue` field, so it wrongly suppressed a *correct* single-city hit (Κοζάνη ΚΕΠ office, a national campaign's one genuinely-locatable local instance) alongside the truly ambiguous multi-city cases. Loosened to also trust a single unambiguous mention: `has_venue = any(m.venue) or len(mentions) == 1`.
+>
+> Four full `eval_geocode.py` runs this session swung wildly (region_accuracy 0.714/0.800/0.692/0.733, n=7/15/13/15; median distance 1.2/2.6/9.4/3.2 km; foreign F1 0.000/0.857/0.667/0.857) — two of the four logged Groq/LiteLLM errors mid-run, i.e. this session hit real API rate/token limits from repeated back-to-back diagnostic calls, unrelated to A5's own logic. The table above instead reports one **clean, isolated single-pass trace** (no concurrent load, no API errors) scored against gold: `n=16` domestic events with a pin (of 19 total domestic), all 4 foreign events correctly flagged. Of the 3 domestic events with no pin, 2 are the intended abstentions (`41f3d6dd`, `6b723b5b` — genuinely ambiguous multi-city mentions); the third (`b38ecdcc`) also returned empty but wasn't traced for `national`/`has_venue` in this pass, so whether it's a third correct abstention or an unrelated miss is **not yet confirmed** — worth checking before treating `region_accuracy` as final. Same Gotcha 3 caveat as A1/A2 applies: this is one run, not a guaranteed-reproducible number.
 
 ## How the baselines were captured
 
