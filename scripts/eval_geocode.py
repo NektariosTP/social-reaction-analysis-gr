@@ -13,6 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from enrich.geocode import geocode_event  # noqa: E402
+from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score  # noqa: E402
 from scripts.gold_common import (  # noqa: E402
     binary_prf,
     haversine_km,
@@ -38,11 +39,24 @@ async def main() -> None:
     negatives = load_jsonl(Path("tests/fixtures/gold/event_precision.jsonl"))
 
     # event-precision (detector quality): real / (real + non-events sampled)
-    ep = binary_prf(tp=len(events), fp=len(negatives), fn=0)
+    ep_tp = ep_fp = ep_fn = 0
+    for r in events + negatives:
+        gtext = " ".join(r["article_titles"]) + " " + " ".join(r["article_bodies"])
+        kept = noise_gate_score(gtext) >= NOISE_GATE_THRESHOLD
+        gold_real = bool(r.get("is_event"))
+        if kept and gold_real:
+            ep_tp += 1
+        elif kept and not gold_real:
+            ep_fp += 1
+        elif not kept and gold_real:
+            ep_fn += 1
+    ep = binary_prf(ep_tp, ep_fp, ep_fn)
     print(
-        f"[geocode] event-precision={ep['precision']:.3f} "
-        f"(real={len(events)} non-events={len(negatives)})"
+        f"[geocode] event-precision P={ep['precision']:.3f} R={ep['recall']:.3f} "
+        f"F1={ep['f1']:.3f} (tp={ep_tp} fp={ep_fp} fn={ep_fn}, "
+        f"real={len(events)} non-events={len(negatives)})"
     )
+
 
     f_tp = f_fp = f_fn = 0
     region_hits = region_total = 0

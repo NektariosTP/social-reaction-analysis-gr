@@ -6,9 +6,8 @@ Fallback: LLM via instructor + Pydantic structured output for low-confidence clu
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 
-import numpy as np
+from enrich.nli import classify_axis
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -52,10 +51,19 @@ AXIS_INTENSITY = [
 ]
 
 # Multi-label axes use a lower threshold (top-K or above sim threshold)
-_MULTILABEL_THRESHOLD = 0.35
+# Calibrated in B1 step 11 via scripts/tune_multilabel_threshold.py: best (or
+# tied-best) F1 for both action_forms and thematic_fields in the 0.20-0.50
+# sweep — higher values (up to 0.99) score marginally better but are treated
+# as overfit to the 23-event gold set, not adopted (see scorecard B1 note).
+_MULTILABEL_THRESHOLD = 0.50
 _MULTILABEL_MAX = 3
 _CONFIDENCE_LOW = 0.45  # below this → use LLM fallback
-
+_HYPOTHESIS_TEMPLATES = {
+    "action_forms": "Αυτό το κείμενο περιγράφει τη μορφή δράσης: {}.",
+    "thematic_fields": "Αυτό το κείμενο αφορά το θεματικό πεδίο: {}.",
+    "channel": "Αυτή η δράση διεξήχθη μέσω: {}.",
+    "intensity": "Η ένταση αυτής της δράσης είναι: {}.",
+}
 
 class ClassificationResult(BaseModel):
     action_forms: list[str]
@@ -70,46 +78,32 @@ class ClassificationResult(BaseModel):
 # Zero-shot implementation
 # ---------------------------------------------------------------------------
 
-def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
+def classify_nli(text: str) -> ClassificationResult:
+    """Classify event text against all four axes via NLI zero-shot (no LLM tokens)."""
 
-
-@lru_cache(maxsize=1)
-def _get_axis_embeddings() -> dict[str, np.ndarray]:
-    """Embed all axis labels once and cache. Key = label string, value = unit vector."""
-    from sentence_transformers import SentenceTransformer
-    from enrich.config import settings
-
-    all_labels = AXIS_ACTION_FORMS + AXIS_THEMATIC_FIELDS + AXIS_CHANNEL + AXIS_INTENSITY
-    model = SentenceTransformer(settings.embedding_model, device=settings.embedding_device)
-    vecs: np.ndarray = model.encode(all_labels, normalize_embeddings=True)
-    return {label: vec for label, vec in zip(all_labels, vecs)}
-
-
-def classify_zero_shot(centroid: np.ndarray) -> ClassificationResult:
-    """Classify a cluster centroid against all four axes without LLM calls."""
-    label_embs = _get_axis_embeddings()
-
-    def _top_single(axis_labels: list[str]) -> tuple[str, float]:
-        sims = {lbl: _cosine_sim(centroid, label_embs[lbl]) for lbl in axis_labels}
-        best = max(sims, key=sims.__getitem__)
-        return best, sims[best]
-
-    def _top_multi(axis_labels: list[str]) -> tuple[list[str], float]:
-        sims = sorted(
-            [(lbl, _cosine_sim(centroid, label_embs[lbl])) for lbl in axis_labels],
-            key=lambda t: t[1],
-            reverse=True,
+    def _top_multi(axis_labels: list[str], axis_key: str) -> tuple[list[str], float]:
+        scores = classify_axis(
+            text, axis_labels, multi_label=True,
+            hypothesis_template=_HYPOTHESIS_TEMPLATES[axis_key],
         )
-        selected = [lbl for lbl, s in sims if s >= _MULTILABEL_THRESHOLD][:_MULTILABEL_MAX]
+        ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+        selected = [lbl for lbl, s in ranked if s >= _MULTILABEL_THRESHOLD][:_MULTILABEL_MAX]
         if not selected:
-            selected = [sims[0][0]]
-        return selected, sims[0][1]
+            selected = [ranked[0][0]]
+        return selected, ranked[0][1]
 
-    action_forms, action_conf = _top_multi(AXIS_ACTION_FORMS)
-    thematic_fields, thematic_conf = _top_multi(AXIS_THEMATIC_FIELDS)
-    channel, channel_conf = _top_single(AXIS_CHANNEL)
-    intensity, intensity_conf = _top_single(AXIS_INTENSITY)
+    def _top_single(axis_labels: list[str], axis_key: str) -> tuple[str, float]:
+        scores = classify_axis(
+            text, axis_labels, multi_label=False,
+            hypothesis_template=_HYPOTHESIS_TEMPLATES[axis_key],
+        )
+        best = max(scores, key=scores.__getitem__)
+        return best, scores[best]
+
+    action_forms, action_conf = _top_multi(AXIS_ACTION_FORMS, "action_forms")
+    thematic_fields, thematic_conf = _top_multi(AXIS_THEMATIC_FIELDS, "thematic_fields")
+    channel, channel_conf = _top_single(AXIS_CHANNEL, "channel")
+    intensity, intensity_conf = _top_single(AXIS_INTENSITY, "intensity")
 
     return ClassificationResult(
         action_forms=action_forms,
@@ -136,16 +130,13 @@ class _LlmClassification(BaseModel):
     channel: str
     intensity: str
 
-
 def classify_with_llm_fallback(
-    centroid: np.ndarray,
     article_titles: list[str],
+    article_bodies: list[str],
 ) -> ClassificationResult:
-    """
-    Classify using zero-shot first; fall back to LLM when confidence is low.
-    Cached by event content — never re-classifies the same centroid+titles.
-    """
-    result = classify_zero_shot(centroid)
+    """Classify using NLI first; fall back to LLM when confidence is low."""
+    text = (" ".join(article_titles) + " " + " ".join(b[:500] for b in article_bodies)).strip()
+    result = classify_nli(text)
     min_conf = min(result.confidence.values())
 
     if min_conf >= _CONFIDENCE_LOW:
@@ -178,5 +169,5 @@ def classify_with_llm_fallback(
             used_llm_fallback=True,
         )
     except Exception as exc:
-        logger.warning("[classify] LLM fallback failed: %s — using zero-shot result.", exc)
+        logger.warning("[classify] LLM fallback failed: %s — using NLI result.", exc)
         return result

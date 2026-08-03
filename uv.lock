@@ -3883,6 +3883,7 @@ dependencies = [
     { name = "spacy" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "trafilatura" },
+    { name = "transformers" },
 ]
 
 [package.dev-dependencies]
@@ -3924,6 +3925,7 @@ requires-dist = [
     { name = "spacy", specifier = ">=3.7" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "trafilatura", specifier = ">=1.12" },
+    { name = "transformers", specifier = ">=5.12.1" },
 ]
 
 [package.metadata.requires-dev]

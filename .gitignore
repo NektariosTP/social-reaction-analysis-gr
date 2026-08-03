@@ -12,6 +12,7 @@ _archive/data/
 *.bin
 models/
 .acled_token.json
+scripts/.nli_raw_scores_cache.json
 
 # Frontend
 node_modules/

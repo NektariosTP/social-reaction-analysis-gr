@@ -32,6 +32,7 @@ dependencies = [
     "bcrypt>=4.0",
     "itsdangerous>=2.2",
     "shapely>=2.1.2",
+    "transformers>=5.12.1",
 ]
 
 [dependency-groups]
