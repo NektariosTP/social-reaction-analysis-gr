@@ -10,7 +10,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from nlp.clustering import single_pass_cluster  # noqa: E402
-from nlp.embeddings import _load_model  # noqa: E402
+from nlp.embeddings import _load_model, embed_texts  # noqa: E402
 from scripts.gold_common import load_jsonl, pairwise_f1  # noqa: E402
 
 
@@ -19,7 +19,7 @@ def main() -> None:
     gold = [r["gold_group"] for r in recs]
     texts = [f"{r['title']} {r['body_excerpt']}" for r in recs]
     model = _load_model()
-    vecs = np.asarray(model.encode(texts, normalize_embeddings=True), dtype=np.float32)
+    vecs = embed_texts(model, texts)
 
     best = (0.0, -1.0)  # (tau, f1)
     for tau in [round(0.70 + 0.02 * i, 2) for i in range(11)]:  # 0.70..0.90

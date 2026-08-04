@@ -19,9 +19,9 @@ from scripts.gold_common import load_jsonl, pairwise_f1  # noqa: E402
 def _single_pass_pred(recs: list[dict], tau: float) -> list[int]:
     import numpy as np
     from nlp.clustering import single_pass_cluster
-    from nlp.embeddings import _load_model
+    from nlp.embeddings import embed_texts, _load_model
     texts = [f"{r['title']} {r['body_excerpt']}" for r in recs]
-    vecs = np.asarray(_load_model().encode(texts, normalize_embeddings=True), dtype=np.float32)
+    vecs = embed_texts(_load_model(), texts)
     return single_pass_cluster(vecs, tau)
 
 
