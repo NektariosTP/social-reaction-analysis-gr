@@ -4,9 +4,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
-import pytest
 
-from nlp.embeddings import embed_articles, _chunk_words, _mean_pool, embed_texts
+from nlp.embeddings import _chunk_words, _mean_pool, embed_articles, embed_texts
 
 
 async def test_embed_articles_skips_already_embedded() -> None:

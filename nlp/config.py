@@ -23,7 +23,7 @@ class NlpSettings(BaseSettings):
     dedup_time_window_hours: int = 72
     cluster_tau: float = 0.72
     embedding_dim: int = 768  # exposed for a future model swap: one line here + an Alembic step
-    embedding_chunk_words: int = 100  # mpnet max_seq_length=128 tokens; conservative word-based window
+    embedding_chunk_words: int = 100  # mpnet max_seq_length=128 tokens; conservative word window
 
 
 
