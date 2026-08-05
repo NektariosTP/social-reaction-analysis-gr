@@ -10,7 +10,6 @@ import json
 import logging
 from typing import Any
 
-import numpy as np
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -23,6 +22,7 @@ from enrich.classify import classify_with_llm_fallback
 from enrich.config import settings
 from enrich.geocode import geocode_event
 from enrich.summarize import summarize_event
+from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score
 
 logger = logging.getLogger(__name__)
 
@@ -56,18 +56,19 @@ async def _enrich_event(
     update_params: dict[str, Any] = {"id": event_id}
     set_clauses: list[str] = []
 
+    # 0. Noise gate — reject non-events before spending any classify/geocode/LLM budget
+    noise_text = (" ".join(titles) + " " + " ".join(b[:500] for b in bodies)).strip()
+    if noise_gate_score(noise_text) < NOISE_GATE_THRESHOLD:
+        await session.execute(
+            text("UPDATE events SET status = 'rejected' WHERE id = :id"),
+            {"id": event_id},
+        )
+        logger.info("[enrich] Event %s rejected by noise gate.", event_id[:8])
+        return
+    
     # 1. Classify
     if needs_classify:
-        centroid_text = getattr(event, "centroid", None)
-        if centroid_text:
-            centroid = np.array(
-                [float(v) for v in str(centroid_text).strip("[]").split(",")],
-                dtype=np.float32,
-            )
-        else:
-            centroid = np.zeros(768, dtype=np.float32)
-
-        classification = classify_with_llm_fallback(centroid=centroid, article_titles=titles)
+        classification = classify_with_llm_fallback(article_titles=titles, article_bodies=bodies)
         update_params.update(
             {
                 "action_forms": classification.action_forms,
@@ -98,8 +99,10 @@ async def _enrich_event(
                 "lat": primary_geo.lat if primary_geo else None,
                 "lon": primary_geo.lon if primary_geo else None,
                 "location_name": primary_geo.location_name if primary_geo else None,
+                "region_code": primary_geo.region_code if primary_geo else None,
             }
         )
+        set_clauses.append("region_code = :region_code")
         set_clauses.append(
             "primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL "
             "THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography "

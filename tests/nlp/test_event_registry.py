@@ -2,12 +2,18 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
 
-from nlp.event_registry import assign_event_id, load_existing_events, match_existing_event
+from nlp.event_registry import (
+    apply_merges,
+    assign_event_id,
+    load_existing_events,
+    match_existing_event,
+    running_mean,
+)
 
 
 def _centroid(seed: int = 0) -> np.ndarray:
@@ -61,7 +67,7 @@ def test_match_returns_best_match() -> None:
     assert result == id_close
 
 
-async def test_load_existing_events_excludes_closed_and_rejected() -> None:
+async def test_load_existing_events_excludes_closed_rejected_and_merged() -> None:
     mock_session = AsyncMock()
     mock_result = MagicMock()
     mock_result.all.return_value = []
@@ -70,24 +76,151 @@ async def test_load_existing_events_excludes_closed_and_rejected() -> None:
     await load_existing_events(mock_session)
 
     executed_sql = str(mock_session.execute.call_args[0][0])
-    assert "status NOT IN ('closed', 'rejected')" in executed_sql
+    assert "status NOT IN ('closed', 'rejected', 'merged')" in executed_sql
 
 
 async def test_assign_event_id_revives_archived_event_on_match() -> None:
     centroid = _centroid(0)
     existing_id = str(uuid.uuid4())
-    mock_session = AsyncMock()
+    centroid_str = "[" + ",".join(str(v) for v in centroid.tolist()) + "]"
 
-    with patch(
-        "nlp.event_registry.load_existing_events",
-        new_callable=AsyncMock,
-        return_value=[(existing_id, centroid)],
-    ):
-        event_id = await assign_event_id(
-            mock_session, centroid=centroid, article_ids=["a1"], threshold=0.85
-        )
+    mock_session = AsyncMock()
+    # A3: assign_event_id matches via a single SQL nearest-neighbour SELECT whose
+    # .first() returns (id, centroid, article_count, distance). distance 0.0 is
+    # well within 1 - threshold, so this is a match.
+    select_result = MagicMock()
+    select_result.first.return_value = (existing_id, centroid_str, 3, 0.0)
+    mock_session.execute = AsyncMock(return_value=select_result)
+
+    event_id = await assign_event_id(
+        mock_session, centroid=centroid, article_ids=["a1"], threshold=0.85
+    )
 
     assert event_id == existing_id
-    update_call = mock_session.execute.call_args_list[0]
-    executed_sql = str(update_call[0][0])
-    assert "status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END" in executed_sql
+    # execute order is now SELECT, then UPDATE events, then article UPDATEs — find the UPDATE.
+    update_calls = [
+        c for c in mock_session.execute.await_args_list if "UPDATE events" in str(c.args[0])
+    ]
+    assert update_calls, "expected an UPDATE events call"
+    assert (
+        "status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END"
+        in str(update_calls[0].args[0])
+    )
+
+
+def test_running_mean_is_weighted_and_normalized() -> None:
+    old = np.array([1.0, 0.0], dtype=np.float32)
+    batch = np.array([0.0, 1.0], dtype=np.float32)
+    # equal weights → direction (0.5, 0.5), normalized → (0.707, 0.707)
+    out = running_mean(old, 1, batch, 1)
+    assert np.allclose(out, [0.70710678, 0.70710678], atol=1e-5)
+    assert abs(float(np.linalg.norm(out)) - 1.0) < 1e-5
+
+
+def test_running_mean_respects_counts() -> None:
+    old = np.array([1.0, 0.0], dtype=np.float32)
+    batch = np.array([0.0, 1.0], dtype=np.float32)
+    # old outweighs batch 3:1 → x-component dominates
+    out = running_mean(old, 3, batch, 1)
+    assert out[0] > out[1]
+
+
+async def test_assign_matches_via_sql_and_writes_weighted_centroid() -> None:
+    existing_id = "11111111-1111-1111-1111-111111111111"
+    old = np.array([1.0, 0.0] + [0.0] * 766, dtype=np.float32)
+    batch = np.array([1.0, 0.0] + [0.0] * 766, dtype=np.float32)  # identical → distance 0
+    old_str = "[" + ",".join(str(v) for v in old.tolist()) + "]"
+
+    session = AsyncMock()
+    # First execute() = nearest-match SELECT → return one row (id, centroid, count, distance)
+    select_result = MagicMock()
+    select_result.first.return_value = (existing_id, old_str, 4, 0.0)
+    session.execute = AsyncMock(return_value=select_result)
+
+    got = await assign_event_id(session, centroid=batch, article_ids=["a1"], threshold=0.85)
+    assert got == existing_id
+
+    # The UPDATE must carry the weighted centroid (old_count=4, batch_count=1), not raw batch.
+    update_calls = [c for c in session.execute.await_args_list if "UPDATE events" in str(c.args[0])]
+    assert update_calls, "expected an UPDATE events call"
+    written = update_calls[0].args[1]["centroid"]
+    expected = running_mean(old, 4, batch, 1)
+    expected_str = "[" + ",".join(str(v) for v in expected.tolist()) + "]"
+    assert written == expected_str
+
+
+def _vec_str(v: np.ndarray) -> str:
+    return "[" + ",".join(str(x) for x in v.tolist()) + "]"
+
+
+def _merge_session(kept_id: str, kept: np.ndarray, kept_count: int,
+                   absorbed_id: str, absorbed: np.ndarray, absorbed_count: int) -> AsyncMock:
+    """Mock session whose SELECT returns the kept + absorbed event rows."""
+    select_result = MagicMock()
+    select_result.all.return_value = [
+        (kept_id, _vec_str(kept), kept_count),
+        (absorbed_id, _vec_str(absorbed), absorbed_count),
+    ]
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=select_result)
+    return session
+
+
+async def test_apply_merges_empty_returns_zero_and_writes_nothing() -> None:
+    session = AsyncMock()
+    session.execute = AsyncMock()
+    n = await apply_merges(session, merges=[])
+    assert n == 0
+    session.execute.assert_not_awaited()
+
+
+async def test_apply_merges_reassigns_articles_to_kept() -> None:
+    kept_id = "11111111-1111-1111-1111-111111111111"
+    absorbed_id = "22222222-2222-2222-2222-222222222222"
+    kept = _centroid(0)
+    absorbed = _centroid(1)
+    session = _merge_session(kept_id, kept, 4, absorbed_id, absorbed, 1)
+
+    n = await apply_merges(session, merges=[(absorbed_id, kept_id)])
+    assert n == 1
+
+    reassign = [
+        c for c in session.execute.await_args_list if "UPDATE articles" in str(c.args[0])
+    ]
+    assert reassign, "expected an UPDATE articles call"
+    params = reassign[0].args[1]
+    assert params["kept"] == kept_id
+    assert params["absorbed"] == absorbed_id
+
+
+async def test_apply_merges_folds_weighted_centroid_into_kept() -> None:
+    kept_id = "11111111-1111-1111-1111-111111111111"
+    absorbed_id = "22222222-2222-2222-2222-222222222222"
+    kept = _centroid(0)
+    absorbed = _centroid(7)
+    session = _merge_session(kept_id, kept, 4, absorbed_id, absorbed, 1)
+
+    await apply_merges(session, merges=[(absorbed_id, kept_id)])
+
+    kept_update = [
+        c for c in session.execute.await_args_list
+        if "UPDATE events" in str(c.args[0]) and "article_count = article_count" in str(c.args[0])
+    ]
+    assert kept_update, "expected an UPDATE events call folding the centroid"
+    expected = running_mean(kept, 4, absorbed, 1)
+    assert kept_update[0].args[1]["centroid"] == _vec_str(expected)
+
+
+async def test_apply_merges_marks_absorbed_event_merged() -> None:
+    kept_id = "11111111-1111-1111-1111-111111111111"
+    absorbed_id = "22222222-2222-2222-2222-222222222222"
+    session = _merge_session(kept_id, _centroid(0), 4, absorbed_id, _centroid(1), 1)
+
+    await apply_merges(session, merges=[(absorbed_id, kept_id)])
+
+    absorbed_update = [
+        c for c in session.execute.await_args_list
+        if "UPDATE events" in str(c.args[0]) and "status = 'merged'" in str(c.args[0])
+    ]
+    assert absorbed_update, "expected the absorbed event to be marked 'merged'"
+    assert absorbed_update[0].args[1]["id"] == absorbed_id

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from nlp.clustering import single_pass_cluster, find_merges
 
 from nlp.clustering import (
     ClusterResult,
@@ -73,3 +74,33 @@ def test_quality_gate_passes_tight_cluster() -> None:
     )
     assert 0 in results
     assert results[0].centroid.shape == (768,)
+
+
+def _unit(v: list[float]) -> np.ndarray:
+    a = np.array(v, dtype=np.float32)
+    return a / np.linalg.norm(a)
+
+
+def test_single_pass_two_clusters_and_singleton() -> None:
+    # two tight groups near orthogonal axes + one clearly separate vector
+    vectors = np.stack([
+        _unit([1.0, 0.02, 0.0]),
+        _unit([1.0, 0.00, 0.0]),   # joins group A
+        _unit([0.02, 1.0, 0.0]),
+        _unit([0.00, 1.0, 0.0]),   # joins group B
+        _unit([0.0, 0.0, 1.0]),    # singleton
+    ])
+    labels = single_pass_cluster(vectors, tau=0.9)
+    assert labels[0] == labels[1]
+    assert labels[2] == labels[3]
+    assert labels[0] != labels[2]
+    assert labels[4] not in (labels[0], labels[2])
+    assert len(set(labels)) == 3
+
+
+def test_find_merges_absorbs_near_duplicate_events() -> None:
+    a = _unit([1.0, 0.0, 0.0])
+    b = _unit([1.0, 0.01, 0.0])   # ~identical to a
+    c = _unit([0.0, 1.0, 0.0])
+    merges = find_merges([("A", a), ("B", b), ("C", c)], merge_threshold=0.95)
+    assert merges == [("B", "A")]

@@ -1,0 +1,8 @@
+# Country name (as the LLM emits embassy_of) → embassy coords on Greek soil.
+# Extend as needed; all entries must satisfy point_in_greece().
+ΗΠΑ:       {lat: 37.9820, lon: 23.7553, city_name: "Αθήνα"}
+Τουρκία:   {lat: 37.9730, lon: 23.7421, city_name: "Αθήνα"}
+Ρωσία:     {lat: 38.0175, lon: 23.7700, city_name: "Αθήνα"}
+Γερμανία:  {lat: 37.9760, lon: 23.7437, city_name: "Αθήνα"}
+Ισραήλ:    {lat: 37.9985, lon: 23.7688, city_name: "Αθήνα"}
+Ιράν:      {lat: 38.0082, lon: 23.7773, city_name: "Αθήνα"}
