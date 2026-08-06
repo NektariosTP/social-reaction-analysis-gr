@@ -43,6 +43,30 @@ async def test_tehran_marked_foreign() -> None:
     assert results[0].region_code is None
 
 
+@respx.mock
+async def test_llm_flagged_foreign_skips_nominatim() -> None:
+    # Greece-only Nominatim can't resolve foreign places: it either finds
+    # nothing or spuriously matches an unrelated same-named Greek entity.
+    # An LLM-confirmed-foreign mention must never reach it.
+    route = respx.get("http://test-nominatim/search").mock(
+        return_value=Response(200, json=[])
+    )
+    with patch(
+        "enrich.geocode._extract_locations_llm",
+        return_value=[LocationMention(city="Μπολόνια", is_foreign=True)],
+    ):
+        results = await geocode_event(
+            summary_el="Βίαια επεισόδια στη Μπολόνια",
+            article_titles=["Επεισόδια στη Μπολόνια"],
+            nominatim_url="http://test-nominatim",
+        )
+    assert not route.called
+    assert results and results[0].is_foreign is True
+    assert results[0].lat is None
+    assert results[0].lon is None
+    assert results[0].region_code is None
+
+
 async def test_embassy_maps_to_athens_and_is_domestic() -> None:
     with patch(
         "enrich.geocode._extract_locations_llm",

@@ -130,6 +130,8 @@ async def _enrich_event(
     )
 
     for loc in geo_results:
+        if loc.lat is None or loc.lon is None:
+            continue  # confirmed-foreign, no coordinate to store
         await session.execute(
             text("""
                 INSERT INTO event_locations (event_id, location, location_name, city, is_primary)

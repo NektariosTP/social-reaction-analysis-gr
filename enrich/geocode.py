@@ -33,8 +33,8 @@ _NATIONAL_SIGNALS_PATH = Path(__file__).parent / "data" / "national_signals.yml"
 
 
 class GeocodeResult(BaseModel):
-    lat: float
-    lon: float
+    lat: float | None
+    lon: float | None
     location_name: str
     city: str | None = None
     region_code: str | None = None
@@ -219,11 +219,26 @@ async def geocode_event(
                     emb.is_primary = i == 0
                     results.append(emb)
                     continue
+            if m.is_foreign:
+                # Our Nominatim instance is Greece-only: it can't resolve foreign
+                # places, and searching anyway either finds nothing or spuriously
+                # matches an unrelated same-named Greek entity. Trust the LLM's
+                # verdict directly instead of pinning a bogus/absent coordinate.
+                results.append(
+                    GeocodeResult(
+                        lat=None,
+                        lon=None,
+                        location_name=m.venue or m.city,
+                        city=m.city,
+                        is_foreign=True,
+                        is_primary=i == 0,
+                    )
+                )
+                continue
             query = f"{m.venue}, {m.city}" if m.venue else m.city
             r = await geocode_text(query, city=m.city, nominatim_url=nominatim_url)
             if r is not None:
                 r.is_primary = i == 0
-                r.is_foreign = m.is_foreign  # _finalize confirms via point_in_greece
                 results.append(r)
         if results:
             logger.debug("[geocode] LLM+Nominatim resolved %d location(s).", len(results))
@@ -320,6 +335,8 @@ def lookup_embassy(country: str) -> GeocodeResult | None:
 def _finalize(results: list[GeocodeResult]) -> list[GeocodeResult]:
     """Stamp region_code + is_foreign on each geocoded result."""
     for r in results:
+        if r.lat is None or r.lon is None:
+            continue  # LLM-confirmed foreign, no coordinate to check
         r.region_code = region_for_point(r.lat, r.lon)
         if not r.is_foreign:
             r.is_foreign = not point_in_greece(r.lat, r.lon)
