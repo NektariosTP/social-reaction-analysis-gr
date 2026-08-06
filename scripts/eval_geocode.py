@@ -11,7 +11,10 @@ import statistics
 import sys
 from pathlib import Path
 
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from enrich.config import settings  # noqa: E402
 from enrich.geocode import geocode_event  # noqa: E402
 from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score  # noqa: E402
 from scripts.gold_common import (  # noqa: E402
@@ -58,39 +61,52 @@ async def main() -> None:
     )
 
 
+    engine = create_async_engine(settings.database_url)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
     f_tp = f_fp = f_fn = 0
     region_hits = region_total = 0
+    muni_hits = muni_total = 0
     dist_errors: list[float] = []
-    for r in events:
-        results = await geocode_event(
-            summary_el=" ".join(r["article_bodies"])[:800],
-            article_titles=r["article_titles"],
-        )
-        primary = results[0] if results else None
-        pred_foreign = primary is not None and getattr(primary, "is_foreign", False)
-        gold_foreign = bool(r.get("is_foreign"))
-        if pred_foreign and gold_foreign:
-            f_tp += 1
-        elif pred_foreign and not gold_foreign:
-            f_fn += 1  # missed a domestic event
-        elif not pred_foreign and gold_foreign:
-            f_fp += 1  # wrongly mapped a foreign event
-        if primary and not gold_foreign and r.get("true_lat") is not None:
-            # Multi-location gold events carry a list of regions; a primary that
-            # lands in ANY of them is correct (not just the first-listed one).
-            if getattr(primary, "region_code", None) in _as_set(
-                r["true_region_code"]
-            ):
-                region_hits += 1
-            region_total += 1
-            dist_errors.append(
-                haversine_km(
-                    primary.lat,
-                    primary.lon,
-                    _first(r["true_lat"]),
-                    _first(r["true_lon"]),
-                )
+    async with session_factory() as session:
+        for r in events:
+            results = await geocode_event(
+                summary_el=" ".join(r["article_bodies"])[:800],
+                article_titles=r["article_titles"],
+                session=session,
             )
+            primary = results[0] if results else None
+            pred_foreign = primary is not None and getattr(primary, "is_foreign", False)
+            gold_foreign = bool(r.get("is_foreign"))
+            if pred_foreign and gold_foreign:
+                f_tp += 1
+            elif pred_foreign and not gold_foreign:
+                f_fn += 1  # missed a domestic event
+            elif not pred_foreign and gold_foreign:
+                f_fp += 1  # wrongly mapped a foreign event
+            if primary and not gold_foreign and r.get("true_lat") is not None:
+                # Multi-location gold events carry a list of regions; a primary that
+                # lands in ANY of them is correct (not just the first-listed one).
+                if getattr(primary, "region_code", None) in _as_set(
+                    r["true_region_code"]
+                ):
+                    region_hits += 1
+                region_total += 1
+                dist_errors.append(
+                    haversine_km(
+                        primary.lat,
+                        primary.lon,
+                        _first(r["true_lat"]),
+                        _first(r["true_lon"]),
+                    )
+                )
+                if r.get("true_municipality") is not None:
+                    if getattr(primary, "municipality", None) in _as_set(
+                        r["true_municipality"]
+                    ):
+                        muni_hits += 1
+                    muni_total += 1
+    await engine.dispose()
     fm = binary_prf(f_tp, f_fp, f_fn)
     print(
         f"[geocode] foreign P={fm['precision']:.3f} R={fm['recall']:.3f} "
@@ -98,6 +114,8 @@ async def main() -> None:
     )
     acc = region_hits / region_total if region_total else 0.0
     print(f"[geocode] region_accuracy={acc:.3f} ({region_hits}/{region_total})")
+    muni_acc = muni_hits / muni_total if muni_total else 0.0
+    print(f"[geocode] municipality_accuracy={muni_acc:.3f} ({muni_hits}/{muni_total})")
     if dist_errors:
         print(
             f"[geocode] median_distance_error_km={statistics.median(dist_errors):.1f} "
