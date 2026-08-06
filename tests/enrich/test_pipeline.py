@@ -128,3 +128,63 @@ async def test_enrich_event_proceeds_when_not_noise() -> None:
 
     update_call = session.execute.call_args_list[-1]
     assert "status = 'pending_review'" in str(update_call[0][0])
+
+
+async def test_enrich_event_persists_municipality_and_passes_session_to_geocode() -> None:
+    session = AsyncMock()
+    art_result = MagicMock()
+    art_result.all.return_value = [("Τίτλος 1", "Σώμα 1")]
+    session.execute = AsyncMock(return_value=art_result)
+
+    geo_result = MagicMock(
+        lat=37.9755,
+        lon=23.7348,
+        location_name="Σύνταγμα",
+        region_code="Attica",
+        municipality="Δήμος Αθηναίων",
+        is_primary=True,
+        city="Αθήνα",
+    )
+
+    with (
+        patch("enrich.pipeline.noise_gate_score", return_value=0.9),
+        patch(
+            "enrich.pipeline.classify_with_llm_fallback",
+            return_value=ClassificationResult(
+                action_forms=["Απεργία/Στάση εργασίας"],
+                thematic_fields=["Εργασιακό"],
+                channel="Φυσικό (offline)",
+                intensity="Ειρηνική",
+                confidence={
+                    "action_forms": 0.9,
+                    "thematic_fields": 0.9,
+                    "channel": 0.9,
+                    "intensity": 0.9,
+                },
+            ),
+        ),
+        patch(
+            "enrich.pipeline.geocode_event",
+            new_callable=AsyncMock,
+            return_value=[geo_result],
+        ) as mock_geocode,
+        patch(
+            "enrich.pipeline.summarize_event",
+            return_value=MagicMock(summary_el="Περίληψη", summary_en="Summary"),
+        ),
+    ):
+        await _enrich_event(
+            session,
+            _fake_event(),
+            needs_classify=True,
+            needs_geocode=True,
+            needs_summary=True,
+        )
+
+    assert mock_geocode.call_args.kwargs["session"] is session
+    update_call = [c for c in session.execute.call_args_list if "UPDATE events" in str(c.args[0])][0]
+    assert update_call.args[1]["municipality"] == "Δήμος Αθηναίων"
+    insert_call = [
+        c for c in session.execute.call_args_list if "INSERT INTO event_locations" in str(c.args[0])
+    ][0]
+    assert insert_call.args[1]["municipality"] == "Δήμος Αθηναίων"
