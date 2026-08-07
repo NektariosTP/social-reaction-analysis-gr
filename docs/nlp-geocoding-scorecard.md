@@ -14,22 +14,23 @@ One column per landed milestone. See
 
 ## Scorecard
 
-| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | A2 · foreign + point-in-Greece (2026-07-30) | A3 · centroid running-mean + SQL match (2026-07-30) | A4 · single-pass clustering τ=0.72 (2026-07-30) ⚠️ in-sample | A5 · panhellenic-scope, no HQ fallback (2026-08-03) | B1 · NLI classifier + noise gate (2026-08-04) | B2 · embedding truncation fix τ=0.72 (2026-08-04) | Target / notes |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Clustering** ARI | `eval_clustering` | **0.447** | — | — | **0.447** | **0.879** | — | — | **0.889** | ↑ with single-pass — **met (A4)**, further gain (B2) |
-| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — | **0.929** | **0.978** | — | — | **0.980** | ↑ (A4, B2) |
-| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | — | **1.000** | **0.952** | — | — | **0.953** | keep high — small dip, big R gain (A4) |
-| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | — | **0.291** | **0.819** | — | — | **0.836** | ↑↑ **met** — over-fragmentation fixed (170 pred vs 160 gold, was 254) (A4), further gain (B2) |
-| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | — | **0.450** | **0.881** | — | — | **0.890** | ↑ **met (A4)**, further gain (B2) |
-| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | **0.789** (15/19) | — | — | **0.750** (12/16) | **0.750** (12/16) | — | ↑; 4 misses are the national/venueless class → A5 target |
-| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | **3.2 km** (n=19) | — | — | **2.9 km** (n=16) | **2.9 km** (n=16) | — | venue-level, full domestic coverage |
-| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | **1.00 / 1.00 / 1.00** | — | — | **1.00 / 1.00 / 1.00** | **1.00 / 1.00 / 1.00** | — | A2 goal met — point-in-Greece + is_foreign; all 4 foreign detected, no domestic misflagged |
-| **Event-precision** P / R / F1 | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | **0.390** | — | — | **0.390** | **0.590 / 1.000 / 0.742** (tp=23 fp=16 fn=0) | — | ↑ **met (B1)** — real noise gate replaces the placeholder formula; zero real events lost (R=1.0), 16/36 non-events still slip through |
-| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | — | — | — | — | — | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
-| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | — | — | — | — | **0.431 / 0.848 / 0.571** | — | NLI (B1) *regressed* F1 0.667→0.571 despite `_MULTILABEL_THRESHOLD` recalibration (0.35→0.50) — see B1 note |
-| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | — | — | — | — | **0.429 / 0.727 / 0.539** | — | NLI (B1) *regressed* F1 0.625→0.539 — see B1 note |
-| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | — | — | — | — | **0.435 / 0.435 / 0.435** | — | NLI (B1) **met** — 10x improvement, fixes the broken cosine-to-label primary (was worse than majority-class) |
-| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | — | — | — | — | **0.696 / 0.696 / 0.696** | — | NLI (B1) *regressed* F1 0.913→0.696 (7/23 wrong) — investigated, not fixed; see B1 note |
+| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | A2 · foreign + point-in-Greece (2026-07-30) | A3 · centroid running-mean + SQL match (2026-07-30) | A4 · single-pass clustering τ=0.72 (2026-07-30) ⚠️ in-sample | A5 · panhellenic-scope, no HQ fallback (2026-08-03) | B1 · NLI classifier + noise gate (2026-08-04) | B2 · embedding truncation fix τ=0.72 (2026-08-04) | M7 · self-hosted Nominatim + Kallikratis municipalities (2026-08-06/07) | Target / notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Clustering** ARI | `eval_clustering` | **0.447** | — | — | **0.447** | **0.879** | — | — | **0.889** | — | ↑ with single-pass — **met (A4)**, further gain (B2) |
+| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — | **0.929** | **0.978** | — | — | **0.980** | — | ↑ (A4, B2) |
+| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | — | **1.000** | **0.952** | — | — | **0.953** | — | keep high — small dip, big R gain (A4) |
+| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | — | **0.291** | **0.819** | — | — | **0.836** | — | ↑↑ **met** — over-fragmentation fixed (170 pred vs 160 gold, was 254) (A4), further gain (B2) |
+| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | — | **0.450** | **0.881** | — | — | **0.890** | — | ↑ **met (A4)**, further gain (B2) |
+| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | **0.789** (15/19) | — | — | **0.750** (12/16) | **0.750** (12/16) | — | **0.733** (11/15) | ↑; 4 misses are the national/venueless class → A5 target |
+| **Geocode** municipality accuracy | `eval_geocode` | — | — | — | — | — | — | — | — | **0.667** (10/15) | new metric (M7) — δήμος string-match against `true_municipality`; see M7 note |
+| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | **3.2 km** (n=19) | — | — | **2.9 km** (n=16) | **2.9 km** (n=16) | — | **3.8 km** (n=15) | venue-level, full domestic coverage |
+| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | **1.00 / 1.00 / 1.00** | — | — | **1.00 / 1.00 / 1.00** | **1.00 / 1.00 / 1.00** | — | **1.00 / 1.00 / 1.00** | A2 goal met on public Nominatim; **re-broke to 0.50 P under self-hosted (Greece-only extract), re-fixed same session (M7)** — see M7 note |
+| **Event-precision** P / R / F1 | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | **0.390** | — | — | **0.390** | **0.590 / 1.000 / 0.742** (tp=23 fp=16 fn=0) | — | **0.590 / 1.000 / 0.742** (identical — no Nominatim dependency, sanity check) | ↑ **met (B1)** — real noise gate replaces the placeholder formula; zero real events lost (R=1.0), 16/36 non-events still slip through |
+| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | — | — | — | — | — | — | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
+| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | — | — | — | — | **0.431 / 0.848 / 0.571** | — | — | NLI (B1) *regressed* F1 0.667→0.571 despite `_MULTILABEL_THRESHOLD` recalibration (0.35→0.50) — see B1 note |
+| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | — | — | — | — | **0.429 / 0.727 / 0.539** | — | — | NLI (B1) *regressed* F1 0.625→0.539 — see B1 note |
+| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | — | — | — | — | **0.435 / 0.435 / 0.435** | — | — | NLI (B1) **met** — 10x improvement, fixes the broken cosine-to-label primary (was worse than majority-class) |
+| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | — | — | — | — | **0.696 / 0.696 / 0.696** | — | — | NLI (B1) *regressed* F1 0.913→0.696 (7/23 wrong) — investigated, not fixed; see B1 note |
 
 > **A1 + A1b — how these were captured (and two gotchas).** Numbers are the representative run: `NOMINATIM_URL=https://nominatim.openstreetmap.org GROQ_API_KEY=… LLM_MODEL=groq/llama-3.3-70b-versatile uv run python scripts/eval_geocode.py`.
 > - **A1b (extraction robustness)** landed first: instructor JSON mode + salvage parser eliminated Groq's `tool_use_failed` drops, so extraction is reliable and the sample is stable (n=18 of 19 domestic-with-coords).
@@ -70,14 +71,30 @@ One column per landed milestone. See
 >
 > **Fix:** `_mean_pool(vecs, weights=...)` now takes each chunk's word count as its pooling weight (`nlp/embeddings.py`), so a short leftover chunk barely moves the pooled direction instead of counting equally. Re-running `tune_tau.py` and `eval_clustering.py --single-pass` after the fix: winning τ is **unchanged at 0.72**, and clustering now scores **at or above** the A4 baseline on every metric (F1 0.881→0.890, ARI 0.879→0.889, V-measure 0.978→0.980, P 0.952→0.953, R 0.819→0.836) — the expected direction once the pooling bug was gone. Same in-sample τ caveat as A4 applies ([[project_a4_tau_in_sample]]).
 
+> **M7 — self-hosted Nominatim brought online; it broke foreign-location detection, then that bug was found and fixed same session.** `docker compose up -d nominatim` (Greece-only OSM extract, `mediagis/nominatim:4.3`) reproduced healthy and reachable at `http://localhost:8080` (M7 Task 1, Steps 1–2). The first full `eval_geocode.py` run against it (Task 1 Step 3) showed foreign P **collapsing 1.00→0.50** while every other metric matched the B1 baseline almost exactly — a real regression, not noise (`event-precision` was bit-for-bit identical across public/self-hosted, confirming the fixture and harness were unaffected; only the metric that depends on Nominatim's *world* coverage moved).
+>
+> **Root cause**, confirmed directly against the Nominatim `/search` API (not just inferred from eval deltas): a Greece-only extract cannot geocode genuinely foreign places, and `geocode_event()` was querying it for every extracted mention regardless of the LLM's own `is_foreign` verdict. Two failure modes reproduced on the gold set: (1) **silent drop** — `"Μπολόνια"` (Bologna, Italy) returned zero results, so the whole mention fell through to `primary=None`, i.e. a genuinely foreign event silently became "unlocated"; (2) **spurious homonym match** — `"Άγκυρα"` (Ankara, Turkey) matched a real Athens bookshop of the same name (άγκυρα is also the Greek word for "anchor"), stamping the event with wrong in-Greece coordinates that only survived the eval by accident, since `_finalize` never downgrades an LLM-set `is_foreign=True` back to `False`.
+>
+> **Fix** (`enrich/geocode.py`): when the LLM flags a mention `is_foreign=True` and there's no embassy match, skip the Nominatim call entirely and return `GeocodeResult(is_foreign=True, lat=None, lon=None, …)` — trust the LLM's verdict instead of a search that can only fail or lie. Same "abstain rather than hallucinate" principle as A5's venueless-national-event handling. Required `GeocodeResult.lat`/`.lon` to become `Optional`; `_finalize` and `pipeline.py`'s `event_locations` insert loop were both given a `None`-coordinate guard (the DB write path's existing `CASE WHEN … IS NOT NULL` already handled it with no further change). New regression test (`test_llm_flagged_foreign_skips_nominatim`) asserts the Nominatim route is never called for an LLM-confirmed-foreign mention. Re-running the diagnostic and then the full eval after the fix: foreign P/R/F1 back to **1.00/1.00/1.00**, all 38 pre-existing `enrich` tests still pass.
+>
+> **Benefits of self-hosting confirmed this session:** no more public-API rate limiting or the "Gotcha 3" run-to-run non-determinism that came specifically from throttling/availability (event-precision was identical bit-for-bit across the public/self-hosted runs — a stability public Nominatim couldn't offer); full reproducibility going forward since the instance and its data vintage are pinned by `docker-compose.yml` rather than a third party's live index; no fair-use `NOMINATIM_DELAY_SECONDS` throttle needed against your own container (Task 1 Step 4, not yet applied). **Drawbacks / open costs:** the Greece-only extract is *structurally* blind to non-Greek places — this isn't a bug that can be tuned away, it's a scope limitation the code now has to design around (the fix above), and any future feature that wants a real foreign coordinate (not just the boolean) would need a second data source; disk/import cost (15–45 min initial PBF import, ongoing `REPLICATION_URL` updates) that public Nominatim carried for free; and this session's own diagnostic runs surfaced that **region_accuracy/median_distance still aren't run-to-run stable** even self-hosted (0.706 vs pre-fix 0.647 vs B1's 0.750, all on slightly different n) — because the remaining non-determinism is in the **LLM extraction step** (Groq), not Nominatim, self-hosting Nominatim alone doesn't buy full eval reproducibility; that would need LLM response caching too.
+>
+> **Tasks 2–6 (Kallikratis δήμος `municipalities` table + derivation + eval gate), landed 2026-08-06/07.** A `municipalities` table (`geography(MultiPolygon,4326)`, GIST-indexed) was populated from a human-sourced Kallikratis δήμος GeoJSON (326 features, 325 unique names — geodata.gov.gr WFS export reprojected EPSG:2100→4326, δήμος names joined in from the `rallisf1/periferies-elladas` kalcode mapping since the source's own `lektiko` field had its diacritics stripped; see Task 2 Step 1 for the full sourcing chain). All 9 distinct `true_municipality` values in the gold fixture were verified present before import (`missing_gold_municipalities` gate in `scripts/import_municipalities.py` — fails fast on any uncovered name rather than surfacing as a silent `muni_accuracy=0`). `municipality_for_point(session, lat, lon)` derives the δήμος via `ST_Covers(geom, point::geography)` (boundary-inclusive, index-usable — see the plan's rationale for why not `ST_Contains`), threaded through `geocode_event`/`_finalize`/`enrich/pipeline.py` as an **optional** session parameter so no pre-M7 call site changed behavior, and is fail-soft (any DB error → `None`) so it can never regress `region_accuracy`/`median_distance_error_km`/foreign P/R — confirmed by the unchanged foreign F1 (1.00) and same-ballpark region accuracy in the Step 2 run below.
+>
+> **First gated run** (`uv run python scripts/eval_geocode.py`, self-hosted Nominatim + populated `municipalities` table): `municipality_accuracy=0.667` (10/15) — a real, gated number in place of the metric not existing before. `region_accuracy` (0.733, 11/15) and `median_distance_error_km` (3.8 km, n=15) landed in the same range as the Task 1 partial run (0.706 n=17 / 4.7 km n=17) but not identical — expected, since (per the Task 1 note above) the remaining run-to-run variance is in the **LLM extraction step** (Groq), not Nominatim or the new municipality lookup; n also shifted (17→15) for the same reason. Foreign P/R/F1 held at 1.00/1.00/1.00, confirming Tasks 2–6 didn't reintroduce the Task 1 regression. The 5 municipality misses (10/15) weren't individually traced this session — a reasonable next check before treating 0.667 as a stable floor, same caveat as A5's untraced third abstention.
+>
+> M7 is now complete (Tasks 1–6). Backfill script (`scripts/backfill_municipalities.py`) verified against the live DB; Photon fuzzy-matching remains explicitly out of scope (backlog marks it optional, doesn't gate this milestone's metric).
+
 ## How the baselines were captured
 
 - **Clustering** and **event-precision** run with no external services (sklearn +
   the frozen fixtures) — captured directly.
 - **Geocode** was run with the real LLM extraction path enabled:
-  `GROQ_API_KEY` (from `.env`), `LLM_MODEL=groq/llama-3.3-70b-versatile`, and
-  `NOMINATIM_URL=https://nominatim.openstreetmap.org` (the `.env`'s
-  `http://nominatim:8080` is the Docker service, unreachable outside Compose).
+  `GROQ_API_KEY` (from `.env`), `LLM_MODEL=groq/llama-3.3-70b-versatile`, and,
+  from M7 onward, `NOMINATIM_URL=http://localhost:8080` (the self-hosted
+  Greece-extract instance from `docker compose up -d nominatim`, reachable at
+  `localhost` on the host thanks to the compose file's published port —
+  reproducible and not rate-limited, unlike the public instance used pre-M7).
   Without the LLM key the script degrades to gazetteer-only and the numbers are
   not representative.
 - **Relevance** was captured in the Docker worker image (which has spaCy +
@@ -96,9 +113,9 @@ One column per landed milestone. See
 # no services needed
 .venv/bin/python scripts/eval_clustering.py
 
-# geocode: LLM + public Nominatim (one-off; respects Nominatim rate limits)
+# geocode: LLM + self-hosted Nominatim (bring it up first: docker compose up -d nominatim)
 GROQ_API_KEY=... LLM_MODEL=groq/llama-3.3-70b-versatile \
-  NOMINATIM_URL=https://nominatim.openstreetmap.org \
+  NOMINATIM_URL=http://localhost:8080 \
   .venv/bin/python scripts/eval_geocode.py
 
 # relevance + classify: run in the Docker worker env

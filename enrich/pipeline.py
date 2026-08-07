@@ -92,7 +92,9 @@ async def _enrich_event(
     geo_results: list[Any] = []
     if needs_geocode:
         summary_el_hint = " ".join(titles[:3])
-        geo_results = await geocode_event(summary_el=summary_el_hint, article_titles=titles)
+        geo_results = await geocode_event(
+            summary_el=summary_el_hint, article_titles=titles, session=session
+        )
         primary_geo = geo_results[0] if geo_results else None
         update_params.update(
             {
@@ -100,9 +102,11 @@ async def _enrich_event(
                 "lon": primary_geo.lon if primary_geo else None,
                 "location_name": primary_geo.location_name if primary_geo else None,
                 "region_code": primary_geo.region_code if primary_geo else None,
+                "municipality": primary_geo.municipality if primary_geo else None,
             }
         )
         set_clauses.append("region_code = :region_code")
+        set_clauses.append("municipality = :municipality")
         set_clauses.append(
             "primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL "
             "THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography "
@@ -132,12 +136,13 @@ async def _enrich_event(
     for loc in geo_results:
         await session.execute(
             text("""
-                INSERT INTO event_locations (event_id, location, location_name, city, is_primary)
+                INSERT INTO event_locations (event_id, location, location_name, city, municipality, is_primary)
                 VALUES (
                     :event_id,
                     ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
                     :location_name,
                     :city,
+                    :municipality,
                     :is_primary
                 )
                 ON CONFLICT DO NOTHING
@@ -148,6 +153,7 @@ async def _enrich_event(
                 "lon": loc.lon,
                 "location_name": loc.location_name,
                 "city": loc.city,
+                "municipality": loc.municipality,
                 "is_primary": loc.is_primary,
             },
         )

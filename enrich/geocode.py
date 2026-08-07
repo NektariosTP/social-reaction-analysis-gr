@@ -19,6 +19,8 @@ import yaml
 from pydantic import BaseModel
 
 from enrich.config import settings
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import json
 from shapely.geometry import Point, shape
@@ -33,11 +35,12 @@ _NATIONAL_SIGNALS_PATH = Path(__file__).parent / "data" / "national_signals.yml"
 
 
 class GeocodeResult(BaseModel):
-    lat: float
-    lon: float
+    lat: float | None
+    lon: float | None
     location_name: str
     city: str | None = None
     region_code: str | None = None
+    municipality: str | None = None
     is_foreign: bool = False
     is_primary: bool = True
 
@@ -191,6 +194,7 @@ async def geocode_event(
     summary_el: str,
     article_titles: list[str],
     nominatim_url: str | None = None,
+    session: AsyncSession | None = None,
 ) -> list[GeocodeResult]:
     """
     Geocode all locations for an event. Returns list ordered by prominence (primary first).
@@ -219,32 +223,47 @@ async def geocode_event(
                     emb.is_primary = i == 0
                     results.append(emb)
                     continue
+            if m.is_foreign:
+                # Our Nominatim instance is Greece-only: it can't resolve foreign
+                # places, and searching anyway either finds nothing or spuriously
+                # matches an unrelated same-named Greek entity. Trust the LLM's
+                # verdict directly instead of pinning a bogus/absent coordinate.
+                results.append(
+                    GeocodeResult(
+                        lat=None,
+                        lon=None,
+                        location_name=m.venue or m.city,
+                        city=m.city,
+                        is_foreign=True,
+                        is_primary=i == 0,
+                    )
+                )
+                continue
             query = f"{m.venue}, {m.city}" if m.venue else m.city
             r = await geocode_text(query, city=m.city, nominatim_url=nominatim_url)
             if r is not None:
                 r.is_primary = i == 0
-                r.is_foreign = m.is_foreign  # _finalize confirms via point_in_greece
                 results.append(r)
         if results:
             logger.debug("[geocode] LLM+Nominatim resolved %d location(s).", len(results))
-            return _finalize(results)
+            return await _finalize(results, session)
 
     # 2. Gazetteer fallback (no LLM or LLM found nothing)
     result = lookup_gazetteer(all_text)
     if result:
         logger.debug("[geocode] Gazetteer fallback hit: %s", result.location_name)
-        return _finalize([result])
+        return await _finalize([result], session)
 
     # 3. spaCy NER fallback (no LLM key available)
     candidate = _extract_location_spacy(all_text)
     if candidate:
         result = await geocode_text(candidate, nominatim_url=nominatim_url)
         if result:
-            return _finalize([result])
+            return await _finalize([result], session)
 
     # 4. Raw text Nominatim as last resort
     result = await geocode_text(all_text[:200], nominatim_url=nominatim_url)
-    return _finalize([result]) if result else []
+    return await _finalize([result], session) if result else []
 
 
 @lru_cache(maxsize=1)
@@ -293,6 +312,33 @@ def region_for_point(lat: float, lon: float) -> str | None:
     return None
 
 
+async def municipality_for_point(session: AsyncSession, lat: float, lon: float) -> str | None:
+    """Return the δήμος (municipality) name covering (lat, lon), or None.
+
+    Uses ST_Covers on the geography column directly — boundary-inclusive and able
+    to use the GIST(geom) index — rather than a planar ST_Contains(geom::geometry, …)
+    that would seq-scan and miss points on a shared δήμος border. Fail-soft: any DB
+    error (unreachable DB, missing/empty municipalities table) degrades to None so
+    the caller's region_code/distance path keeps working — municipality is best-effort
+    enrichment, never a hard dependency of geocoding.
+    """
+    try:
+        row = (
+            await session.execute(
+                text(
+                    "SELECT name FROM municipalities "
+                    "WHERE ST_Covers(geom, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) "
+                    "LIMIT 1"
+                ),
+                {"lat": lat, "lon": lon},
+            )
+        ).first()
+        return row[0] if row else None
+    except Exception as exc:  # noqa: BLE001 — municipality is best-effort; never fatal
+        logger.debug("[geocode] municipality_for_point failed: %s", exc)
+        return None
+
+
 def point_in_greece(lat: float, lon: float) -> bool:
     """True iff (lat, lon) falls inside any of the 13 peripheries."""
     return region_for_point(lat, lon) is not None
@@ -317,10 +363,17 @@ def lookup_embassy(country: str) -> GeocodeResult | None:
     )
 
 
-def _finalize(results: list[GeocodeResult]) -> list[GeocodeResult]:
-    """Stamp region_code + is_foreign on each geocoded result."""
+async def _finalize(
+    results: list[GeocodeResult], session: AsyncSession | None = None
+) -> list[GeocodeResult]:
+    """Stamp region_code + is_foreign on each geocoded result; municipality too
+    when a DB session is available (offline callers/tests get municipality=None)."""
     for r in results:
+        if r.lat is None or r.lon is None:
+            continue  # LLM-confirmed foreign, no coordinate to check
         r.region_code = region_for_point(r.lat, r.lon)
         if not r.is_foreign:
             r.is_foreign = not point_in_greece(r.lat, r.lon)
+        if session is not None and not r.is_foreign:
+            r.municipality = await municipality_for_point(session, r.lat, r.lon)
     return results
