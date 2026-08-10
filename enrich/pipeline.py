@@ -20,8 +20,8 @@ from sqlalchemy.ext.asyncio import (
 
 from enrich.classify import classify_with_llm_fallback
 from enrich.config import settings
-from enrich.geocode import geocode_event
-from enrich.summarize import summarize_event
+from enrich.geocode import detect_national_scope, geocode_event
+from enrich.summarize import parse_event_date, summarize_event
 from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ async def _enrich_event(
 
     art_result = await session.execute(
         text(
-            "SELECT title, body_text FROM articles "
+            "SELECT title, body_text, published_at FROM articles "
             "WHERE event_id = :eid AND is_duplicate = FALSE "
             "ORDER BY published_at DESC LIMIT 10"
         ),
@@ -52,6 +52,7 @@ async def _enrich_event(
 
     titles = [r[0] or "" for r in articles]
     bodies = [r[1] or "" for r in articles]
+    reference_date = articles[0][2].isoformat() if articles[0][2] else None
 
     update_params: dict[str, Any] = {"id": event_id}
     set_clauses: list[str] = []
@@ -112,19 +113,28 @@ async def _enrich_event(
             "THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography "
             "ELSE NULL END"
         )
+        national_text = " ".join(titles) + " " + " ".join(bodies)
+        update_params["is_national"] = detect_national_scope(national_text)
+        set_clauses.append("is_national = :is_national")
 
     # 3. Summarize
     if needs_summary:
         summary = summarize_event(
-            article_titles=titles, article_bodies=bodies, n_sources=len(articles)
+            article_titles=titles,
+            article_bodies=bodies,
+            n_sources=len(articles),
+            reference_date=reference_date,
         )
         update_params.update(
             {
                 "summary_el": summary.summary_el if summary else None,
                 "summary_en": summary.summary_en if summary else None,
+                "event_time": parse_event_date(summary.event_date) if summary else None,
             }
         )
-        set_clauses.extend(["summary_el = :summary_el", "summary_en = :summary_en"])
+        set_clauses.extend(
+            ["summary_el = :summary_el", "summary_en = :summary_en", "event_time = :event_time"]
+        )
 
     set_clauses.append("status = 'pending_review'")
 

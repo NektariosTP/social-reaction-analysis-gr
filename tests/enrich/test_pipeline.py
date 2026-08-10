@@ -1,6 +1,7 @@
 """Tests for the enrichment pipeline orchestrator."""
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from enrich.classify import ClassificationResult
@@ -18,7 +19,7 @@ def _fake_event(event_id: str = "evt-1") -> MagicMock:
 async def test_enrich_event_sets_status_pending_review_not_enriched() -> None:
     session = AsyncMock()
     art_result = MagicMock()
-    art_result.all.return_value = [("Τίτλος 1", "Σώμα 1")]
+    art_result.all.return_value = [("Τίτλος 1", "Σώμα 1", datetime(2026, 8, 9, 10, 0))]
     session.execute = AsyncMock(return_value=art_result)
 
     with (
@@ -41,7 +42,7 @@ async def test_enrich_event_sets_status_pending_review_not_enriched() -> None:
         patch("enrich.pipeline.geocode_event", new_callable=AsyncMock, return_value=[]),
         patch(
             "enrich.pipeline.summarize_event",
-            return_value=MagicMock(summary_el="Περίληψη", summary_en="Summary"),
+            return_value=MagicMock(summary_el="Περίληψη", summary_en="Summary", event_date=None),
         ),
     ):
         await _enrich_event(
@@ -83,7 +84,9 @@ async def test_run_enrich_pipeline_uses_channel_is_null_for_needs_classify() -> 
 async def test_enrich_event_rejects_noise_before_classify() -> None:
     session = AsyncMock()
     art_result = MagicMock()
-    art_result.all.return_value = [("Εντείνονται τα επεισόδια σκόνης", "Σκόνη από τη Σαχάρα")]
+    art_result.all.return_value = [
+        ("Εντείνονται τα επεισόδια σκόνης", "Σκόνη από τη Σαχάρα", datetime(2026, 8, 9, 10, 0))
+    ]
     session.execute = AsyncMock(return_value=art_result)
 
     with (
@@ -106,7 +109,9 @@ async def test_enrich_event_rejects_noise_before_classify() -> None:
 async def test_enrich_event_proceeds_when_not_noise() -> None:
     session = AsyncMock()
     art_result = MagicMock()
-    art_result.all.return_value = [("Απεργία στο Μετρό", "Οι εργαζόμενοι κήρυξαν απεργία")]
+    art_result.all.return_value = [
+        ("Απεργία στο Μετρό", "Οι εργαζόμενοι κήρυξαν απεργία", datetime(2026, 8, 9, 10, 0))
+    ]
     session.execute = AsyncMock(return_value=art_result)
 
     with (
@@ -120,7 +125,10 @@ async def test_enrich_event_proceeds_when_not_noise() -> None:
             ),
         ),
         patch("enrich.pipeline.geocode_event", new_callable=AsyncMock, return_value=[]),
-        patch("enrich.pipeline.summarize_event", return_value=MagicMock(summary_el="Π", summary_en="S")),
+        patch(
+            "enrich.pipeline.summarize_event",
+            return_value=MagicMock(summary_el="Π", summary_en="S", event_date=None),
+        ),
     ):
         await _enrich_event(
             session, _fake_event(), needs_classify=True, needs_geocode=True, needs_summary=True
@@ -133,7 +141,7 @@ async def test_enrich_event_proceeds_when_not_noise() -> None:
 async def test_enrich_event_persists_municipality_and_passes_session_to_geocode() -> None:
     session = AsyncMock()
     art_result = MagicMock()
-    art_result.all.return_value = [("Τίτλος 1", "Σώμα 1")]
+    art_result.all.return_value = [("Τίτλος 1", "Σώμα 1", datetime(2026, 8, 9, 10, 0))]
     session.execute = AsyncMock(return_value=art_result)
 
     geo_result = MagicMock(
@@ -170,7 +178,7 @@ async def test_enrich_event_persists_municipality_and_passes_session_to_geocode(
         ) as mock_geocode,
         patch(
             "enrich.pipeline.summarize_event",
-            return_value=MagicMock(summary_el="Περίληψη", summary_en="Summary"),
+            return_value=MagicMock(summary_el="Περίληψη", summary_en="Summary", event_date=None),
         ),
     ):
         await _enrich_event(
@@ -188,3 +196,141 @@ async def test_enrich_event_persists_municipality_and_passes_session_to_geocode(
         c for c in session.execute.call_args_list if "INSERT INTO event_locations" in str(c.args[0])
     ][0]
     assert insert_call.args[1]["municipality"] == "Δήμος Αθηναίων"
+
+
+async def test_enrich_event_persists_event_time_from_summary() -> None:
+    session = AsyncMock()
+    art_result = MagicMock()
+    art_result.all.return_value = [
+        ("Απεργία στο Μετρό", "Οι εργαζόμενοι κήρυξαν απεργία", datetime(2026, 8, 9, 10, 0))
+    ]
+    session.execute = AsyncMock(return_value=art_result)
+
+    with (
+        patch("enrich.pipeline.noise_gate_score", return_value=0.9),
+        patch(
+            "enrich.pipeline.classify_with_llm_fallback",
+            return_value=ClassificationResult(
+                action_forms=["Απεργία/Στάση εργασίας"], thematic_fields=["Εργασιακό"],
+                channel="Φυσικό (offline)", intensity="Ειρηνική",
+                confidence={"action_forms": 0.9, "thematic_fields": 0.9, "channel": 0.9, "intensity": 0.9},
+            ),
+        ),
+        patch("enrich.pipeline.geocode_event", new_callable=AsyncMock, return_value=[]),
+        patch(
+            "enrich.pipeline.summarize_event",
+            return_value=MagicMock(summary_el="Π", summary_en="S", event_date="2026-09-15"),
+        ),
+    ):
+        await _enrich_event(
+            session, _fake_event(), needs_classify=True, needs_geocode=True, needs_summary=True
+        )
+
+    update_call = [c for c in session.execute.call_args_list if "UPDATE events" in str(c.args[0])][0]
+    assert "event_time = :event_time" in str(update_call.args[0])
+    et = update_call.args[1]["event_time"]
+    assert et is not None and et.date() == datetime(2026, 9, 15).date()
+
+
+async def test_enrich_event_event_time_none_when_summary_undated() -> None:
+    session = AsyncMock()
+    art_result = MagicMock()
+    art_result.all.return_value = [
+        ("Απεργία στο Μετρό", "Οι εργαζόμενοι κήρυξαν απεργία", datetime(2026, 8, 9, 10, 0))
+    ]
+    session.execute = AsyncMock(return_value=art_result)
+
+    with (
+        patch("enrich.pipeline.noise_gate_score", return_value=0.9),
+        patch(
+            "enrich.pipeline.classify_with_llm_fallback",
+            return_value=ClassificationResult(
+                action_forms=["Απεργία/Στάση εργασίας"], thematic_fields=["Εργασιακό"],
+                channel="Φυσικό (offline)", intensity="Ειρηνική",
+                confidence={"action_forms": 0.9, "thematic_fields": 0.9, "channel": 0.9, "intensity": 0.9},
+            ),
+        ),
+        patch("enrich.pipeline.geocode_event", new_callable=AsyncMock, return_value=[]),
+        patch(
+            "enrich.pipeline.summarize_event",
+            return_value=MagicMock(summary_el="Π", summary_en="S", event_date=None),
+        ),
+    ):
+        await _enrich_event(
+            session, _fake_event(), needs_classify=True, needs_geocode=True, needs_summary=True
+        )
+
+    update_call = [c for c in session.execute.call_args_list if "UPDATE events" in str(c.args[0])][0]
+    assert update_call.args[1]["event_time"] is None
+
+
+async def test_enrich_event_national_venueless_persists_is_national_true_and_null_location() -> None:
+    session = AsyncMock()
+    art_result = MagicMock()
+    art_result.all.return_value = [
+        ("Πανελλαδική απεργία στο εμπόριο", "24ωρη απεργία σε όλη τη χώρα", datetime(2026, 8, 9, 10, 0))
+    ]
+    session.execute = AsyncMock(return_value=art_result)
+
+    with (
+        patch("enrich.pipeline.noise_gate_score", return_value=0.9),
+        patch(
+            "enrich.pipeline.classify_with_llm_fallback",
+            return_value=ClassificationResult(
+                action_forms=["Απεργία/Στάση εργασίας"], thematic_fields=["Εργασιακό"],
+                channel="Φυσικό (offline)", intensity="Ειρηνική",
+                confidence={"action_forms": 0.9, "thematic_fields": 0.9, "channel": 0.9, "intensity": 0.9},
+            ),
+        ),
+        patch("enrich.pipeline.geocode_event", new_callable=AsyncMock, return_value=[]),
+        patch(
+            "enrich.pipeline.summarize_event",
+            return_value=MagicMock(summary_el="Π", summary_en="S", event_date=None),
+        ),
+    ):
+        await _enrich_event(
+            session, _fake_event(), needs_classify=True, needs_geocode=True, needs_summary=True
+        )
+
+    update_call = [c for c in session.execute.call_args_list if "UPDATE events" in str(c.args[0])][0]
+    assert "is_national = :is_national" in str(update_call.args[0])
+    assert update_call.args[1]["is_national"] is True
+    assert update_call.args[1]["lat"] is None  # primary_location stays NULL
+
+
+async def test_enrich_event_local_located_persists_is_national_false() -> None:
+    session = AsyncMock()
+    art_result = MagicMock()
+    art_result.all.return_value = [
+        ("Κατάληψη στο δημαρχείο Ηρακλείου", "Συγκέντρωση στην πλατεία", datetime(2026, 8, 9, 10, 0))
+    ]
+    session.execute = AsyncMock(return_value=art_result)
+
+    geo_result = MagicMock(
+        lat=35.34, lon=25.13, location_name="Ηράκλειο", region_code="Crete",
+        municipality="Δήμος Ηρακλείου", is_primary=True, city="Ηράκλειο",
+    )
+
+    with (
+        patch("enrich.pipeline.noise_gate_score", return_value=0.9),
+        patch(
+            "enrich.pipeline.classify_with_llm_fallback",
+            return_value=ClassificationResult(
+                action_forms=["Κατάληψη"], thematic_fields=["Πολιτικό/Θεσμικό"],
+                channel="Φυσικό (offline)", intensity="Ειρηνική",
+                confidence={"action_forms": 0.9, "thematic_fields": 0.9, "channel": 0.9, "intensity": 0.9},
+            ),
+        ),
+        patch("enrich.pipeline.geocode_event", new_callable=AsyncMock, return_value=[geo_result]),
+        patch(
+            "enrich.pipeline.summarize_event",
+            return_value=MagicMock(summary_el="Π", summary_en="S", event_date=None),
+        ),
+    ):
+        await _enrich_event(
+            session, _fake_event(), needs_classify=True, needs_geocode=True, needs_summary=True
+        )
+
+    update_call = [c for c in session.execute.call_args_list if "UPDATE events" in str(c.args[0])][0]
+    assert update_call.args[1]["is_national"] is False
+    assert update_call.args[1]["lat"] == 35.34
