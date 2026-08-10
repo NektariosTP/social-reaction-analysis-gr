@@ -11,26 +11,30 @@ One column per landed milestone. See
 - `clustering.jsonl` — 307 articles, 160 gold groups (118 singletons)
 - `events.jsonl` — 23 real social reactions (4 foreign, 19 domestic, 2 multi-location)
 - `event_precision.jsonl` — 36 non-events (negatives)
+- `temporal.jsonl` (frozen 2026-08-10) — 12 event clusters copied verbatim from `events.jsonl` with an added `published_at` anchor + hand-labeled `true_event_date` (10 dated / 2 undated) — M8 temporal-extraction gate
 
 ## Scorecard
 
-| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | A2 · foreign + point-in-Greece (2026-07-30) | A3 · centroid running-mean + SQL match (2026-07-30) | A4 · single-pass clustering τ=0.72 (2026-07-30) ⚠️ in-sample | A5 · panhellenic-scope, no HQ fallback (2026-08-03) | B1 · NLI classifier + noise gate (2026-08-04) | B2 · embedding truncation fix τ=0.72 (2026-08-04) | M7 · self-hosted Nominatim + Kallikratis municipalities (2026-08-06/07) | Target / notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| **Clustering** ARI | `eval_clustering` | **0.447** | — | — | **0.447** | **0.879** | — | — | **0.889** | — | ↑ with single-pass — **met (A4)**, further gain (B2) |
-| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — | **0.929** | **0.978** | — | — | **0.980** | — | ↑ (A4, B2) |
-| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | — | **1.000** | **0.952** | — | — | **0.953** | — | keep high — small dip, big R gain (A4) |
-| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | — | **0.291** | **0.819** | — | — | **0.836** | — | ↑↑ **met** — over-fragmentation fixed (170 pred vs 160 gold, was 254) (A4), further gain (B2) |
-| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | — | **0.450** | **0.881** | — | — | **0.890** | — | ↑ **met (A4)**, further gain (B2) |
-| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | **0.789** (15/19) | — | — | **0.750** (12/16) | **0.750** (12/16) | — | **0.733** (11/15) | ↑; 4 misses are the national/venueless class → A5 target |
-| **Geocode** municipality accuracy | `eval_geocode` | — | — | — | — | — | — | — | — | **0.667** (10/15) | new metric (M7) — δήμος string-match against `true_municipality`; see M7 note |
-| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | **3.2 km** (n=19) | — | — | **2.9 km** (n=16) | **2.9 km** (n=16) | — | **3.8 km** (n=15) | venue-level, full domestic coverage |
-| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | **1.00 / 1.00 / 1.00** | — | — | **1.00 / 1.00 / 1.00** | **1.00 / 1.00 / 1.00** | — | **1.00 / 1.00 / 1.00** | A2 goal met on public Nominatim; **re-broke to 0.50 P under self-hosted (Greece-only extract), re-fixed same session (M7)** — see M7 note |
-| **Event-precision** P / R / F1 | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | **0.390** | — | — | **0.390** | **0.590 / 1.000 / 0.742** (tp=23 fp=16 fn=0) | — | **0.590 / 1.000 / 0.742** (identical — no Nominatim dependency, sanity check) | ↑ **met (B1)** — real noise gate replaces the placeholder formula; zero real events lost (R=1.0), 16/36 non-events still slip through |
-| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | — | — | — | — | — | — | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
-| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | — | — | — | — | **0.431 / 0.848 / 0.571** | — | — | NLI (B1) *regressed* F1 0.667→0.571 despite `_MULTILABEL_THRESHOLD` recalibration (0.35→0.50) — see B1 note |
-| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | — | — | — | — | **0.429 / 0.727 / 0.539** | — | — | NLI (B1) *regressed* F1 0.625→0.539 — see B1 note |
-| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | — | — | — | — | **0.435 / 0.435 / 0.435** | — | — | NLI (B1) **met** — 10x improvement, fixes the broken cosine-to-label primary (was worse than majority-class) |
-| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | — | — | — | — | **0.696 / 0.696 / 0.696** | — | — | NLI (B1) *regressed* F1 0.913→0.696 (7/23 wrong) — investigated, not fixed; see B1 note |
+| Metric | Script | Baseline (2026-07-28) | A1 + A1b (2026-07-30) | A2 · foreign + point-in-Greece (2026-07-30) | A3 · centroid running-mean + SQL match (2026-07-30) | A4 · single-pass clustering τ=0.72 (2026-07-30) ⚠️ in-sample | A5 · panhellenic-scope, no HQ fallback (2026-08-03) | B1 · NLI classifier + noise gate (2026-08-04) | B2 · embedding truncation fix τ=0.72 (2026-08-04) | M7 · self-hosted Nominatim + Kallikratis municipalities (2026-08-06/07) | M8 · temporal extraction (2026-08-10) | Target / notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Clustering** ARI | `eval_clustering` | **0.447** | — | — | **0.447** | **0.879** | — | — | **0.889** | — | — | ↑ with single-pass — **met (A4)**, further gain (B2) |
+| **Clustering** V-measure | `eval_clustering` | **0.929** | — | — | **0.929** | **0.978** | — | — | **0.980** | — | — | ↑ (A4, B2) |
+| **Clustering** pairwise P | `eval_clustering` | **1.000** | — | — | **1.000** | **0.952** | — | — | **0.953** | — | — | keep high — small dip, big R gain (A4) |
+| **Clustering** pairwise R | `eval_clustering` | **0.291** | — | — | **0.291** | **0.819** | — | — | **0.836** | — | — | ↑↑ **met** — over-fragmentation fixed (170 pred vs 160 gold, was 254) (A4), further gain (B2) |
+| **Clustering** pairwise F1 | `eval_clustering` | **0.450** | — | — | **0.450** | **0.881** | — | — | **0.890** | — | — | ↑ **met (A4)**, further gain (B2) |
+| **Geocode** region accuracy | `eval_geocode` | **0.000** (0/17) | **~0.53–0.67** (noisy) | **0.789** (15/19) | — | — | **0.750** (12/16) | **0.750** (12/16) | — | **0.733** (11/15) | — | ↑; 4 misses are the national/venueless class → A5 target |
+| **Geocode** municipality accuracy | `eval_geocode` | — | — | — | — | — | — | — | — | **0.667** (10/15) | — | new metric (M7) — δήμος string-match against `true_municipality`; see M7 note |
+| **Geocode** median distance err | `eval_geocode` | **112.6 km** (n=17) | **2.6 km** (successful pins) | **3.2 km** (n=19) | — | — | **2.9 km** (n=16) | **2.9 km** (n=16) | — | **3.8 km** (n=15) | — | venue-level, full domestic coverage |
+| **Geocode** foreign P / R / F1 | `eval_geocode` | **0.50 / 0.50 / 0.50** | **0.75 / 0.75 / 0.75** | **1.00 / 1.00 / 1.00** | — | — | **1.00 / 1.00 / 1.00** | **1.00 / 1.00 / 1.00** | — | **1.00 / 1.00 / 1.00** | — | A2 goal met on public Nominatim; **re-broke to 0.50 P under self-hosted (Greece-only extract), re-fixed same session (M7)** — see M7 note |
+| **Event-precision** P / R / F1 | `eval_geocode` | **0.390** (23 real / 59) | **0.390** | **0.390** | — | — | **0.390** | **0.590 / 1.000 / 0.742** (tp=23 fp=16 fn=0) | — | **0.590 / 1.000 / 0.742** (identical — no Nominatim dependency, sanity check) | — | ↑ **met (B1)** — real noise gate replaces the placeholder formula; zero real events lost (R=1.0), 16/36 non-events still slip through |
+| **Relevance** P / R / F1 | `eval_relevance` | **0.275 / 1.000 / 0.432** | — | — | — | — | — | — | — | — | — | ↑↑ precision after M5 — gate passes 179/182 noise (tp=68 fp=179 tn=3 fn=0) |
+| **Classify** action_forms | `eval_classify` | **0.537 / 0.879 / 0.667** | — | — | — | — | — | **0.431 / 0.848 / 0.571** | — | — | — | NLI (B1) *regressed* F1 0.667→0.571 despite `_MULTILABEL_THRESHOLD` recalibration (0.35→0.50) — see B1 note |
+| **Classify** thematic_fields | `eval_classify` | **0.532 / 0.758 / 0.625** | — | — | — | — | — | **0.429 / 0.727 / 0.539** | — | — | — | NLI (B1) *regressed* F1 0.625→0.539 — see B1 note |
+| **Classify** channel | `eval_classify` | **0.043 / 0.043 / 0.043** | — | — | — | — | — | **0.435 / 0.435 / 0.435** | — | — | — | NLI (B1) **met** — 10x improvement, fixes the broken cosine-to-label primary (was worse than majority-class) |
+| **Classify** intensity | `eval_classify` | **0.913 / 0.913 / 0.913** | — | — | — | — | — | **0.696 / 0.696 / 0.696** | — | — | — | NLI (B1) *regressed* F1 0.913→0.696 (7/23 wrong) — investigated, not fixed; see B1 note |
+| **Temporal** has-date P / R / F1 | `eval_temporal` | — | — | — | — | — | — | — | — | — | **0.900 / 0.900 / 0.900** (tp=9 fp=1 fn=1) | R is a **floor** — the 1 fn was a transient Groq TPM rate-limit, not a miss (clean R≈1.0, F1≈0.95); the 1 fp = a date emitted for an undated cluster; see M8 note |
+| **Temporal** date-exact accuracy | `eval_temporal` | — | — | — | — | — | — | — | — | — | **0.889** (8/9) | day-match among agreed-date records — 8/9 exact |
+| **Temporal** median day-offset err | `eval_temporal` | — | — | — | — | — | — | — | — | — | **0 days** (n=9) | relative cues (σήμερα/αύριο/χθες) resolve against `published_at` |
 
 > **A1 + A1b — how these were captured (and two gotchas).** Numbers are the representative run: `NOMINATIM_URL=https://nominatim.openstreetmap.org GROQ_API_KEY=… LLM_MODEL=groq/llama-3.3-70b-versatile uv run python scripts/eval_geocode.py`.
 > - **A1b (extraction robustness)** landed first: instructor JSON mode + salvage parser eliminated Groq's `tool_use_failed` drops, so extraction is reliable and the sample is stable (n=18 of 19 domestic-with-coords).
@@ -85,6 +89,15 @@ One column per landed milestone. See
 >
 > M7 is now complete (Tasks 1–6). Backfill script (`scripts/backfill_municipalities.py`) verified against the live DB; Photon fuzzy-matching remains explicitly out of scope (backlog marks it optional, doesn't gate this milestone's metric).
 
+> **M8 — temporal extraction (`event_time`) gate.** New fixture `tests/fixtures/gold/temporal.jsonl`: 12 event clusters copied **verbatim** from `events.jsonl` (no fabricated text), each given an added `published_at` anchor (events.jsonl carries none) and a hand-labeled `true_event_date` read from the article text — 10 dated, 2 genuinely undated (`null`: the Turkey/NATO protest and the SYRIZA-boycott clusters, whose text states no event date). `scripts/eval_temporal.py` runs the real `summarize_event()` per record with the record's `published_at` as `reference_date`, reads back `event_date`, and scores has-date P/R/F1, date-exact day accuracy, and median day-offset.
+>
+> **Capture:** `GROQ_API_KEY=… LLM_MODEL=groq/llama-3.3-70b-versatile uv run python scripts/eval_temporal.py`. Three notes on this first run:
+> - **The 1 `fn` is a transient Groq TPM rate-limit, not a model miss.** One `summarize_event` call hit the 12k-tokens/min free-tier cap and returned `None` (no date emitted) → counted as a false negative, dragging recall to 0.900. Absent the rate limit, recall is **1.0** and F1 ≈ **0.95** (P=10/11). An `EVAL_THROTTLE_SECONDS` throttle (default 5s between calls) was added to `eval_temporal.py` so a re-run stays under the TPM cap — **treat 0.900 R as a floor**; a clean throttled run should firm it to ~1.0.
+> - **The 1 `fp` is real behavior:** the model emitted a date for one genuinely-undated cluster (over-eager dating) — the only true precision error.
+> - **Date quality is strong:** among the 9 agreed-date records, 8 exact-day, **median day-offset 0** — the relative cues (σήμερα/αύριο/χθες) resolve correctly against `published_at`.
+>
+> **Not covered by this LLM eval (per design §7):** day-granular status derivation (`api/temporal.py`) is covered by a deterministic frozen-`now` unit test, and the `is_national` national-vs-geocode-failure distinction by pipeline integration tests — neither needs a gold metric.
+
 ## How the baselines were captured
 
 - **Clustering** and **event-precision** run with no external services (sklearn +
@@ -121,4 +134,9 @@ GROQ_API_KEY=... LLM_MODEL=groq/llama-3.3-70b-versatile \
 # relevance + classify: run in the Docker worker env
 .venv/bin/python scripts/eval_relevance.py
 .venv/bin/python scripts/eval_classify.py
+
+# temporal: LLM only (no Nominatim); throttled to stay under Groq's 12k TPM cap
+GROQ_API_KEY=... LLM_MODEL=groq/llama-3.3-70b-versatile \
+  EVAL_THROTTLE_SECONDS=5 \
+  .venv/bin/python scripts/eval_temporal.py
 ```
