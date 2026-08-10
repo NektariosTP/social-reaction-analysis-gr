@@ -67,3 +67,33 @@ def test_parse_event_date_malformed_returns_none() -> None:
 def test_parse_event_date_preserves_explicit_offset() -> None:
     dt = parse_event_date("2026-09-15T18:00:00+03:00")
     assert dt.utcoffset().total_seconds() == 3 * 3600
+
+
+def test_summary_result_carries_event_date() -> None:
+    r = SummaryResult(summary_el="ε", summary_en="e", event_date="2026-09-15")
+    assert r.event_date == "2026-09-15"
+
+
+def test_summary_result_event_date_defaults_none() -> None:
+    r = SummaryResult(summary_el="ε", summary_en="e")
+    assert r.event_date is None
+
+
+def test_summarize_event_puts_reference_date_in_prompt() -> None:
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = SummaryResult(
+        summary_el="ε", summary_en="e", event_date="2026-09-15"
+    )
+    with patch(
+        "enrich.summarize.get_llm_client_and_model",
+        return_value=(mock_client, "test-model"),
+    ):
+        summarize_event(
+            article_titles=["Απεργία αύριο"],
+            article_bodies=["..."],
+            n_sources=1,
+            reference_date="2026-09-14",
+        )
+    sent_prompt = mock_client.chat.completions.create.call_args.kwargs["messages"][0]["content"]
+    assert "2026-09-14" in sent_prompt
+    assert "event_date" in sent_prompt
