@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
+from zoneinfo import ZoneInfo
 
 from api.db import get_db
 from api.models import (
@@ -20,6 +21,7 @@ from api.models import (
     GeoJSONGeometry,
     GeoJSONProperties,
 )
+from api.temporal import derive_temporal_status
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["events"])
@@ -91,7 +93,8 @@ async def _fetch_events(
             f"summary_el, summary_en, "
             f"ST_Y(primary_location::geometry) AS lat, "
             f"ST_X(primary_location::geometry) AS lon, "
-            f"region_code, article_count, source_count, first_seen, last_seen, status "
+            f"region_code, article_count, source_count, first_seen, last_seen, status, "
+            f"event_time, is_national "
             f"FROM events WHERE {where} "
             f"ORDER BY last_seen DESC NULLS LAST "
             f"LIMIT :limit OFFSET :offset"
@@ -109,6 +112,7 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] |
             "ST_Y(primary_location::geometry) AS lat, "
             "ST_X(primary_location::geometry) AS lon, "
             "region_code, article_count, source_count, first_seen, last_seen, status, "
+            "event_time, is_national, "
             "classification_confidence "
             "FROM events WHERE id = :id"
         ),
@@ -160,6 +164,7 @@ async def list_events(
         limit=limit,
         offset=offset,
     )
+    now = datetime.now(ZoneInfo("Europe/Athens"))
     return [
         EventSummary(
             id=str(r.id),
@@ -177,6 +182,9 @@ async def list_events(
             first_seen=r.first_seen,
             last_seen=r.last_seen,
             status=r.status,
+            event_time=r.event_time,
+            temporal_status=derive_temporal_status(r.event_time, now),
+            is_national=bool(r.is_national),
         )
         for r in rows
     ]
@@ -225,6 +233,7 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         )
         for a in articles_rows
     ]
+    now = datetime.now(ZoneInfo("Europe/Athens"))
     return EventDetail(
         id=str(row.id),
         action_forms=list(row.action_forms or []),
@@ -241,6 +250,9 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         first_seen=row.first_seen,
         last_seen=row.last_seen,
         status=row.status,
+        event_time=row.event_time,
+        temporal_status=derive_temporal_status(row.event_time, now),
+        is_national=bool(row.is_national),
         classification_confidence=dict(row.classification_confidence) if row.classification_confidence else None,
         articles=articles,
     )

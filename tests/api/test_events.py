@@ -1,13 +1,20 @@
-"""Tests for /events, /events/{id}, /events/geojson."""
+"""Tests for /events, /events/{id}, /events/geojson.
+M8 field exposure: event_time, temporal_status, is_national on event responses.
+"""
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from api.main import app
+from api.routes.events import list_events
 
+_ATHENS = ZoneInfo("Europe/Athens")
 
 @pytest.fixture
 async def client():
@@ -32,6 +39,8 @@ _FAKE_EVENT_ROW = MagicMock(
     last_seen=None,
     status="enriched",
     classification_confidence=None,
+    event_time=None,
+    is_national=False,
 )
 
 
@@ -94,3 +103,37 @@ async def test_list_events_pagination(client: AsyncClient) -> None:
     with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[]):
         resp = await client.get("/events?limit=10&offset=0")
     assert resp.status_code == 200
+
+
+def _row(**over):
+    base = dict(
+        id="evt-1", action_forms=["Απεργία/Στάση εργασίας"], thematic_fields=["Εργασιακό"],
+        channel="Φυσικό", intensity="Ειρηνική", summary_el="ε", summary_en="e",
+        lat=None, lon=None, region_code=None, article_count=3, source_count=2,
+        first_seen=None, last_seen=None, status="enriched",
+        event_time=None, is_national=True,
+    )
+    base.update(over)
+    return SimpleNamespace(**base)
+
+
+@pytest.mark.asyncio
+async def test_list_events_exposes_is_national_and_null_temporal_status() -> None:
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_row()]):
+        out = await list_events(db=AsyncMock())
+    assert out[0].is_national is True
+    assert out[0].event_time is None
+    assert out[0].temporal_status is None
+
+
+@pytest.mark.asyncio
+async def test_list_events_derives_upcoming_for_future_event_time() -> None:
+    future = datetime.now(_ATHENS) + timedelta(days=3)
+    with patch(
+        "api.routes.events._fetch_events",
+        new_callable=AsyncMock,
+        return_value=[_row(event_time=future, is_national=False)],
+    ):
+        out = await list_events(db=AsyncMock())
+    assert out[0].temporal_status == "upcoming"
+    assert out[0].is_national is False
