@@ -45,6 +45,9 @@ class EventSummary(BaseModel):
     first_seen: datetime | None = None
     last_seen: datetime | None = None
     status: str
+    event_time: datetime | None = None
+    temporal_status: str | None = None
+    is_national: bool = False
 
 
 class EventDetail(EventSummary):

@@ -18,8 +18,13 @@ class NlpSettings(BaseSettings):
     cluster_min_articles: int = 3
     cluster_min_intra_sim: float = 0.78
     event_registry_sim_threshold: float = 0.85
+    event_merge_threshold: float = 0.92
     dedup_cosine_threshold: float = 0.95
     dedup_time_window_hours: int = 72
+    cluster_tau: float = 0.72
+    embedding_dim: int = 768  # exposed for a future model swap: one line here + an Alembic step
+    embedding_chunk_words: int = 100  # mpnet max_seq_length=128 tokens; conservative word window
+
 
 
 settings = NlpSettings()

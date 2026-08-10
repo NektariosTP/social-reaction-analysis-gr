@@ -10,7 +10,6 @@ import json
 import logging
 from typing import Any
 
-import numpy as np
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -21,8 +20,9 @@ from sqlalchemy.ext.asyncio import (
 
 from enrich.classify import classify_with_llm_fallback
 from enrich.config import settings
-from enrich.geocode import geocode_event
-from enrich.summarize import summarize_event
+from enrich.geocode import detect_national_scope, geocode_event
+from enrich.summarize import parse_event_date, summarize_event
+from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ async def _enrich_event(
 
     art_result = await session.execute(
         text(
-            "SELECT title, body_text FROM articles "
+            "SELECT title, body_text, published_at FROM articles "
             "WHERE event_id = :eid AND is_duplicate = FALSE "
             "ORDER BY published_at DESC LIMIT 10"
         ),
@@ -52,22 +52,24 @@ async def _enrich_event(
 
     titles = [r[0] or "" for r in articles]
     bodies = [r[1] or "" for r in articles]
+    reference_date = articles[0][2].isoformat() if articles[0][2] else None
 
     update_params: dict[str, Any] = {"id": event_id}
     set_clauses: list[str] = []
 
+    # 0. Noise gate — reject non-events before spending any classify/geocode/LLM budget
+    noise_text = (" ".join(titles) + " " + " ".join(b[:500] for b in bodies)).strip()
+    if noise_gate_score(noise_text) < NOISE_GATE_THRESHOLD:
+        await session.execute(
+            text("UPDATE events SET status = 'rejected' WHERE id = :id"),
+            {"id": event_id},
+        )
+        logger.info("[enrich] Event %s rejected by noise gate.", event_id[:8])
+        return
+    
     # 1. Classify
     if needs_classify:
-        centroid_text = getattr(event, "centroid", None)
-        if centroid_text:
-            centroid = np.array(
-                [float(v) for v in str(centroid_text).strip("[]").split(",")],
-                dtype=np.float32,
-            )
-        else:
-            centroid = np.zeros(768, dtype=np.float32)
-
-        classification = classify_with_llm_fallback(centroid=centroid, article_titles=titles)
+        classification = classify_with_llm_fallback(article_titles=titles, article_bodies=bodies)
         update_params.update(
             {
                 "action_forms": classification.action_forms,
@@ -91,33 +93,48 @@ async def _enrich_event(
     geo_results: list[Any] = []
     if needs_geocode:
         summary_el_hint = " ".join(titles[:3])
-        geo_results = await geocode_event(summary_el=summary_el_hint, article_titles=titles)
+        geo_results = await geocode_event(
+            summary_el=summary_el_hint, article_titles=titles, session=session
+        )
         primary_geo = geo_results[0] if geo_results else None
         update_params.update(
             {
                 "lat": primary_geo.lat if primary_geo else None,
                 "lon": primary_geo.lon if primary_geo else None,
                 "location_name": primary_geo.location_name if primary_geo else None,
+                "region_code": primary_geo.region_code if primary_geo else None,
+                "municipality": primary_geo.municipality if primary_geo else None,
             }
         )
+        set_clauses.append("region_code = :region_code")
+        set_clauses.append("municipality = :municipality")
         set_clauses.append(
             "primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL "
             "THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography "
             "ELSE NULL END"
         )
+        national_text = " ".join(titles) + " " + " ".join(bodies)
+        update_params["is_national"] = detect_national_scope(national_text)
+        set_clauses.append("is_national = :is_national")
 
     # 3. Summarize
     if needs_summary:
         summary = summarize_event(
-            article_titles=titles, article_bodies=bodies, n_sources=len(articles)
+            article_titles=titles,
+            article_bodies=bodies,
+            n_sources=len(articles),
+            reference_date=reference_date,
         )
         update_params.update(
             {
                 "summary_el": summary.summary_el if summary else None,
                 "summary_en": summary.summary_en if summary else None,
+                "event_time": parse_event_date(summary.event_date) if summary else None,
             }
         )
-        set_clauses.extend(["summary_el = :summary_el", "summary_en = :summary_en"])
+        set_clauses.extend(
+            ["summary_el = :summary_el", "summary_en = :summary_en", "event_time = :event_time"]
+        )
 
     set_clauses.append("status = 'pending_review'")
 
@@ -129,12 +146,13 @@ async def _enrich_event(
     for loc in geo_results:
         await session.execute(
             text("""
-                INSERT INTO event_locations (event_id, location, location_name, city, is_primary)
+                INSERT INTO event_locations (event_id, location, location_name, city, municipality, is_primary)
                 VALUES (
                     :event_id,
                     ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
                     :location_name,
                     :city,
+                    :municipality,
                     :is_primary
                 )
                 ON CONFLICT DO NOTHING
@@ -145,6 +163,7 @@ async def _enrich_event(
                 "lon": loc.lon,
                 "location_name": loc.location_name,
                 "city": loc.city,
+                "municipality": loc.municipality,
                 "is_primary": loc.is_primary,
             },
         )

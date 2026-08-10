@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
@@ -11,17 +13,38 @@ logger = logging.getLogger(__name__)
 
 _MAX_TITLES = 8
 _MAX_BODY_CHARS = 400
+_ATHENS = ZoneInfo("Europe/Athens")
+
+
+def parse_event_date(value: str | None) -> datetime | None:
+    """Parse an ISO 8601 date or date-time to a tz-aware Europe/Athens datetime.
+
+    Date-only strings resolve to midnight Athens. Naive date-times are
+    interpreted as Athens local time; strings carrying an explicit offset keep
+    it. None/empty/unparseable → None (treated as undated — never fabricated).
+    """
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS)
+    return dt
 
 
 class SummaryResult(BaseModel):
     summary_el: str
     summary_en: str
+    event_date: str | None = None
 
 
 def summarize_event(
     article_titles: list[str],
     article_bodies: list[str],
     n_sources: int,
+    reference_date: str | None = None,
 ) -> SummaryResult | None:
     """Generate bilingual (EL + EN) summary for a cluster of articles."""
     titles_text = "\n".join(f"- {t}" for t in article_titles[:_MAX_TITLES])
@@ -36,6 +59,13 @@ def summarize_event(
         "- summary_el: 2-3 sentences in Greek\n"
         "- summary_en: 2-3 sentences in English\n"
         "Focus on: what happened, who was involved, where, approximate date."
+    )
+    
+    prompt += (
+        f"\n\nThe reference date (article publication) is {reference_date}. "
+        "Resolve any relative date cues (αύριο, χθες, την Πέμπτη, το Σάββατο, …) "
+        "against it. Set event_date to the ISO 8601 date (or date-time if an hour "
+        "is given) of when the event takes place. If no date is stated, set it to null."
     )
 
     try:
