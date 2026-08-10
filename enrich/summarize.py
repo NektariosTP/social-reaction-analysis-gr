@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
@@ -11,6 +13,25 @@ logger = logging.getLogger(__name__)
 
 _MAX_TITLES = 8
 _MAX_BODY_CHARS = 400
+_ATHENS = ZoneInfo("Europe/Athens")
+
+
+def parse_event_date(value: str | None) -> datetime | None:
+    """Parse an ISO 8601 date or date-time to a tz-aware Europe/Athens datetime.
+
+    Date-only strings resolve to midnight Athens. Naive date-times are
+    interpreted as Athens local time; strings carrying an explicit offset keep
+    it. None/empty/unparseable → None (treated as undated — never fabricated).
+    """
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS)
+    return dt
 
 
 class SummaryResult(BaseModel):

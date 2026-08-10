@@ -1,12 +1,13 @@
 """Tests for bilingual event summarization (mocked LLM)."""
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
-import pytest
+from enrich.summarize import SummaryResult, parse_event_date, summarize_event
 
-from enrich.summarize import SummaryResult, summarize_event
-
+_ATHENS = ZoneInfo("Europe/Athens")
 
 def test_summarize_event_returns_summary_result() -> None:
     mock_result = SummaryResult(
@@ -41,3 +42,28 @@ def test_summarize_event_returns_none_on_llm_error() -> None:
         )
 
     assert result is None
+
+
+def test_parse_event_date_date_only_is_midnight_athens() -> None:
+    dt = parse_event_date("2026-09-15")
+    assert dt == datetime(2026, 9, 15, 0, 0, tzinfo=_ATHENS)
+
+
+def test_parse_event_date_with_time_keeps_hour_athens() -> None:
+    dt = parse_event_date("2026-09-15T18:30")
+    assert dt == datetime(2026, 9, 15, 18, 30, tzinfo=_ATHENS)
+
+
+def test_parse_event_date_none_and_empty_return_none() -> None:
+    assert parse_event_date(None) is None
+    assert parse_event_date("") is None
+
+
+def test_parse_event_date_malformed_returns_none() -> None:
+    assert parse_event_date("αύριο") is None
+    assert parse_event_date("next Thursday") is None
+
+
+def test_parse_event_date_preserves_explicit_offset() -> None:
+    dt = parse_event_date("2026-09-15T18:00:00+03:00")
+    assert dt.utcoffset().total_seconds() == 3 * 3600
