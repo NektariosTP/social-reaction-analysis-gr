@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import (
@@ -31,6 +32,22 @@ def _make_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSessio
     return async_sessionmaker(engine, expire_on_commit=False)
 
 
+def _is_stale(published_at: datetime | None, cutoff: datetime) -> bool:
+    """True if published_at is missing or older than cutoff.
+
+    Google News RSS keyword search returns matches regardless of age, so
+    old articles resurface whenever their wording matches a keyword. Nothing
+    downstream re-checks published_at (cluster windowing keys off
+    ingested_at), so this is the only gate — reject unknown-age docs too
+    rather than risk seeding a cluster with a years-old article.
+    """
+    if published_at is None:
+        return True
+    if published_at.tzinfo is None:
+        published_at = published_at.replace(tzinfo=UTC)
+    return published_at < cutoff
+
+
 async def run_ingestion(engine: AsyncEngine | None = None) -> dict[str, int]:
     _engine = engine or create_async_engine(settings.database_url)
     session_factory = _make_session_factory(_engine)
@@ -44,7 +61,10 @@ async def run_ingestion(engine: AsyncEngine | None = None) -> dict[str, int]:
         GoogleNewsConnector(request_delay=settings.request_delay_seconds),
     ]
 
+    cutoff = datetime.now(UTC) - timedelta(days=settings.max_article_age_days)
+
     total_fetched = 0
+    total_stale = 0
     total_relevant = 0
     total_inserted = 0
 
@@ -53,6 +73,9 @@ async def run_ingestion(engine: AsyncEngine | None = None) -> dict[str, int]:
             docs = await connector.fetch()
             total_fetched += len(docs)
             for doc in docs:
+                if _is_stale(doc.published_at, cutoff):
+                    total_stale += 1
+                    continue
                 if relevance_filter.is_relevant(doc.title + " " + doc.body_text):
                     total_relevant += 1
                     inserted = await upsert_article(doc, session)
@@ -65,6 +88,7 @@ async def run_ingestion(engine: AsyncEngine | None = None) -> dict[str, int]:
 
     metrics = {
         "fetched": total_fetched,
+        "stale": total_stale,
         "relevant": total_relevant,
         "inserted": total_inserted,
     }

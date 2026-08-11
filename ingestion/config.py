@@ -11,6 +11,7 @@ class IngestionSettings(BaseSettings):
     max_articles_per_keyword: int = 15
     min_body_length: int = 50
     spacy_model: str = "el_core_news_md"
+    max_article_age_days: int = 7
 
 
 settings = IngestionSettings()
