@@ -207,7 +207,7 @@ async def geocode_event(
     # 1. LLM extraction → Nominatim (primary path, parallel requests)
     national = detect_national_scope(all_text)
     mentions = _extract_locations_llm(all_text)
-    has_venue = any(getattr(m, "venue", None) for m in mentions) or len(mentions) == 1
+    has_venue = any(getattr(m, "venue", None) for m in mentions) or len(mentions) > 1
 
     # National scope + no specific venue → leave unlocated (don't pin a stray/hallucinated city)
     if national and not has_venue:

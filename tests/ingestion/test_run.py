@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from ingestion.models import RawDocument
@@ -16,7 +16,7 @@ _FAKE_DOC = RawDocument(
     title="Απεργία σήμερα",
     body_text="Μεγάλη απεργία πραγματοποιείται σήμερα στο κέντρο της Αθήνας.",
     language="el",
-    published_at=datetime(2026, 6, 13, 8, 0),
+    published_at=datetime.now(UTC) - timedelta(hours=2),
 )
 
 _IRRELEVANT_DOC = RawDocument(
@@ -26,6 +26,28 @@ _IRRELEVANT_DOC = RawDocument(
     canonical_url="https://example.com/2",
     title="Καλός καιρός αύριο",
     body_text="Αίθριος καιρός αναμένεται σε όλη τη χώρα.",
+    language="el",
+    published_at=datetime.now(UTC) - timedelta(hours=2),
+)
+
+_STALE_DOC = RawDocument(
+    source_id="test",
+    source_type="rss",
+    url="https://example.com/3",
+    canonical_url="https://example.com/3",
+    title="Απεργία πριν χρόνια",
+    body_text="Μεγάλη απεργία πραγματοποιήθηκε πριν από πολλά χρόνια στο κέντρο της Αθήνας.",
+    language="el",
+    published_at=datetime.now(UTC) - timedelta(days=30),
+)
+
+_UNDATED_DOC = RawDocument(
+    source_id="test",
+    source_type="rss",
+    url="https://example.com/4",
+    canonical_url="https://example.com/4",
+    title="Απεργία χωρίς ημερομηνία",
+    body_text="Μεγάλη απεργία πραγματοποιείται στο κέντρο της Αθήνας.",
     language="el",
     published_at=None,
 )
@@ -69,3 +91,47 @@ async def test_run_ingestion_filters_irrelevant_docs() -> None:
 
     mock_upsert.assert_not_called()
     assert metrics["inserted"] == 0
+
+
+async def test_run_ingestion_filters_stale_docs() -> None:
+    mock_news = AsyncMock()
+    mock_news.fetch.return_value = [_STALE_DOC]
+
+    with (
+        patch("ingestion.run.GoogleNewsConnector", return_value=mock_news),
+        patch(
+            "ingestion.run.upsert_article", new_callable=AsyncMock, return_value=True
+        ) as mock_upsert,
+        patch("ingestion.run._make_session_factory") as mock_sf,
+    ):
+        mock_session = AsyncMock()
+        mock_sf.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_sf.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        metrics = await run_ingestion(engine=MagicMock())
+
+    mock_upsert.assert_not_called()
+    assert metrics["inserted"] == 0
+    assert metrics["stale"] == 1
+
+
+async def test_run_ingestion_filters_undated_docs() -> None:
+    mock_news = AsyncMock()
+    mock_news.fetch.return_value = [_UNDATED_DOC]
+
+    with (
+        patch("ingestion.run.GoogleNewsConnector", return_value=mock_news),
+        patch(
+            "ingestion.run.upsert_article", new_callable=AsyncMock, return_value=True
+        ) as mock_upsert,
+        patch("ingestion.run._make_session_factory") as mock_sf,
+    ):
+        mock_session = AsyncMock()
+        mock_sf.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_sf.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        metrics = await run_ingestion(engine=MagicMock())
+
+    mock_upsert.assert_not_called()
+    assert metrics["inserted"] == 0
+    assert metrics["stale"] == 1
