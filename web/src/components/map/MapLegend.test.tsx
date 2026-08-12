@@ -25,4 +25,28 @@ describe("MapLegend", () => {
     render(<MapLegend />);
     expect(screen.getByText("Labour")).toBeInTheDocument();
   });
+
+  it("renders the four axes in Action, Thematic, Channel, Intensity order", () => {
+    const { container } = render(<MapLegend />);
+    // One distinctive value per axis, reusing strings already asserted elsewhere in this file:
+    // "Occupation" (axis1), "Labour" (axis2), "Digital (online)" (axis3), "Peaceful" (axis4).
+    const text = container.textContent ?? "";
+    const actionIdx = text.indexOf("Occupation");
+    const thematicIdx = text.indexOf("Labour");
+    const channelIdx = text.indexOf("Digital (online)");
+    const intensityIdx = text.indexOf("Peaceful");
+    expect(actionIdx).toBeGreaterThanOrEqual(0);
+    expect(actionIdx).toBeLessThan(thematicIdx);
+    expect(thematicIdx).toBeLessThan(channelIdx);
+    expect(channelIdx).toBeLessThan(intensityIdx);
+  });
+
+  it("renders Thematic Field as plain rows, not AxisValueChip pills", () => {
+    render(<MapLegend />);
+    // AxisValueChip renders `<span class="chip theme">` (see AxisValueChip.tsx) — after the
+    // fix, Thematic values render as `.row` divs (swatch + label) like the other three axes.
+    const labourEl = screen.getByText("Labour");
+    expect(labourEl.closest('[class*="chip"]')).toBeNull();
+    expect(labourEl.closest('[class*="row"]')).not.toBeNull();
+  });
 });
