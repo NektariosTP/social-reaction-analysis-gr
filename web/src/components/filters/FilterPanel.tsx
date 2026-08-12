@@ -12,7 +12,7 @@ const THEMATIC_FIELD_OPTIONS = Object.keys(THEMATIC_FIELD);
 
 interface FilterPanelProps {
   filters: FilterState;
-  onToggle: (key: "actionForms" | "thematicFields" | "intensities", value: string) => void;
+  onToggle: (key: "actionForms" | "thematicFields", value: string) => void;
   onSetFilters: (next: Partial<FilterState>) => void;
 }
 
@@ -52,10 +52,7 @@ export function FilterPanel({ filters, onToggle, onSetFilters }: FilterPanelProp
           selected={filters.channel}
           onChange={(channel) => onSetFilters({ channel })}
         />
-        <IntensityRangeSelect
-          selected={filters.intensities}
-          onToggle={(v) => onToggle("intensities", v)}
-        />
+        <IntensityRangeSelect selected={filters.intensities} onSetFilters={onSetFilters} />
       </div>
     </div>
   );

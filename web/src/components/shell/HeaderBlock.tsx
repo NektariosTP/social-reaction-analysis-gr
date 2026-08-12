@@ -14,7 +14,7 @@ interface HeaderBlockProps {
   onSearchChange: (value: string) => void;
   onSelectRegion: (region: Region) => void;
   filters: FilterState;
-  onToggleFilterValue: (key: "actionForms" | "thematicFields" | "intensities", value: string) => void;
+  onToggleFilterValue: (key: "actionForms" | "thematicFields", value: string) => void;
   onSetFilters: (next: Partial<FilterState>) => void;
 }
 
