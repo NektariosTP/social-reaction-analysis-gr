@@ -50,7 +50,9 @@ export function EditorialBlock(props: EditorialBlockProps) {
         <button className={styles.backBtn} onClick={props.onBack}>
           {t("editorial.back")}
         </button>
-        <ClusterDetailContent eventId={props.detailEventId} />
+        <div className={styles.feedList}>
+          <ClusterDetailContent eventId={props.detailEventId} />
+        </div>
       </div>
     );
   }
