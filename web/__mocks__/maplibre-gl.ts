@@ -1,8 +1,11 @@
+export const markerConstructorCalls: Record<string, unknown>[] = [];
+
 export class Marker {
   private el: HTMLElement;
   private lngLat: [number, number] = [0, 0];
-  constructor(opts: { element: HTMLElement }) {
+  constructor(opts: { element: HTMLElement; anchor?: string }) {
     this.el = opts.element;
+    markerConstructorCalls.push(opts);
   }
   setLngLat(lngLat: [number, number]) {
     this.lngLat = lngLat;
@@ -89,4 +92,4 @@ export class Map {
   flyTo() {}
 }
 
-export default { Map, Marker, Popup, NavigationControl, FullscreenControl, mapConstructorCalls };
+export default { Map, Marker, Popup, NavigationControl, FullscreenControl, mapConstructorCalls, markerConstructorCalls };

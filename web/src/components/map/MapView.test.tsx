@@ -58,3 +58,15 @@ describe("MapView", () => {
     expect(screen.queryByText("Preview headline")).not.toBeInTheDocument();
   });
 });
+
+  it("constructs both event and cluster markers with an explicit center anchor", () => {
+    render(
+      <MapView features={[feature]} onSelectEvent={vi.fn()} selectedId={null} />,
+    );
+    const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+      .markerConstructorCalls;
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.anchor).toBe("center");
+    }
+  });

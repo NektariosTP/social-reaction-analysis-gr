@@ -90,7 +90,9 @@ export function MapView({
             const zoom = index.getClusterExpansionZoom(point.clusterId!);
             map.easeTo({ center: point.coordinates, zoom });
           });
-          return new maplibregl.Marker({ element: el }).setLngLat(point.coordinates).addTo(map);
+          return new maplibregl.Marker({ element: el, anchor: "center" })
+            .setLngLat(point.coordinates)
+            .addTo(map);
         }
         const feature = point.feature!;
         const el = createMarkerElement(
@@ -99,7 +101,9 @@ export function MapView({
           feature.properties.id === selectedId,
         );
         el.addEventListener("click", () => onSelectEventRef.current(feature.properties.id));
-        return new maplibregl.Marker({ element: el }).setLngLat(point.coordinates).addTo(map);
+        return new maplibregl.Marker({ element: el, anchor: "center" })
+          .setLngLat(point.coordinates)
+          .addTo(map);
       });
     };
 
