@@ -99,3 +99,46 @@ describe("HeaderBlock", () => {
     expect(screen.queryByText("Clear")).not.toBeInTheDocument();
   });
 });
+
+  it("closes the filter popup when clicking outside the header block", () => {
+    render(
+      <div>
+        <div data-testid="outside">outside</div>
+        <HeaderBlock {...{
+          searchQuery: "",
+          onSearchChange: vi.fn(),
+          onSelectRegion: vi.fn(),
+          filters: baseFilters,
+          onToggleFilterValue: vi.fn(),
+          onSetFilters: vi.fn(),
+        }} />
+      </div>,
+    );
+    fireEvent.click(screen.getByText(/filters/i));
+    expect(screen.getByText("Clear")).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByTestId("outside"));
+    expect(screen.queryByText("Clear")).not.toBeInTheDocument();
+  });
+
+  it("keeps the filter popup open when clicking inside it", () => {
+    setup();
+    fireEvent.click(screen.getByText(/filters/i));
+    fireEvent.pointerDown(screen.getByText("Clear"));
+    expect(screen.getByText("Clear")).toBeInTheDocument();
+  });
+
+  it("closes the popup on Escape", () => {
+    setup();
+    fireEvent.click(screen.getByText(/filters/i));
+    expect(screen.getByText("Clear")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByText("Clear")).not.toBeInTheDocument();
+  });
+
+  it("preserves the search query text when Escape closes the search popup", () => {
+    const props = setup({ searchQuery: "athens" });
+    fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByText("Browse by region")).not.toBeInTheDocument();
+    expect(props.onSearchChange).not.toHaveBeenCalled();
+  });

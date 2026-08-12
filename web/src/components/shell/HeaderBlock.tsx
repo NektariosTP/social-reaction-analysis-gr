@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../../hooks/useLang";
 import type { FilterState } from "../../hooks/useFilterState";
@@ -30,14 +30,37 @@ export function HeaderBlock({
   const [lang] = useLang();
   const [expanded, setExpanded] = useState<Expanded>("none");
   const [searchView, setSearchView] = useState<SearchView>("options");
+  const rootRef = useRef<HTMLDivElement>(null);
 
   function closeSearch() {
     setExpanded("none");
     setSearchView("options");
   }
 
+  useEffect(() => {
+    if (expanded === "none") return;
+
+    function handlePointerDown(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        closeSearch();
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        closeSearch();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [expanded]);
+
   return (
-    <div>
+    <div ref={rootRef}>
       <div className={styles.brandRow}>
         <span className={styles.mark}>R</span>
         <span className={styles.brandName}>{t("brand")}</span>
