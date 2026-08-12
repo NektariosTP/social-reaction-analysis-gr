@@ -51,11 +51,11 @@ export function MapView({
       zoom: GREECE_ZOOM,
       minZoom: GREECE_MIN_ZOOM,
     });
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     const fullscreenTarget = document.getElementById("root") ?? undefined;
     map.addControl(
       new maplibregl.FullscreenControl({ container: fullscreenTarget }),
-      "top-right",
+      "bottom-right",
     );
     mapRef.current = map;
     setMapInstance(map);

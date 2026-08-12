@@ -10,10 +10,13 @@
   inset: 0;
 }
 
-.container :global(.maplibregl-ctrl-top-right) {
-  top: 50%;
+/* Sits directly above MapLegend's fully-open box (max-height: 320px,
+   bottom: var(--space-3) — see MapLegend.module.css) with a fixed gap,
+   so the controls never overlap the legend and never move when it
+   collapses/expands. */
+.container :global(.maplibregl-ctrl-bottom-right) {
+  bottom: calc(320px + var(--space-3) + var(--space-2));
   right: var(--space-3);
-  transform: translateY(-50%);
 }
 
 .bubble {
