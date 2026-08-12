@@ -29,6 +29,13 @@ function parseList(params: URLSearchParams, key: string): string[] {
   return raw ? raw.split(",").filter(Boolean) : [];
 }
 
+/** Resolves a checkbox toggle against an "empty selection means all selected" sentinel. */
+export function toggleWithAllSentinel(all: string[], selected: string[], value: string): string[] {
+  const base = selected.length === 0 ? all : selected;
+  const next = base.includes(value) ? base.filter((v) => v !== value) : [...base, value];
+  return next.length === all.length ? [] : next;
+}
+
 /** Keeps filter selections in the URL so views are shareable/bookmarkable. */
 export function useFilterState() {
   const [params, setParams] = useSearchParams();
