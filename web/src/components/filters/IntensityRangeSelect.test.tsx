@@ -1,6 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { IntensityRangeSelect } from "./IntensityRangeSelect";
+
+function StatefulHarness() {
+  const [intensities, setIntensities] = useState<string[]>([]);
+  return (
+    <IntensityRangeSelect
+      selected={intensities}
+      onSetFilters={(next) => {
+        if (next.intensities) setIntensities(next.intensities);
+      }}
+    />
+  );
+}
 
 describe("IntensityRangeSelect", () => {
   it("renders all three levels checked when selected is empty (the all-sentinel)", () => {
@@ -30,5 +43,15 @@ describe("IntensityRangeSelect", () => {
     );
     screen.getByLabelText(/disruptive/i).click();
     expect(onSetFilters).toHaveBeenCalledWith({ intensities: [] });
+  });
+
+  it("unchecking all three boxes leaves all three unchecked, not snapped back to all-checked", () => {
+    render(<StatefulHarness />);
+    screen.getByLabelText(/^peaceful/i).click();
+    screen.getByLabelText(/^disruptive/i).click();
+    screen.getByLabelText(/^violent/i).click();
+
+    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    expect(boxes.every((b) => !b.checked)).toBe(true);
   });
 });

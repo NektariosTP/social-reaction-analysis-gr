@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import userEvent from "@testing-library/user-event";
 import { MainView } from "./MainView";
 import styles from "./MainView.module.css";
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location-probe">{location.pathname + location.search}</div>;
+}
 
 vi.mock("../components/map", () => ({
   MapView: () => <div data-testid="mock-map" />,
@@ -27,6 +33,7 @@ function renderMainView(initialPath = "/") {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialPath]}>
+        <LocationProbe />
         <Routes>
           <Route path="/" element={<MainView />} />
           <Route path="/cluster/:id" element={<MainView />} />
@@ -55,5 +62,18 @@ describe("MainView routed detail state", () => {
   it("renders the editorial block in detail mode when mounted at /cluster/:id", () => {
     renderMainView("/cluster/evt-1");
     expect(screen.queryByText(/today's reactions/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("MainView preserves filter state when navigating to detail", () => {
+  it("keeps active filters in the URL after leaving the cluster detail view", async () => {
+    const user = userEvent.setup();
+    renderMainView("/cluster/evt-1?a4=%CE%95%CE%B9%CF%81%CE%B7%CE%BD%CE%B9%CE%BA%CE%AE");
+
+    expect(screen.getByTestId("location-probe")).toHaveTextContent("a4=");
+
+    await user.click(screen.getByRole("button", { name: /back/i }));
+
+    expect(screen.getByTestId("location-probe")).toHaveTextContent("a4=");
   });
 });

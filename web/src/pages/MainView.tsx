@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useEvents, useEventsGeoJSON, useRecentEventsCount, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
 import { useLang } from "../hooks/useLang";
@@ -16,6 +16,7 @@ export function MainView() {
   const [lang] = useLang();
   const { seen, dismiss } = useOnboardingSeen();
   const { filters, setFilters, toggleInList } = useFilterState();
+  const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [flyTo, setFlyTo] = useState<{ center: [number, number]; zoom?: number } | null>(null);
@@ -28,12 +29,12 @@ export function MainView() {
   const mapSelectedId = previewId ?? routeClusterId ?? null;
 
   function handleSelectEventFromMap(id: string) {
-    if (mode === "detail") navigate(`/cluster/${id}`);
+    if (mode === "detail") navigate(`/cluster/${id}?${searchParams.toString()}`);
     else setPreviewId(id);
   }
   function handleReadMore(id: string) {
     setPreviewId(null);
-    navigate(`/cluster/${id}`);
+    navigate(`/cluster/${id}?${searchParams.toString()}`);
   }
   function handleClosePreview() {
     setPreviewId(null);
@@ -44,10 +45,10 @@ export function MainView() {
   }
   function handleSelectEventFromList(id: string) {
     setPreviewId(null);
-    navigate(`/cluster/${id}`);
+    navigate(`/cluster/${id}?${searchParams.toString()}`);
   }
   function handleBack() {
-    navigate("/");
+    navigate(`/?${searchParams.toString()}`);
   }
 
   const dateFrom = timeRangeToDateFrom(filters.timeRange);

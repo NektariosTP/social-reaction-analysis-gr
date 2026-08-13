@@ -15,7 +15,7 @@
    so the controls never overlap the legend and never move when it
    collapses/expands. */
 .container :global(.maplibregl-ctrl-bottom-right) {
-  bottom: calc(320px + var(--space-3) + var(--space-2));
+  bottom: calc(406px + var(--footer-height) + var(--space-2));
   right: var(--space-3);
 }
 
