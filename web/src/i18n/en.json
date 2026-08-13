@@ -72,5 +72,14 @@
   "footer.docs": "Docs",
   "footer.github": "GitHub",
   "footer.contact": "Contact",
-  "footer.privacy": "Privacy Policy"
+  "footer.privacy": "Privacy Policy",
+  "temporal": {
+    "ongoing": "Ongoing",
+    "upcoming": "Upcoming",
+    "panhellenic": "Panhellenic",
+    "other": "Other",
+    "today": "Today",
+    "emptyOngoing": "No events happening today.",
+    "emptyUpcoming": "No upcoming events scheduled."
+  }
 }

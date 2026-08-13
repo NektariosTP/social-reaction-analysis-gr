@@ -72,5 +72,14 @@
   "footer.docs": "Τεκμηρίωση",
   "footer.github": "GitHub",
   "footer.contact": "Επικοινωνία",
-  "footer.privacy": "Πολιτική Απορρήτου"
+  "footer.privacy": "Πολιτική Απορρήτου",
+  "temporal": {
+    "ongoing": "Σε εξέλιξη",
+    "upcoming": "Προσεχώς",
+    "panhellenic": "Πανελλαδικά",
+    "other": "Υπόλοιπα",
+    "today": "Σήμερα",
+    "emptyOngoing": "Καμία δράση σήμερα.",
+    "emptyUpcoming": "Καμία προγραμματισμένη δράση."
+  }
 }
