@@ -137,3 +137,39 @@ async def test_list_events_derives_upcoming_for_future_event_time() -> None:
         out = await list_events(db=AsyncMock())
     assert out[0].temporal_status == "upcoming"
     assert out[0].is_national is False
+
+
+from api.routes.events import _ORDER_BY_SQL, _TEMPORAL_DAY_OPS
+
+
+def test_temporal_day_ops_cover_all_statuses() -> None:
+    assert _TEMPORAL_DAY_OPS == {"upcoming": ">", "today": "=", "past": "<"}
+
+
+def test_order_by_sql_maps_to_safe_fragments() -> None:
+    assert "last_seen DESC" in _ORDER_BY_SQL["recent"]
+    assert _ORDER_BY_SQL["event_time"] == "event_time ASC NULLS LAST"
+
+
+@pytest.mark.asyncio
+async def test_list_events_passes_temporal_params(client: AsyncClient) -> None:
+    mock = AsyncMock(return_value=[])
+    with patch("api.routes.events._fetch_events", mock):
+        resp = await client.get("/events?temporal_status=today&is_national=true&order_by=event_time")
+    assert resp.status_code == 200
+    kwargs = mock.call_args.kwargs
+    assert kwargs["temporal_status"] == "today"
+    assert kwargs["is_national"] is True
+    assert kwargs["order_by"] == "event_time"
+
+
+@pytest.mark.asyncio
+async def test_list_events_rejects_bad_temporal_status(client: AsyncClient) -> None:
+    resp = await client.get("/events?temporal_status=tomorrow")
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_events_rejects_bad_order_by(client: AsyncClient) -> None:
+    resp = await client.get("/events?order_by=random")
+    assert resp.status_code == 422

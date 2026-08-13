@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
@@ -25,6 +25,15 @@ from api.temporal import derive_temporal_status
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["events"])
+
+# Day-comparison operators reproducing api.temporal.derive_temporal_status in SQL.
+# Keyed by a Literal-validated param, so the operator is never request-derived text.
+_TEMPORAL_DAY_OPS: dict[str, str] = {"upcoming": ">", "today": "=", "past": "<"}
+
+_ORDER_BY_SQL: dict[str, str] = {
+    "recent": "last_seen DESC NULLS LAST",
+    "event_time": "event_time ASC NULLS LAST",
+}
 
 # ---------------------------------------------------------------------------
 # DB helpers (thin wrappers — mocked in tests)
@@ -50,6 +59,9 @@ async def _fetch_events(
     date_from: str | None = None,
     date_to: str | None = None,
     bbox: str | None = None,
+    temporal_status: str | None = None,
+    is_national: bool | None = None,
+    order_by: str = "recent",
     limit: int = 50,
     offset: int = 0,
 ) -> list[Row[Any]]:
@@ -86,6 +98,17 @@ async def _fetch_events(
             )
             params.update(west=parts[0], south=parts[1], east=parts[2], north=parts[3])
 
+    if temporal_status:
+        op = _TEMPORAL_DAY_OPS[temporal_status]
+        conditions.append(
+            "event_time IS NOT NULL "
+            f"AND (event_time AT TIME ZONE 'Europe/Athens')::date {op} "
+            "(now() AT TIME ZONE 'Europe/Athens')::date"
+        )
+    if is_national is not None:
+        conditions.append("is_national = :is_national")
+        params["is_national"] = is_national
+
     where = " AND ".join(conditions)
     result = await session.execute(
         text(
@@ -96,7 +119,7 @@ async def _fetch_events(
             f"region_code, article_count, source_count, first_seen, last_seen, status, "
             f"event_time, is_national "
             f"FROM events WHERE {where} "
-            f"ORDER BY last_seen DESC NULLS LAST "
+            f"ORDER BY {_ORDER_BY_SQL[order_by]} "
             f"LIMIT :limit OFFSET :offset"
         ),
         params,
@@ -147,6 +170,9 @@ async def list_events(
     date_from: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     date_to: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     bbox: Annotated[str | None, Query(description="west,south,east,north")] = None,
+    temporal_status: Annotated[Literal["upcoming", "today", "past"] | None, Query()] = None,
+    is_national: Annotated[bool | None, Query()] = None,
+    order_by: Annotated[Literal["recent", "event_time"], Query()] = "recent",
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
     db: AsyncSession = Depends(get_db),
@@ -161,6 +187,9 @@ async def list_events(
         date_from=date_from,
         date_to=date_to,
         bbox=bbox,
+        temporal_status=temporal_status,
+        is_national=is_national,
+        order_by=order_by,
         limit=limit,
         offset=offset,
     )
