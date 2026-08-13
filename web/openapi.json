@@ -170,6 +170,57 @@
             "description": "west,south,east,north"
           },
           {
+            "name": "temporal_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "upcoming",
+                    "today",
+                    "past"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Temporal Status"
+            }
+          },
+          {
+            "name": "is_national",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is National"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "recent",
+                "event_time"
+              ],
+              "type": "string",
+              "default": "recent",
+              "title": "Order By"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,

@@ -441,6 +441,18 @@ export type ListEventsEventsGetData = {
          */
         bbox?: string | null;
         /**
+         * Temporal Status
+         */
+        temporal_status?: 'upcoming' | 'today' | 'past' | null;
+        /**
+         * Is National
+         */
+        is_national?: boolean | null;
+        /**
+         * Order By
+         */
+        order_by?: 'recent' | 'event_time';
+        /**
          * Limit
          */
         limit?: number;

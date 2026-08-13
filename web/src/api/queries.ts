@@ -6,6 +6,7 @@ import {
   getStatsStatsGet,
   listEventsEventsGet,
 } from "../client/sdk.gen";
+import type { EventSummary } from "../client/types.gen";
 
 async function unwrap<T>(result: Promise<{ data?: T; error?: unknown }>): Promise<T> {
   const { data, error } = await result;
@@ -121,5 +122,38 @@ export function useRecentEventsCount() {
       return events.length;
     },
     refetchInterval: 60_000,
+  });
+}
+
+/** Splits ongoing events into panhellenic (is_national) vs the rest, preserving order. */
+export function partitionByNational(events: EventSummary[]): {
+  panhellenic: EventSummary[];
+  other: EventSummary[];
+} {
+  const panhellenic: EventSummary[] = [];
+  const other: EventSummary[] = [];
+  for (const e of events) (e.is_national ? panhellenic : other).push(e);
+  return { panhellenic, other };
+}
+
+/** Events scheduled for today (Athens). Filter-independent — the temporal block always shows all. */
+export function useOngoingEvents() {
+  return useQuery({
+    queryKey: ["events-ongoing"],
+    queryFn: () =>
+      unwrap(listEventsEventsGet({ query: { temporal_status: "today", limit: 100 } })),
+  });
+}
+
+/** Upcoming events, soonest first. Filter-independent. */
+export function useUpcomingEvents() {
+  return useQuery({
+    queryKey: ["events-upcoming"],
+    queryFn: () =>
+      unwrap(
+        listEventsEventsGet({
+          query: { temporal_status: "upcoming", order_by: "event_time", limit: 100 },
+        }),
+      ),
   });
 }

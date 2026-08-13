@@ -1,22 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { applyClientFilters } from "./queries";
-import { toggleWithAllSentinel } from "../hooks/useFilterState";
+import type { EventSummary } from "../client/types.gen";
+import { partitionByNational } from "./queries";
 
-const ALL = ["Ειρηνική", "Διαταρακτική (μη βίαιη, παρεμποδιστική)", "Βίαιη/Συγκρουσιακή"];
-
-function entity(intensity: string | null) {
-  return { action_forms: [], thematic_fields: [], intensity };
+function ev(id: string, is_national: boolean): EventSummary {
+  return {
+    id,
+    is_national,
+    action_forms: [],
+    thematic_fields: [],
+    channel: null,
+    intensity: null,
+    summary_el: null,
+    summary_en: null,
+    article_count: 0,
+    source_count: 0,
+    status: "enriched",
+  } as EventSummary;
 }
 
-describe("applyClientFilters — intensity", () => {
-  it("returns everything, including null-intensity entities, when no filter is applied ([])", () => {
-    const entities = [entity(ALL[0]), entity(ALL[1]), entity(null)];
-    expect(applyClientFilters(entities, { intensities: [] })).toHaveLength(3);
+describe("partitionByNational", () => {
+  it("splits national from the rest, preserving order", () => {
+    const { panhellenic, other } = partitionByNational([
+      ev("a", true),
+      ev("b", false),
+      ev("c", true),
+    ]);
+    expect(panhellenic.map((e) => e.id)).toEqual(["a", "c"]);
+    expect(other.map((e) => e.id)).toEqual(["b"]);
   });
 
-  it("returns nothing once the user explicitly deselects every intensity", () => {
-    const noneSelected = toggleWithAllSentinel(ALL, [ALL[0]], ALL[0]);
-    const entities = [entity(ALL[0]), entity(ALL[1]), entity(ALL[2]), entity(null)];
-    expect(applyClientFilters(entities, { intensities: noneSelected })).toHaveLength(0);
+  it("handles all-national and none-national", () => {
+    expect(partitionByNational([ev("a", true)]).other).toEqual([]);
+    expect(partitionByNational([ev("a", false)]).panhellenic).toEqual([]);
   });
 });
