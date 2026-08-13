@@ -113,6 +113,18 @@ export type EventDetail = {
      */
     status: string;
     /**
+     * Event Time
+     */
+    event_time?: string | null;
+    /**
+     * Temporal Status
+     */
+    temporal_status?: string | null;
+    /**
+     * Is National
+     */
+    is_national?: boolean;
+    /**
      * Classification Confidence
      */
     classification_confidence?: {
@@ -188,6 +200,18 @@ export type EventSummary = {
      * Status
      */
     status: string;
+    /**
+     * Event Time
+     */
+    event_time?: string | null;
+    /**
+     * Temporal Status
+     */
+    temporal_status?: string | null;
+    /**
+     * Is National
+     */
+    is_national?: boolean;
 };
 
 /**

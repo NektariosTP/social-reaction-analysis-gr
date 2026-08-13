@@ -588,6 +588,34 @@
             "type": "string",
             "title": "Status"
           },
+          "event_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Time"
+          },
+          "temporal_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temporal Status"
+          },
+          "is_national": {
+            "type": "boolean",
+            "title": "Is National",
+            "default": false
+          },
           "classification_confidence": {
             "anyOf": [
               {
@@ -752,6 +780,34 @@
           "status": {
             "type": "string",
             "title": "Status"
+          },
+          "event_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Time"
+          },
+          "temporal_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temporal Status"
+          },
+          "is_national": {
+            "type": "boolean",
+            "title": "Is National",
+            "default": false
           }
         },
         "type": "object",
