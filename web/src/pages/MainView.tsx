@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useEvents, useEventsGeoJSON, useRecentEventsCount, applyClientFilters } from "../api/queries";
+import { useEvents, useEventsGeoJSON, useRecentEventsCount, useOngoingEvents, useUpcomingEvents, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
 import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock, EditorialBlock, UserControls } from "../components/shell";
+import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import type { Region } from "../i18n/regions";
 import styles from "./MainView.module.css";
@@ -62,6 +62,8 @@ export function MainView() {
   });
   const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined });
   const recentCountQuery = useRecentEventsCount();
+  const ongoingQuery = useOngoingEvents();
+  const upcomingQuery = useUpcomingEvents();
 
   const events = eventsQuery.data ?? [];
   const q = searchQuery.trim().toLowerCase();
@@ -110,22 +112,34 @@ export function MainView() {
           />
         </div>
 
-        <div className={styles.editorialBlock}>
-          <EditorialBlock
-            mode={mode}
-            kpi={{
-              active: eventsQuery.isLoading ? "—" : filteredEvents.length,
-              locations: locationsCount,
-              newLastHour: recentCountQuery.data ?? "—",
-            }}
-            events={filteredEvents}
-            eventsLoading={eventsQuery.isLoading}
-            eventsError={eventsQuery.isError}
-            highlightedEventId={previewId}
-            onSelectEvent={handleSelectEventFromList}
-            detailEventId={routeClusterId ?? ""}
-            onBack={handleBack}
-          />
+        <div className={styles.scrollColumn}>
+          {mode === "list" && (
+            <TemporalBlock
+              ongoing={ongoingQuery.data ?? []}
+              upcoming={upcomingQuery.data ?? []}
+              loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
+              error={ongoingQuery.isError || upcomingQuery.isError}
+              onSelectEvent={handleSelectEventFromList}
+            />
+          )}
+
+          <div className={styles.editorialBlock}>
+            <EditorialBlock
+              mode={mode}
+              kpi={{
+                active: eventsQuery.isLoading ? "—" : filteredEvents.length,
+                locations: locationsCount,
+                newLastHour: recentCountQuery.data ?? "—",
+              }}
+              events={filteredEvents}
+              eventsLoading={eventsQuery.isLoading}
+              eventsError={eventsQuery.isError}
+              highlightedEventId={previewId}
+              onSelectEvent={handleSelectEventFromList}
+              detailEventId={routeClusterId ?? ""}
+              onBack={handleBack}
+            />
+          </div>
         </div>
       </div>
 

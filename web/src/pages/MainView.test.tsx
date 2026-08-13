@@ -24,8 +24,14 @@ vi.mock("../api/queries", () => ({
   useEvents: () => ({ data: [], isLoading: false, isError: false }),
   useEventsGeoJSON: () => ({ data: { features: [] }, isLoading: false, isError: false }),
   useRecentEventsCount: () => ({ data: 0 }),
+  useOngoingEvents: () => ({ data: [], isLoading: false, isError: false }),
+  useUpcomingEvents: () => ({ data: [], isLoading: false, isError: false }),
   useEvent: () => ({ data: undefined, isLoading: true, isError: false }),
   applyClientFilters: (entities: unknown[]) => entities,
+  partitionByNational: (events: { is_national?: boolean }[]) => ({
+    panhellenic: events.filter((e) => e.is_national),
+    other: events.filter((e) => !e.is_national),
+  }),
 }));
 
 function renderMainView(initialPath = "/") {
@@ -75,5 +81,17 @@ describe("MainView preserves filter state when navigating to detail", () => {
     await user.click(screen.getByRole("button", { name: /back/i }));
 
     expect(screen.getByTestId("location-probe")).toHaveTextContent("a4=");
+  });
+});
+
+describe("MainView temporal block", () => {
+  it("shows the temporal block in list mode", () => {
+    renderMainView("/");
+    expect(screen.getByRole("button", { name: /upcoming/i })).toBeInTheDocument();
+  });
+
+  it("hides the temporal block in detail mode", () => {
+    renderMainView("/cluster/evt-1");
+    expect(screen.queryByRole("button", { name: /upcoming/i })).not.toBeInTheDocument();
   });
 });

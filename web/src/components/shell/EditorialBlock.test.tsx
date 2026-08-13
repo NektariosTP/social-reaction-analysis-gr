@@ -70,22 +70,17 @@ describe("EditorialBlock", () => {
     expect(props.onBack).toHaveBeenCalled();
   });
 
-  it("wraps the detail-mode content in a scrollable container, with the back button outside it", () => {
-    const props = {
-      mode: "detail" as const,
-      detailEventId: "evt-1",
-      onBack: vi.fn(),
-    };
+  it("renders detail content below the back button in detail mode", () => {
     render(
       <MemoryRouter>
-        <EditorialBlock {...props} />
+        <EditorialBlock mode="detail" detailEventId="evt-1" onBack={vi.fn()} />
       </MemoryRouter>,
     );
+    const backBtn = screen.getByText(/back/i);
     const detailContent = screen.getByTestId("detail-content");
-    const backBtn = screen.getByRole("button", { name: /back/i });
-    // The detail content must sit inside its own scrollable wrapper (feedList class),
-    // and that wrapper must NOT contain the back button (which stays pinned above it).
-    expect(detailContent.closest('[class*="feedList"]')).not.toBeNull();
-    expect(detailContent.closest('[class*="feedList"]')?.contains(backBtn)).toBe(false);
+    expect(backBtn).toBeInTheDocument();
+    expect(detailContent).toBeInTheDocument();
+    // back button is a sibling above the content, not wrapping it
+    expect(backBtn.contains(detailContent)).toBe(false);
   });
 });
