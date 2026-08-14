@@ -116,6 +116,22 @@
             }
           },
           {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Municipality"
+            }
+          },
+          {
             "name": "date_from",
             "in": "query",
             "required": false,
@@ -415,6 +431,71 @@
           }
         }
       }
+    },
+    "/boundaries/peripheries": {
+      "get": {
+        "tags": [
+          "boundaries"
+        ],
+        "summary": "List Peripheries",
+        "operationId": "list_peripheries_boundaries_peripheries_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoundaryFeatureCollection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/boundaries/municipalities": {
+      "get": {
+        "tags": [
+          "boundaries"
+        ],
+        "summary": "List Municipalities",
+        "operationId": "list_municipalities_boundaries_municipalities_get",
+        "parameters": [
+          {
+            "name": "periphery",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "region_code of the parent periphery",
+              "title": "Periphery"
+            },
+            "description": "region_code of the parent periphery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoundaryFeatureCollection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -487,6 +568,74 @@
           "id"
         ],
         "title": "ArticleSummary"
+      },
+      "BoundaryFeature": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "Feature"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Geometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/BoundaryProperties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "title": "BoundaryFeature"
+      },
+      "BoundaryFeatureCollection": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/BoundaryFeature"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "features"
+        ],
+        "title": "BoundaryFeatureCollection"
+      },
+      "BoundaryProperties": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "BoundaryProperties"
       },
       "DistributionItem": {
         "properties": {
@@ -602,6 +751,17 @@
               }
             ],
             "title": "Region Code"
+          },
+          "municipality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipality"
           },
           "article_count": {
             "type": "integer",
@@ -796,6 +956,17 @@
             ],
             "title": "Region Code"
           },
+          "municipality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipality"
+          },
           "article_count": {
             "type": "integer",
             "title": "Article Count"
@@ -940,6 +1111,28 @@
           "id": {
             "type": "string",
             "title": "Id"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Code"
+          },
+          "municipality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipality"
           },
           "action_forms": {
             "items": {
