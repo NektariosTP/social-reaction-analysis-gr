@@ -95,3 +95,10 @@ describe("MainView temporal block", () => {
     expect(screen.queryByRole("button", { name: /upcoming/i })).not.toBeInTheDocument();
   });
 });
+
+describe("MainView geographic drill-down", () => {
+  it("shows the area block when a periphery is selected in the URL", async () => {
+    renderMainView("/?region=Attica");
+    expect(await screen.findByText("Attica")).toBeInTheDocument();
+  });
+});

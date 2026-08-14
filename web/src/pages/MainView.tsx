@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useEvents, useEventsGeoJSON, useRecentEventsCount, useOngoingEvents, useUpcomingEvents, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
+import { useGeoView } from "../hooks/useGeoView";
 import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls } from "../components/shell";
+import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, AreaBlock } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import type { Region } from "../i18n/regions";
 import styles from "./MainView.module.css";
@@ -17,6 +18,7 @@ export function MainView() {
   const { seen, dismiss } = useOnboardingSeen();
   const { filters, setFilters, toggleInList } = useFilterState();
   const [searchParams] = useSearchParams();
+  const geo = useGeoView();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [flyTo, setFlyTo] = useState<{ center: [number, number]; zoom?: number } | null>(null);
@@ -59,6 +61,8 @@ export function MainView() {
     intensities: filters.intensities,
     dateFrom,
     limit: 100,
+    regionCode: geo.region ?? undefined,
+    municipality: geo.municipality ?? undefined,
   });
   const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined });
   const recentCountQuery = useRecentEventsCount();
@@ -73,7 +77,7 @@ export function MainView() {
 
   const geoFeatures = applyClientFilters(
     (geojsonQuery.data?.features ?? []).map((f) => ({ ...f.properties, feature: f })),
-    filters,
+    { ...filters, regionCode: geo.region ?? undefined, municipality: geo.municipality ?? undefined },
   ).map((p) => p.feature);
 
   const locationKey = (e: (typeof events)[number]) =>
@@ -95,6 +99,9 @@ export function MainView() {
             flyTo={flyTo}
             onReadMorePopup={mode === "list" ? handleReadMore : undefined}
             onClosePopup={handleClosePopup}
+            geoView={geo}
+            onSelectPeriphery={geo.selectPeriphery}
+            onSelectMunicipality={geo.selectMunicipality}
           />
         )}
         <MapLegend />
@@ -120,6 +127,15 @@ export function MainView() {
               loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
               error={ongoingQuery.isError || upcomingQuery.isError}
               onSelectEvent={handleSelectEventFromList}
+            />
+          )}
+
+          {geo.level !== "none" && (
+            <AreaBlock
+              title={geo.level === "municipality" ? `${geo.municipality} — ${geo.region}` : geo.region!}
+              events={filteredEvents}
+              loading={eventsQuery.isLoading}
+              onClose={geo.level === "municipality" ? geo.clearMunicipality : geo.clear}
             />
           )}
 
