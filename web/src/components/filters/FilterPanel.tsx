@@ -39,18 +39,18 @@ export function FilterPanel({ filters, onToggle, onSetFilters }: FilterPanelProp
           onToggle={(v) => onToggle("actionForms", v)}
           onClear={() => onSetFilters({ actionForms: [] })}
         />
+        <ChannelSelect
+          selected={filters.channel}
+          onChange={(channel) => onSetFilters({ channel })}
+        />
+      </div>
+      <div className={styles.col}>
         <AxisMultiSelect
           title={t("filters.axis2")}
           options={THEMATIC_FIELD_OPTIONS}
           selected={filters.thematicFields}
           onToggle={(v) => onToggle("thematicFields", v)}
           onClear={() => onSetFilters({ thematicFields: [] })}
-        />
-      </div>
-      <div className={styles.col}>
-        <ChannelSelect
-          selected={filters.channel}
-          onChange={(channel) => onSetFilters({ channel })}
         />
         <IntensityRangeSelect selected={filters.intensities} onSetFilters={onSetFilters} />
       </div>

@@ -34,8 +34,13 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Must stay position:absolute, not relative — this class lands on the same
+   element maplibre-gl tags .maplibregl-marker (position:absolute) for its
+   own translate-based placement. Since this module's CSS loads after
+   maplibre-gl.css, `relative` here would win the cascade and knock the
+   marker into normal flow, offsetting it by ~MARKER_DIAMETER on render. */
 .markerWrapper {
-  position: relative;
+  position: absolute;
   border-radius: 50%;
 }
 

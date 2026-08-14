@@ -70,3 +70,16 @@ describe("MapView", () => {
       expect(call.anchor).toBe("center");
     }
   });
+
+  it("gives marker elements position:absolute so they don't fight maplibre's own placement", () => {
+    render(
+      <MapView features={[feature]} onSelectEvent={vi.fn()} selectedId={null} />,
+    );
+    const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+      .markerConstructorCalls;
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      const el = call.element as HTMLElement;
+      expect(getComputedStyle(el).position).toBe("absolute");
+    }
+  });
