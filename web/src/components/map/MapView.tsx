@@ -5,6 +5,8 @@ import type { GeoJsonFeature } from "../../client/types.gen";
 import { buildClusterIndex, getClusterPoints } from "./clustering";
 import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
 import { ClusterPopup } from "./ClusterPopup";
+import { useBoundaryLayers } from "./useBoundaryLayers";
+import type { GeoView } from "../../hooks/useGeoView";
 import styles from "./MapView.module.css";
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
@@ -23,6 +25,9 @@ interface MapViewProps {
   flyTo?: { center: [number, number]; zoom?: number } | null;
   onReadMorePopup?: (id: string) => void;
   onClosePopup?: () => void;
+  geoView?: Pick<GeoView, "level" | "region" | "municipality">;
+  onSelectPeriphery?: (name: string) => void;
+  onSelectMunicipality?: (name: string) => void;
 }
 
 export function MapView({
@@ -32,6 +37,9 @@ export function MapView({
   flyTo,
   onReadMorePopup,
   onClosePopup,
+  geoView,
+  onSelectPeriphery,
+  onSelectMunicipality,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -129,6 +137,15 @@ export function MapView({
     if (!map || !flyTo) return;
     map.flyTo({ center: flyTo.center, zoom: flyTo.zoom ?? 8 });
   }, [flyTo]);
+
+  useBoundaryLayers(
+    mapInstance,
+    geoView ?? { level: "none", region: null, municipality: null },
+    {
+      selectPeriphery: onSelectPeriphery ?? (() => {}),
+      selectMunicipality: onSelectMunicipality ?? (() => {}),
+    },
+  );
 
   const selectedFeature = selectedId
     ? features.find((f) => f.properties.id === selectedId)

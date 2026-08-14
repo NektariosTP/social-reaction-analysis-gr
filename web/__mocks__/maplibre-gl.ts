@@ -59,12 +59,16 @@ export class Popup {
   }
 }
 
-type Handler = () => void;
+type Handler = (...args: unknown[]) => void;
 
 export const mapConstructorCalls: Record<string, unknown>[] = [];
+export const mapSourceCalls: { id: string; source: Record<string, unknown> }[] = [];
+export const mapLayerCalls: { layer: Record<string, unknown> }[] = [];
 
 export class Map {
   private handlers: Record<string, Handler[]> = {};
+  private sources = new Set<string>();
+  private layers = new Set<string>();
   constructor(public opts: Record<string, unknown>) {
     mapConstructorCalls.push(opts);
   }
@@ -90,6 +94,42 @@ export class Map {
   }
   easeTo() {}
   flyTo() {}
+  addSource(id: string, source: Record<string, unknown>) {
+    this.sources.add(id);
+    mapSourceCalls.push({ id, source });
+  }
+  getSource(id: string) {
+    return this.sources.has(id) ? { setData() {} } : undefined;
+  }
+  removeSource(id: string) {
+    this.sources.delete(id);
+  }
+  addLayer(layer: Record<string, unknown>) {
+    this.layers.add(layer.id as string);
+    mapLayerCalls.push({ layer });
+  }
+  getLayer(id: string) {
+    return this.layers.has(id) ? { id } : undefined;
+  }
+  removeLayer(id: string) {
+    this.layers.delete(id);
+  }
+  setFeatureState() {}
+  removeFeatureState() {}
+  fitBounds() {}
+  queryRenderedFeatures() {
+    return [];
+  }
 }
 
-export default { Map, Marker, Popup, NavigationControl, FullscreenControl, mapConstructorCalls, markerConstructorCalls };
+export default {
+  Map,
+  Marker,
+  Popup,
+  NavigationControl,
+  FullscreenControl,
+  mapConstructorCalls,
+  markerConstructorCalls,
+  mapSourceCalls,
+  mapLayerCalls,
+};
