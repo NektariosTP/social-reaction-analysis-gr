@@ -90,6 +90,26 @@ class GeoJSONFeatureCollection(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Boundaries
+# ---------------------------------------------------------------------------
+
+class BoundaryProperties(BaseModel):
+    name: str
+    region_code: str | None = None
+
+
+class BoundaryFeature(BaseModel):
+    type: str = "Feature"
+    geometry: dict[str, Any]
+    properties: BoundaryProperties
+
+
+class BoundaryFeatureCollection(BaseModel):
+    type: str = "FeatureCollection"
+    features: list[BoundaryFeature]
+
+
+# ---------------------------------------------------------------------------
 # Stats
 # ---------------------------------------------------------------------------
 
