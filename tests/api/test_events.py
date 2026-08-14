@@ -33,6 +33,7 @@ _FAKE_EVENT_ROW = MagicMock(
     lat=37.9838,
     lon=23.7275,
     region_code=None,
+    municipality=None,
     article_count=5,
     source_count=3,
     first_seen=None,
@@ -109,7 +110,7 @@ def _row(**over):
     base = dict(
         id="evt-1", action_forms=["Απεργία/Στάση εργασίας"], thematic_fields=["Εργασιακό"],
         channel="Φυσικό", intensity="Ειρηνική", summary_el="ε", summary_en="e",
-        lat=None, lon=None, region_code=None, article_count=3, source_count=2,
+        lat=None, lon=None, region_code=None, municipality=None, article_count=3, source_count=2,
         first_seen=None, last_seen=None, status="enriched",
         event_time=None, is_national=True,
     )
@@ -173,3 +174,29 @@ async def test_list_events_rejects_bad_temporal_status(client: AsyncClient) -> N
 async def test_list_events_rejects_bad_order_by(client: AsyncClient) -> None:
     resp = await client.get("/events?order_by=random")
     assert resp.status_code == 422
+
+
+async def test_list_events_exposes_municipality(client: AsyncClient) -> None:
+    row = MagicMock(**{**_FAKE_EVENT_ROW.__dict__, "municipality": "Δήμος Αθηναίων"})
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[row]):
+        resp = await client.get("/events")
+    assert resp.status_code == 200
+    assert resp.json()[0]["municipality"] == "Δήμος Αθηναίων"
+
+
+@pytest.mark.asyncio
+async def test_list_events_passes_municipality_filter(client: AsyncClient) -> None:
+    mock = AsyncMock(return_value=[])
+    with patch("api.routes.events._fetch_events", mock):
+        resp = await client.get("/events?municipality=Δήμος Αθηναίων")
+    assert resp.status_code == 200
+    assert mock.call_args.kwargs["municipality"] == "Δήμος Αθηναίων"
+
+
+async def test_geojson_exposes_region_and_municipality(client: AsyncClient) -> None:
+    row = MagicMock(**{**_FAKE_EVENT_ROW.__dict__, "region_code": "Attica", "municipality": "Δήμος Αθηναίων"})
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[row]):
+        resp = await client.get("/events/geojson")
+    props = resp.json()["features"][0]["properties"]
+    assert props["region_code"] == "Attica"
+    assert props["municipality"] == "Δήμος Αθηναίων"

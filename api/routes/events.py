@@ -56,6 +56,7 @@ async def _fetch_events(
     channel: str | None = None,
     intensity: str | None = None,
     region_code: str | None = None,
+    municipality: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
     bbox: str | None = None,
@@ -83,6 +84,9 @@ async def _fetch_events(
     if region_code:
         conditions.append("region_code = :region_code")
         params["region_code"] = region_code
+    if municipality:
+        conditions.append("municipality = :municipality")
+        params["municipality"] = municipality
     if date_from:
         conditions.append("first_seen >= :date_from")
         params["date_from"] = _parse_iso_datetime(date_from, "date_from")
@@ -116,7 +120,7 @@ async def _fetch_events(
             f"summary_el, summary_en, "
             f"ST_Y(primary_location::geometry) AS lat, "
             f"ST_X(primary_location::geometry) AS lon, "
-            f"region_code, article_count, source_count, first_seen, last_seen, status, "
+            f"region_code, municipality, article_count, source_count, first_seen, last_seen, status, "
             f"event_time, is_national "
             f"FROM events WHERE {where} "
             f"ORDER BY {_ORDER_BY_SQL[order_by]} "
@@ -134,7 +138,7 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] |
             "summary_el, summary_en, "
             "ST_Y(primary_location::geometry) AS lat, "
             "ST_X(primary_location::geometry) AS lon, "
-            "region_code, article_count, source_count, first_seen, last_seen, status, "
+            "region_code, municipality, article_count, source_count, first_seen, last_seen, status, "
             "event_time, is_national, "
             "classification_confidence "
             "FROM events WHERE id = :id"
@@ -167,6 +171,7 @@ async def list_events(
     channel: Annotated[str | None, Query()] = None,
     intensity: Annotated[str | None, Query()] = None,
     region_code: Annotated[str | None, Query()] = None,
+    municipality: Annotated[str | None, Query()] = None,
     date_from: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     date_to: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     bbox: Annotated[str | None, Query(description="west,south,east,north")] = None,
@@ -184,6 +189,7 @@ async def list_events(
         channel=channel,
         intensity=intensity,
         region_code=region_code,
+        municipality=municipality,
         date_from=date_from,
         date_to=date_to,
         bbox=bbox,
@@ -206,6 +212,7 @@ async def list_events(
             lat=r.lat,
             lon=r.lon,
             region_code=r.region_code,
+            municipality=r.municipality,
             article_count=r.article_count or 0,
             source_count=r.source_count or 0,
             first_seen=r.first_seen,
@@ -236,6 +243,8 @@ async def events_geojson(
                 geometry=GeoJSONGeometry(coordinates=[r.lon, r.lat]),
                 properties=GeoJSONProperties(
                     id=str(r.id),
+                    region_code=str(r.region_code) if r.region_code else None,
+                    municipality=r.municipality,
                     action_forms=list(r.action_forms or []),
                     thematic_fields=list(r.thematic_fields or []),
                     channel=r.channel,
@@ -274,6 +283,7 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         lat=row.lat,
         lon=row.lon,
         region_code=row.region_code,
+        municipality=row.municipality,
         article_count=row.article_count or 0,
         source_count=row.source_count or 0,
         first_seen=row.first_seen,
