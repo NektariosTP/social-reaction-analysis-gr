@@ -5,6 +5,8 @@ import {
   getEventEventsEventIdGet,
   getStatsStatsGet,
   listEventsEventsGet,
+  listMunicipalitiesBoundariesMunicipalitiesGet,
+  listPeripheriesBoundariesPeripheriesGet,
 } from "../client/sdk.gen";
 import type { EventSummary } from "../client/types.gen";
 
@@ -21,6 +23,7 @@ export interface EventFilters {
   channel?: string;
   intensities?: string[];
   regionCode?: string;
+  municipality?: string;
   dateFrom?: string;
   dateTo?: string;
   bbox?: string;
@@ -32,6 +35,8 @@ interface AxisTaggedEntity {
   action_forms: string[];
   thematic_fields: string[];
   intensity?: string | null;
+  region_code?: string | null;
+  municipality?: string | null;
 }
 
 /**
@@ -43,7 +48,7 @@ interface AxisTaggedEntity {
  */
 export function applyClientFilters<T extends AxisTaggedEntity>(
   entities: T[],
-  filters: Pick<EventFilters, "actionForms" | "thematicFields" | "intensities">,
+  filters: Pick<EventFilters, "actionForms" | "thematicFields" | "intensities" | "regionCode" | "municipality">,
 ): T[] {
   let result = entities;
   if (filters.actionForms?.length) {
@@ -58,6 +63,12 @@ export function applyClientFilters<T extends AxisTaggedEntity>(
     const set = new Set(filters.intensities);
     result = result.filter((e) => e.intensity && set.has(e.intensity));
   }
+  if (filters.regionCode) {
+    result = result.filter((e) => e.region_code === filters.regionCode);
+  }
+  if (filters.municipality) {
+    result = result.filter((e) => e.municipality === filters.municipality);
+  }
   return result;
 }
 
@@ -70,6 +81,7 @@ export function useEvents(filters: EventFilters = {}) {
           query: {
             channel: filters.channel ?? null,
             region_code: filters.regionCode ?? null,
+            municipality: filters.municipality ?? null,
             date_from: filters.dateFrom ?? null,
             date_to: filters.dateTo ?? null,
             bbox: filters.bbox ?? null,
@@ -155,5 +167,25 @@ export function useUpcomingEvents() {
           query: { temporal_status: "upcoming", order_by: "event_time", limit: 100 },
         }),
       ),
+  });
+}
+
+/** All 13 periphery outlines (simplified). Immutable geometry — cached indefinitely. */
+export function usePeripheryBoundaries() {
+  return useQuery({
+    queryKey: ["boundaries", "peripheries"],
+    queryFn: () => unwrap(listPeripheriesBoundariesPeripheriesGet({})),
+    staleTime: Infinity,
+  });
+}
+
+/** Municipalities of one periphery (simplified). Disabled until a periphery is selected. */
+export function useMunicipalityBoundaries(region: string | null) {
+  return useQuery({
+    queryKey: ["boundaries", "municipalities", region],
+    queryFn: () =>
+      unwrap(listMunicipalitiesBoundariesMunicipalitiesGet({ query: { periphery: region! } })),
+    enabled: !!region,
+    staleTime: Infinity,
   });
 }
