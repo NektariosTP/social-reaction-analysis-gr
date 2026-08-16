@@ -28,6 +28,21 @@ export class Marker {
 export class NavigationControl {}
 export class FullscreenControl {}
 
+export class LngLatBounds {
+  private bounds: [number, number, number, number] | null = null;
+  extend(coord: [number, number]) {
+    this.bounds = this.bounds
+      ? [
+          Math.min(this.bounds[0], coord[0]),
+          Math.min(this.bounds[1], coord[1]),
+          Math.max(this.bounds[2], coord[0]),
+          Math.max(this.bounds[3], coord[1]),
+        ]
+      : [coord[0], coord[1], coord[0], coord[1]];
+    return this;
+  }
+}
+
 export class Popup {
   private container: HTMLElement | null = null;
   private lngLat: [number, number] = [0, 0];
@@ -114,6 +129,7 @@ export class Map {
   removeLayer(id: string) {
     this.layers.delete(id);
   }
+  setLayoutProperty() {}
   setFeatureState() {}
   removeFeatureState() {}
   fitBounds() {}
@@ -128,6 +144,7 @@ export default {
   Popup,
   NavigationControl,
   FullscreenControl,
+  LngLatBounds,
   mapConstructorCalls,
   markerConstructorCalls,
   mapSourceCalls,

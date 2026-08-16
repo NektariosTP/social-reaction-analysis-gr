@@ -19,3 +19,10 @@ export const REGIONS: Region[] = [
   { en: "South Aegean", el: "Νότιο Αιγαίο", center: [25.4, 36.9] },
   { en: "Ionian Islands", el: "Ιόνια Νησιά", center: [20.7, 39.0] },
 ];
+
+/** Periphery region_code is stored/queried in English; display it in the active UI language. */
+export function regionLabel(code: string, lang: "en" | "el"): string {
+  const region = REGIONS.find((r) => r.en === code);
+  if (!region) return code;
+  return lang === "el" ? region.el : region.en;
+}

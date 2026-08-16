@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useEvents, useEventsGeoJSON, useRecentEventsCount, useOngoingEvents, useUpcomingEvents, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
@@ -11,6 +11,7 @@ import { OnboardingOverlay } from "../components/onboarding";
 import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, AreaBlock } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import type { Region } from "../i18n/regions";
+import { regionLabel } from "../i18n/regions";
 import styles from "./MainView.module.css";
 
 export function MainView() {
@@ -22,6 +23,20 @@ export function MainView() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [flyTo, setFlyTo] = useState<{ center: [number, number]; zoom?: number } | null>(null);
+
+  // The floating sidebar (.blocks) sits on top of the map and its width is
+  // responsive (clamp(360px, 28vw, 480px) — see MainView.module.css), so map
+  // framing (fitBounds/flyTo) needs to know its real rendered width to avoid
+  // centering selected content underneath it.
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(0);
+  useEffect(() => {
+    const el = sidebarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setSidebarWidth(entry.contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const { id: routeClusterId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
@@ -102,12 +117,13 @@ export function MainView() {
             geoView={geo}
             onSelectPeriphery={geo.selectPeriphery}
             onSelectMunicipality={geo.selectMunicipality}
+            obstructedLeft={sidebarWidth}
           />
         )}
         <MapLegend />
       </div>
 
-      <div className={styles.blocks}>
+      <div className={styles.blocks} ref={sidebarRef}>
         <div className={styles.headerBlock}>
           <HeaderBlock
             searchQuery={searchQuery}
@@ -132,7 +148,11 @@ export function MainView() {
 
           {geo.level !== "none" && (
             <AreaBlock
-              title={geo.level === "municipality" ? `${geo.municipality} — ${geo.region}` : geo.region!}
+              title={
+                geo.level === "municipality"
+                  ? `${geo.municipality} — ${regionLabel(geo.region!, lang)}`
+                  : regionLabel(geo.region!, lang)
+              }
               events={filteredEvents}
               loading={eventsQuery.isLoading}
               onClose={geo.level === "municipality" ? geo.clearMunicipality : geo.clear}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
@@ -28,6 +28,8 @@ interface MapViewProps {
   geoView?: Pick<GeoView, "level" | "region" | "municipality">;
   onSelectPeriphery?: (name: string) => void;
   onSelectMunicipality?: (name: string) => void;
+  /** Width (px) of UI chrome overlaying the left edge of the map (e.g. the floating sidebar). */
+  obstructedLeft?: number;
 }
 
 export function MapView({
@@ -40,15 +42,21 @@ export function MapView({
   geoView,
   onSelectPeriphery,
   onSelectMunicipality,
+  obstructedLeft = 0,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
+  const [styleLoaded, setStyleLoaded] = useState(false);
   const onSelectEventRef = useRef(onSelectEvent);
   useEffect(() => {
     onSelectEventRef.current = onSelectEvent;
   }, [onSelectEvent]);
+  const featuresRef = useRef(features);
+  useEffect(() => {
+    featuresRef.current = features;
+  }, [features]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -67,16 +75,18 @@ export function MapView({
     );
     mapRef.current = map;
     setMapInstance(map);
+    map.once("load", () => setStyleLoaded(true));
     return () => {
       map.remove();
       mapRef.current = null;
       setMapInstance(null);
+      setStyleLoaded(false);
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !styleLoaded) return;
 
     const index = buildClusterIndex(features);
 
@@ -115,14 +125,9 @@ export function MapView({
       });
     };
 
-    const attach = () => {
-      render();
-      map.on("moveend", render);
-      map.on("zoomend", render);
-    };
-
-    if (map.isStyleLoaded()) attach();
-    else map.once("load", attach);
+    render();
+    map.on("moveend", render);
+    map.on("zoomend", render);
 
     return () => {
       map.off("moveend", render);
@@ -130,7 +135,7 @@ export function MapView({
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
     };
-  }, [features, selectedId]);
+  }, [features, selectedId, styleLoaded]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -138,13 +143,32 @@ export function MapView({
     map.flyTo({ center: flyTo.center, zoom: flyTo.zoom ?? 8 });
   }, [flyTo]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedId) return;
+    const feature = featuresRef.current.find((f) => f.properties.id === selectedId);
+    if (!feature) return;
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
+    map.flyTo({
+      center: [lng, lat],
+      zoom: Math.max(map.getZoom(), 11),
+      offset: [obstructedLeft / 2, 0],
+    });
+  }, [selectedId, obstructedLeft]);
+
+  const boundaryHandlers = useMemo(
+    () => ({
+      selectPeriphery: onSelectPeriphery ?? (() => {}),
+      selectMunicipality: onSelectMunicipality ?? (() => {}),
+    }),
+    [onSelectPeriphery, onSelectMunicipality],
+  );
+
   useBoundaryLayers(
     mapInstance,
     geoView ?? { level: "none", region: null, municipality: null },
-    {
-      selectPeriphery: onSelectPeriphery ?? (() => {}),
-      selectMunicipality: onSelectMunicipality ?? (() => {}),
-    },
+    boundaryHandlers,
+    obstructedLeft,
   );
 
   const selectedFeature = selectedId

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
+import { regionLabel } from "../../i18n/regions";
 import { formatRelativeTime } from "../../utils/time";
 import { MapView } from "../map";
 import { AxisTag, IntensityDots, Spinner, ErrorState } from "../common";
@@ -61,7 +62,7 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
       <h2 className={styles.headline}>{(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}</h2>
 
       <div className={styles.metaChips}>
-        {event.region_code && <span className={styles.metaChip}>📍 {event.region_code}</span>}
+        {event.region_code && <span className={styles.metaChip}>📍 {regionLabel(event.region_code, lang)}</span>}
         <span className={styles.metaChip}>
           {event.article_count} {t("card.sources")}
         </span>

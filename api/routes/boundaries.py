@@ -18,9 +18,10 @@ from api.models import BoundaryFeature, BoundaryFeatureCollection, BoundaryPrope
 router = APIRouter(prefix="/boundaries", tags=["boundaries"])
 
 _REGIONS_PATH = Path(__file__).resolve().parent.parent.parent / "enrich" / "data" / "regions.geojson"
-# Chosen against the rendered outline: ~1km in degrees. Small enough that the 13
-# periphery shapes read cleanly at country zoom, large enough to shed vertices.
-_PERIPHERY_TOLERANCE = 0.01
+# ~11m in degrees at Greek latitudes. Peripheries with dense island clusters (South
+# Aegean, North Aegean, Ionian) need this fine a tolerance just to stay a sane payload
+# size — anything coarser (e.g. 0.01) crushes small islands to a handful of points.
+_PERIPHERY_TOLERANCE = 0.0001
 
 
 @lru_cache(maxsize=4)
@@ -44,8 +45,11 @@ async def list_peripheries() -> BoundaryFeatureCollection:
     return _simplified_peripheries(_PERIPHERY_TOLERANCE)
 
 
-# ~1km simplify; ST_SimplifyPreserveTopology keeps δήμος borders valid.
-_MUNI_TOLERANCE = 0.01
+# Municipalities with small offshore exclaves (e.g. Δήμος Μυκόνου includes Δήλος and ~30
+# islets) lose real coastline detail well before 0.001 — verified against the live table:
+# at 0.01 a 3.5km² island like Delos drops to 5 points, at 0.0001 it keeps ~180. No island
+# above ~0.5km² anywhere in the table degrades below 6 points at this tolerance.
+_MUNI_TOLERANCE = 0.0001
 
 
 async def _fetch_municipalities(session: AsyncSession, periphery: str) -> list[Row[Any]]:
