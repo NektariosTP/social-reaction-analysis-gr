@@ -63,3 +63,17 @@
   box-shadow: var(--shadow-card);
   border: 1.5px solid var(--color-surface);
 }
+
+@keyframes orbiterDrift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(0, -1.5px) scale(1.04);
+  }
+}
+
+.orbiterDrift {
+  animation: orbiterDrift 4.5s ease-in-out infinite;
+}

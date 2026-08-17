@@ -3,6 +3,7 @@ import { createMarkerElement, createClusterMarkerElement } from "./markerElement
 import { intensityColor } from "./bubbleColors";
 import type { GeoJsonFeature } from "../../client/types.gen";
 import type { ClusterPreview } from "./clusterPreview";
+import styles from "./MapView.module.css";
 
 describe("createMarkerElement", () => {
   it("renders only the action-form icon in the main bubble", () => {
@@ -117,5 +118,18 @@ describe("createClusterMarkerElement", () => {
     const dot = el.querySelector<HTMLElement>('[data-role="orbiter"]');
     expect(dot?.textContent).toBe("🏛");
     expect(dot?.style.borderStyle).toBe("solid");
+  });
+
+  it("gives each orbiter a drift animation with a per-orbiter delay derived from its id", () => {
+    const preview: ClusterPreview = {
+      center: leaf("c", null),
+      orbiters: [leaf("o1", null), leaf("o2", null)],
+      remainderCount: 0,
+    };
+    const el = createClusterMarkerElement(preview);
+    const dots = el.querySelectorAll<HTMLElement>('[data-role="orbiter"]');
+    expect(dots[0].classList.contains(styles.orbiterDrift)).toBe(true);
+    expect(dots[0].style.animationDelay).toBe("0s");
+    expect(dots[1].style.animationDelay).toBe("0.1s");
   });
 });

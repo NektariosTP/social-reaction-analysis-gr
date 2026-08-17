@@ -63,7 +63,16 @@ function orbiterCircle(feature: GeoJsonFeature, size: number): HTMLDivElement {
   dot.style.fontSize = `${Math.round(size * 0.55)}px`;
   dot.style.pointerEvents = "auto";
   dot.textContent = style.icon;
+  dot.classList.add(styles.orbiterDrift);
+  dot.style.animationDelay = driftDelay(feature.properties.id);
   return dot;
+}
+
+/** Deterministic small delay (0.0-1.9s) from a feature id, so orbiters in one cluster don't drift in lockstep. */
+function driftDelay(id: string): string {
+  let sum = 0;
+  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
+  return `${(sum % 20) / 10}s`;
 }
 
 function remainderPill(count: number, size: number): HTMLDivElement {
