@@ -56,6 +56,13 @@ class EventDetail(EventSummary):
     articles: list[ArticleSummary] = []
 
 
+class LocationPoint(BaseModel):
+    lat: float
+    lon: float
+    label: str | None = None
+    is_primary: bool
+
+
 # ---------------------------------------------------------------------------
 # GeoJSON
 # ---------------------------------------------------------------------------
@@ -76,6 +83,7 @@ class GeoJSONProperties(BaseModel):
     summary_en: str | None = None
     article_count: int
     first_seen: datetime | None = None
+    locations: list[LocationPoint] = []
 
 
 class GeoJSONFeature(BaseModel):
