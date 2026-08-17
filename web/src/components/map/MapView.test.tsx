@@ -85,3 +85,11 @@ describe("MapView", () => {
       expect(getComputedStyle(el).position).toBe("absolute");
     }
   });
+
+  it("adds the multi-location overlay layers", () => {
+    const mock = maplibregl as unknown as { mapLayerCalls: { layer: { id: string } }[] };
+    mock.mapLayerCalls.length = 0;
+    render(<MapView features={[feature]} onSelectEvent={vi.fn()} selectedId={null} />);
+    const layerIds = mock.mapLayerCalls.map((l) => l.layer.id);
+    expect(layerIds).toEqual(expect.arrayContaining(["event-connectors", "event-secondaries"]));
+  });

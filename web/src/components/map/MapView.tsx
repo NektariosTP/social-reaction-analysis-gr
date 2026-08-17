@@ -6,6 +6,7 @@ import { buildClusterIndex, getClusterPoints } from "./clustering";
 import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
 import { ClusterPopup } from "./ClusterPopup";
 import { useBoundaryLayers } from "./useBoundaryLayers";
+import { useLocationOverlay } from "./useLocationOverlay";
 import type { GeoView } from "../../hooks/useGeoView";
 import styles from "./MapView.module.css";
 
@@ -84,6 +85,8 @@ export function MapView({
     };
   }, []);
 
+  const overlay = useLocationOverlay(mapInstance, styleLoaded, onSelectEvent);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleLoaded) return;
@@ -123,6 +126,11 @@ export function MapView({
           .setLngLat(point.coordinates)
           .addTo(map);
       });
+
+      const individualEventIds = new Set(
+        points.filter((p) => !p.isCluster).map((p) => p.feature!.properties.id),
+      );
+      overlay.updateOverlay(featuresRef.current, individualEventIds, selectedId ?? null);
     };
 
     render();
@@ -135,7 +143,7 @@ export function MapView({
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
     };
-  }, [features, selectedId, styleLoaded]);
+  }, [features, selectedId, styleLoaded, overlay]);
 
   useEffect(() => {
     const map = mapRef.current;
