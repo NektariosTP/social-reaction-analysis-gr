@@ -94,24 +94,45 @@ function remainderPill(count: number, size: number): HTMLDivElement {
   return pill;
 }
 
-/** Place `child` on the orbit ring at slot `index` of `ringSlots`, starting from the top (-90°). */
+/** Place `child` on the orbit ring at slot `index` of `ringSlots`, starting from the top (-90°).
+ * When `animateEntrance` is true, `child` starts collapsed at the wrapper's center point and
+ * transitions out to its ring position on the next frame (CSS `.orbiterEnter` transition). */
 function placeOnRing(
   child: HTMLElement,
   index: number,
   ringSlots: number,
   wrapperDiameter: number,
   orbitRadius: number,
+  animateEntrance: boolean,
 ): HTMLElement {
   const angle = ((360 / ringSlots) * index - 90) * (Math.PI / 180);
-  const cx = wrapperDiameter / 2 + orbitRadius * Math.cos(angle);
-  const cy = wrapperDiameter / 2 + orbitRadius * Math.sin(angle);
   const size = parseFloat(child.style.width);
-  child.style.left = `${cx - size / 2}px`;
-  child.style.top = `${cy - size / 2}px`;
+  const finalLeft = wrapperDiameter / 2 + orbitRadius * Math.cos(angle) - size / 2;
+  const finalTop = wrapperDiameter / 2 + orbitRadius * Math.sin(angle) - size / 2;
+
+  if (animateEntrance) {
+    const centerLeft = wrapperDiameter / 2 - size / 2;
+    const centerTop = wrapperDiameter / 2 - size / 2;
+    child.classList.add(styles.orbiterEnter);
+    child.style.left = `${centerLeft}px`;
+    child.style.top = `${centerTop}px`;
+    child.style.opacity = "0";
+    requestAnimationFrame(() => {
+      child.style.left = `${finalLeft}px`;
+      child.style.top = `${finalTop}px`;
+      child.style.opacity = "1";
+    });
+  } else {
+    child.style.left = `${finalLeft}px`;
+    child.style.top = `${finalTop}px`;
+  }
   return child;
 }
 
-export function createClusterMarkerElement(preview: ClusterPreview): HTMLDivElement {
+export function createClusterMarkerElement(
+  preview: ClusterPreview,
+  animateEntrance: boolean = false,
+): HTMLDivElement {
   const centerRadius = MARKER_DIAMETER / 2;
   const orbitRadius = centerRadius + ORBITER_MAX_DIAMETER / 2 + ORBIT_GAP;
   const wrapperDiameter = (orbitRadius + ORBITER_MAX_DIAMETER / 2) * 2;
@@ -141,7 +162,14 @@ export function createClusterMarkerElement(preview: ClusterPreview): HTMLDivElem
         : ORBITER_MAX_DIAMETER -
           (i / (ringSlots - 1)) * (ORBITER_MAX_DIAMETER - ORBITER_MIN_DIAMETER);
     wrapper.appendChild(
-      placeOnRing(orbiterCircle(orbiter, size), i, ringSlots, wrapperDiameter, orbitRadius),
+      placeOnRing(
+        orbiterCircle(orbiter, size),
+        i,
+        ringSlots,
+        wrapperDiameter,
+        orbitRadius,
+        animateEntrance,
+      ),
     );
   });
   if (preview.remainderCount > 0) {
@@ -152,6 +180,7 @@ export function createClusterMarkerElement(preview: ClusterPreview): HTMLDivElem
         ringSlots,
         wrapperDiameter,
         orbitRadius,
+        animateEntrance,
       ),
     );
   }

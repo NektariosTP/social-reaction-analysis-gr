@@ -80,6 +80,7 @@ export const mapConstructorCalls: Record<string, unknown>[] = [];
 export const mapSourceCalls: { id: string; source: Record<string, unknown> }[] = [];
 export const mapLayerCalls: { layer: Record<string, unknown> }[] = [];
 export const mapSetDataCalls: { id: string; data: unknown }[] = [];
+export const mapInstances: Map[] = [];
 
 export class Map {
   private handlers: Record<string, Handler[]> = {};
@@ -87,6 +88,10 @@ export class Map {
   private layers = new Set<string>();
   constructor(public opts: Record<string, unknown>) {
     mapConstructorCalls.push(opts);
+    mapInstances.push(this);
+  }
+  trigger(event: string) {
+    (this.handlers[event] ?? []).forEach((h) => h());
   }
   addControl() {
     return this;
@@ -158,4 +163,5 @@ export default {
   mapSourceCalls,
   mapLayerCalls,
   mapSetDataCalls,
+  mapInstances,
 };

@@ -136,3 +136,33 @@ it("still expands the cluster on click via easeTo", () => {
     mapProto.easeTo = original;
   }
 });
+
+it("plays the spring-in entrance only on a zoom-triggered render, not a plain pan", () => {
+  const near: GeoJsonFeature = {
+    ...feature,
+    geometry: { type: "Point", coordinates: [23.701, 38.001] },
+    properties: { ...feature.properties, id: "evt-2" },
+  };
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  const mapInstances = (
+    maplibregl as unknown as { mapInstances: { trigger: (event: string) => void }[] }
+  ).mapInstances;
+  render(<MapView features={[feature, near]} onSelectEvent={vi.fn()} selectedId={null} />);
+  const map = mapInstances.at(-1)!;
+
+  calls.length = 0;
+  map.trigger("moveend");
+  const pannedCluster = calls.find((c) =>
+    (c.element as HTMLElement).querySelector('[data-role="orbiter"]'),
+  )!.element as HTMLElement;
+  expect(pannedCluster.querySelector<HTMLElement>('[data-role="orbiter"]')?.style.opacity).toBe("");
+
+  calls.length = 0;
+  map.trigger("zoomstart");
+  map.trigger("zoomend");
+  const zoomedCluster = calls.find((c) =>
+    (c.element as HTMLElement).querySelector('[data-role="orbiter"]'),
+  )!.element as HTMLElement;
+  expect(zoomedCluster.querySelector<HTMLElement>('[data-role="orbiter"]')?.style.opacity).toBe("0");
+});

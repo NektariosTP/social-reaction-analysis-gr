@@ -77,3 +77,10 @@
 .orbiterDrift {
   animation: orbiterDrift 4.5s ease-in-out infinite;
 }
+
+.orbiterEnter {
+  transition:
+    left 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    top 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 200ms ease-out;
+}

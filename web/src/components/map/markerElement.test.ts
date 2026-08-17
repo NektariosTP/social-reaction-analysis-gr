@@ -132,4 +132,27 @@ describe("createClusterMarkerElement", () => {
     expect(dots[0].style.animationDelay).toBe("0s");
     expect(dots[1].style.animationDelay).toBe("0.1s");
   });
+
+  it("places orbiters directly at their final ring position when animateEntrance is false (default)", () => {
+    const preview: ClusterPreview = { center: leaf("c", null), orbiters: [leaf("o1", null)], remainderCount: 0 };
+    const el = createClusterMarkerElement(preview);
+    const dot = el.querySelector<HTMLElement>('[data-role="orbiter"]')!;
+    const wrapperDiameter = parseFloat(el.style.width);
+    const dotSize = parseFloat(dot.style.width);
+    expect(dot.style.top).not.toBe(`${wrapperDiameter / 2 - dotSize / 2}px`);
+    expect(dot.style.opacity).toBe("");
+    expect(dot.classList.contains(styles.orbiterEnter)).toBe(false);
+  });
+
+  it("starts orbiters collapsed at the wrapper's center point when animateEntrance is true", () => {
+    const preview: ClusterPreview = { center: leaf("c", null), orbiters: [leaf("o1", null)], remainderCount: 0 };
+    const el = createClusterMarkerElement(preview, true);
+    const dot = el.querySelector<HTMLElement>('[data-role="orbiter"]')!;
+    const wrapperDiameter = parseFloat(el.style.width);
+    const dotSize = parseFloat(dot.style.width);
+    expect(dot.style.left).toBe(`${wrapperDiameter / 2 - dotSize / 2}px`);
+    expect(dot.style.top).toBe(`${wrapperDiameter / 2 - dotSize / 2}px`);
+    expect(dot.style.opacity).toBe("0");
+    expect(dot.classList.contains(styles.orbiterEnter)).toBe(true);
+  });
 });

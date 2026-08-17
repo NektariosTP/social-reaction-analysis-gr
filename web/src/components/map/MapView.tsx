@@ -93,8 +93,11 @@ export function MapView({
     if (!map || !styleLoaded) return;
 
     const index = buildClusterIndex(features);
+    let animateNextEntrance = false;
 
     const render = () => {
+      const animateEntrance = animateNextEntrance;
+      animateNextEntrance = false;
       markersRef.current.forEach((m) => m.remove());
       const bounds = map.getBounds().toArray();
       const bbox: [number, number, number, number] = [
@@ -111,7 +114,7 @@ export function MapView({
             .getLeaves(point.clusterId!, LEAF_SAMPLE_SIZE)
             .map((l) => l.properties.__feature);
           const preview = buildClusterPreview(leaves, point.pointCount ?? 0);
-          const el = createClusterMarkerElement(preview);
+          const el = createClusterMarkerElement(preview, animateEntrance);
           el.addEventListener("click", () => {
             const zoom = index.getClusterExpansionZoom(point.clusterId!);
             map.easeTo({ center: point.coordinates, zoom });
@@ -138,12 +141,18 @@ export function MapView({
       overlay.updateOverlay(featuresRef.current, individualEventIds, selectedId ?? null);
     };
 
+    const handleZoomStart = () => {
+      animateNextEntrance = true;
+    };
+
     render();
     map.on("moveend", render);
+    map.on("zoomstart", handleZoomStart);
     map.on("zoomend", render);
 
     return () => {
       map.off("moveend", render);
+      map.off("zoomstart", handleZoomStart);
       map.off("zoomend", render);
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
