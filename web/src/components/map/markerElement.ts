@@ -1,5 +1,7 @@
 import { markerStyle, MARKER_DIAMETER, type MarkerProperties } from "./markerStyle";
-import { INTENSITY_COLOR_NEUTRAL } from "./bubbleColors";
+import { intensityColor, INTENSITY_COLOR_NEUTRAL } from "./bubbleColors";
+import type { GeoJsonFeature } from "../../client/types.gen";
+import type { ClusterPreview } from "./clusterPreview";
 import styles from "./MapView.module.css";
 
 export function createMarkerElement(
@@ -37,13 +39,106 @@ export function createMarkerElement(
   return wrapper;
 }
 
-export function createClusterMarkerElement(pointCount: number): HTMLDivElement {
-  const el = document.createElement("div");
-  el.className = styles.bubble;
-  el.style.width = `${MARKER_DIAMETER}px`;
-  el.style.height = `${MARKER_DIAMETER}px`;
-  el.style.background = INTENSITY_COLOR_NEUTRAL;
-  el.style.borderStyle = "solid";
-  el.textContent = String(pointCount);
-  return el;
+const ORBITER_MAX_DIAMETER = 20;
+const ORBITER_MIN_DIAMETER = 10;
+const ORBIT_GAP = 4;
+
+function orbiterCircle(feature: GeoJsonFeature, size: number): HTMLDivElement {
+  const color = intensityColor(feature.properties.intensity);
+  const dot = document.createElement("div");
+  dot.dataset.role = "orbiter";
+  dot.dataset.color = color; // jsdom normalizes inline colors to rgb(); expose the source for tests
+  dot.style.position = "absolute";
+  dot.style.width = `${size}px`;
+  dot.style.height = `${size}px`;
+  dot.style.borderRadius = "50%";
+  dot.style.background = color;
+  dot.style.border = "1.5px solid var(--color-surface, #fff)";
+  dot.style.boxSizing = "border-box";
+  dot.style.pointerEvents = "auto";
+  return dot;
+}
+
+function remainderPill(count: number, size: number): HTMLDivElement {
+  const pill = document.createElement("div");
+  pill.dataset.role = "remainder-pill";
+  pill.style.position = "absolute";
+  pill.style.width = `${size}px`;
+  pill.style.height = `${size}px`;
+  pill.style.display = "flex";
+  pill.style.alignItems = "center";
+  pill.style.justifyContent = "center";
+  pill.style.borderRadius = "50%";
+  pill.style.background = INTENSITY_COLOR_NEUTRAL;
+  pill.style.color = "#fff";
+  pill.style.fontSize = "9px";
+  pill.style.fontWeight = "600";
+  pill.style.pointerEvents = "auto";
+  pill.textContent = `+${count}`;
+  return pill;
+}
+
+/** Place `child` on the orbit ring at slot `index` of `ringSlots`, starting from the top (-90°). */
+function placeOnRing(
+  child: HTMLElement,
+  index: number,
+  ringSlots: number,
+  wrapperDiameter: number,
+  orbitRadius: number,
+): HTMLElement {
+  const angle = ((360 / ringSlots) * index - 90) * (Math.PI / 180);
+  const cx = wrapperDiameter / 2 + orbitRadius * Math.cos(angle);
+  const cy = wrapperDiameter / 2 + orbitRadius * Math.sin(angle);
+  const size = parseFloat(child.style.width);
+  child.style.left = `${cx - size / 2}px`;
+  child.style.top = `${cy - size / 2}px`;
+  return child;
+}
+
+export function createClusterMarkerElement(preview: ClusterPreview): HTMLDivElement {
+  const centerRadius = MARKER_DIAMETER / 2;
+  const orbitRadius = centerRadius + ORBITER_MAX_DIAMETER / 2 + ORBIT_GAP;
+  const wrapperDiameter = (orbitRadius + ORBITER_MAX_DIAMETER / 2) * 2;
+
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "absolute";
+  wrapper.style.width = `${wrapperDiameter}px`;
+  wrapper.style.height = `${wrapperDiameter}px`;
+  wrapper.style.pointerEvents = "none";
+
+  const center = createMarkerElement(
+    preview.center.properties,
+    preview.center.properties.article_count,
+    false,
+  );
+  center.style.position = "absolute";
+  center.style.left = `${wrapperDiameter / 2 - centerRadius}px`;
+  center.style.top = `${wrapperDiameter / 2 - centerRadius}px`;
+  center.style.pointerEvents = "auto";
+  wrapper.appendChild(center);
+
+  const ringSlots = preview.orbiters.length + (preview.remainderCount > 0 ? 1 : 0);
+  preview.orbiters.forEach((orbiter, i) => {
+    const size =
+      ringSlots <= 1
+        ? ORBITER_MAX_DIAMETER
+        : ORBITER_MAX_DIAMETER -
+          (i / (ringSlots - 1)) * (ORBITER_MAX_DIAMETER - ORBITER_MIN_DIAMETER);
+    wrapper.appendChild(
+      placeOnRing(orbiterCircle(orbiter, size), i, ringSlots, wrapperDiameter, orbitRadius),
+    );
+  });
+  if (preview.remainderCount > 0) {
+    wrapper.appendChild(
+      placeOnRing(
+        remainderPill(preview.remainderCount, ORBITER_MIN_DIAMETER),
+        preview.orbiters.length,
+        ringSlots,
+        wrapperDiameter,
+        orbitRadius,
+      ),
+    );
+  }
+
+  return wrapper;
 }

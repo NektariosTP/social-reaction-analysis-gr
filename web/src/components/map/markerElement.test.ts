@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
+import { intensityColor } from "./bubbleColors";
+import type { GeoJsonFeature } from "../../client/types.gen";
+import type { ClusterPreview } from "./clusterPreview";
 
 describe("createMarkerElement", () => {
   it("renders only the action-form icon in the main bubble", () => {
@@ -43,21 +46,60 @@ describe("createMarkerElement", () => {
   });
 });
 
+function leaf(id: string, intensity: string | null): GeoJsonFeature {
+  return {
+    geometry: { coordinates: [23.7, 38.0] },
+    properties: {
+      id,
+      action_forms: [],
+      thematic_fields: [],
+      channel: null,
+      intensity,
+      article_count: 1,
+    },
+  };
+}
+
 describe("createClusterMarkerElement", () => {
-  it("renders the cluster point count as marker text", () => {
-    const el = createClusterMarkerElement(3);
-    expect(el.textContent).toBe("3");
+  it("makes the wrapper non-interactive so only its children hit-test", () => {
+    const preview: ClusterPreview = {
+      center: leaf("c", "Βίαιη/Συγκρουσιακή"),
+      orbiters: [leaf("o1", "Ειρηνική")],
+      remainderCount: 0,
+    };
+    const el = createClusterMarkerElement(preview);
+    expect(el.style.pointerEvents).toBe("none");
+    expect(el.style.position).toBe("absolute");
   });
 
-  it("applies the same fixed diameter as an individual marker", () => {
-    const el = createClusterMarkerElement(3);
-    expect(el.style.width).toBe("34px");
-    expect(el.style.height).toBe("34px");
+  it("renders the center plus one child per orbiter and no pill when no remainder", () => {
+    const preview: ClusterPreview = {
+      center: leaf("c", null),
+      orbiters: [leaf("o1", "Ειρηνική"), leaf("o2", "Βίαιη/Συγκρουσιακή")],
+      remainderCount: 0,
+    };
+    const el = createClusterMarkerElement(preview);
+    expect(el.children).toHaveLength(3); // center + 2 orbiters
+    expect(el.querySelector('[data-role="remainder-pill"]')).toBeNull();
   });
 
-  it("uses a solid border and neutral fill (no single intensity applies)", () => {
-    const el = createClusterMarkerElement(3);
-    expect(el.style.borderStyle).toBe("solid");
-    expect(el.style.background).toBe("rgb(99, 102, 110)");
+  it("colors each orbiter by its own intensity", () => {
+    const orbiter = leaf("o1", "Ειρηνική");
+    const preview: ClusterPreview = { center: leaf("c", null), orbiters: [orbiter], remainderCount: 0 };
+    const el = createClusterMarkerElement(preview);
+    const dot = el.querySelector<HTMLElement>('[data-role="orbiter"]');
+    expect(dot?.dataset.color).toBe(intensityColor("Ειρηνική"));
+  });
+
+  it("adds a +N pill only when remainderCount > 0", () => {
+    const preview: ClusterPreview = {
+      center: leaf("c", null),
+      orbiters: [leaf("o1", null)],
+      remainderCount: 7,
+    };
+    const el = createClusterMarkerElement(preview);
+    const pill = el.querySelector<HTMLElement>('[data-role="remainder-pill"]');
+    expect(pill?.textContent).toBe("+7");
+    expect(el.children).toHaveLength(3); // center + 1 orbiter + pill
   });
 });
