@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
 import { buildClusterIndex, getClusterPoints } from "./clustering";
 import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
+import { buildClusterPreview, LEAF_SAMPLE_SIZE } from "./clusterPreview";
 import { ClusterPopup } from "./ClusterPopup";
 import { useBoundaryLayers } from "./useBoundaryLayers";
 import { useLocationOverlay } from "./useLocationOverlay";
@@ -106,7 +107,11 @@ export function MapView({
 
       markersRef.current = points.map((point) => {
         if (point.isCluster) {
-          const el = createClusterMarkerElement(point.pointCount ?? 0);
+          const leaves = index
+            .getLeaves(point.clusterId!, LEAF_SAMPLE_SIZE)
+            .map((l) => l.properties.__feature);
+          const preview = buildClusterPreview(leaves, point.pointCount ?? 0);
+          const el = createClusterMarkerElement(preview);
           el.addEventListener("click", () => {
             const zoom = index.getClusterExpansionZoom(point.clusterId!);
             map.easeTo({ center: point.coordinates, zoom });

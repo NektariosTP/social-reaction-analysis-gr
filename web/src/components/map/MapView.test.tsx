@@ -93,3 +93,46 @@ describe("MapView", () => {
     const layerIds = mock.mapLayerCalls.map((l) => l.layer.id);
     expect(layerIds).toEqual(expect.arrayContaining(["event-connectors", "event-secondaries"]));
   });
+
+it("renders clustered nearby events as an orbit constellation, not a plain count bubble", () => {
+  const near: GeoJsonFeature = {
+    ...feature,
+    geometry: { type: "Point", coordinates: [23.701, 38.001] },
+    properties: { ...feature.properties, id: "evt-2" },
+  };
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  calls.length = 0;
+  render(<MapView features={[feature, near]} onSelectEvent={vi.fn()} selectedId={null} />);
+  // At the mock's default zoom (5.6) two adjacent points cluster into one marker.
+  const hasOrbit = calls.some((c) =>
+    (c.element as HTMLElement).querySelector('[data-role="orbiter"]'),
+  );
+  expect(hasOrbit).toBe(true);
+});
+
+it("still expands the cluster on click via easeTo", () => {
+  const near: GeoJsonFeature = {
+    ...feature,
+    geometry: { type: "Point", coordinates: [23.701, 38.001] },
+    properties: { ...feature.properties, id: "evt-2" },
+  };
+  const easeTo = vi.fn();
+  const mapProto = (maplibregl as unknown as { Map: { prototype: { easeTo: unknown } } })
+    .Map.prototype;
+  const original = mapProto.easeTo;
+  mapProto.easeTo = easeTo;
+  try {
+    const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+      .markerConstructorCalls;
+    calls.length = 0;
+    render(<MapView features={[feature, near]} onSelectEvent={vi.fn()} selectedId={null} />);
+    const clusterCall = calls.find((c) =>
+      (c.element as HTMLElement).querySelector('[data-role="orbiter"]'),
+    );
+    (clusterCall!.element as HTMLElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(easeTo).toHaveBeenCalled();
+  } finally {
+    mapProto.easeTo = original;
+  }
+});
