@@ -79,6 +79,7 @@ type Handler = (...args: unknown[]) => void;
 export const mapConstructorCalls: Record<string, unknown>[] = [];
 export const mapSourceCalls: { id: string; source: Record<string, unknown> }[] = [];
 export const mapLayerCalls: { layer: Record<string, unknown> }[] = [];
+export const mapSetDataCalls: { id: string; data: unknown }[] = [];
 
 export class Map {
   private handlers: Record<string, Handler[]> = {};
@@ -96,10 +97,15 @@ export class Map {
   once(event: string, cb: Handler) {
     if (event === "load") cb();
   }
-  on(event: string, cb: Handler) {
-    (this.handlers[event] ??= []).push(cb);
+  on(event: string, layerOrCb: string | Handler, cb?: Handler) {
+    const handler = (typeof layerOrCb === "function" ? layerOrCb : cb) as Handler;
+    (this.handlers[event] ??= []).push(handler);
   }
   off() {}
+  setPaintProperty() {}
+  getCanvas() {
+    return { style: {} as CSSStyleDeclaration };
+  }
   remove() {}
   getBounds() {
     return { toArray: () => [[-180, -85], [180, 85]] };
@@ -114,7 +120,9 @@ export class Map {
     mapSourceCalls.push({ id, source });
   }
   getSource(id: string) {
-    return this.sources.has(id) ? { setData() {} } : undefined;
+    return this.sources.has(id)
+      ? { setData: (data: unknown) => mapSetDataCalls.push({ id, data }) }
+      : undefined;
   }
   removeSource(id: string) {
     this.sources.delete(id);
@@ -149,4 +157,5 @@ export default {
   markerConstructorCalls,
   mapSourceCalls,
   mapLayerCalls,
+  mapSetDataCalls,
 };
