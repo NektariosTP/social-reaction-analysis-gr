@@ -46,14 +46,18 @@ describe("createMarkerElement", () => {
   });
 });
 
-function leaf(id: string, intensity: string | null): GeoJsonFeature {
+function leaf(
+  id: string,
+  intensity: string | null,
+  extra: { action_forms?: string[]; channel?: string | null } = {},
+): GeoJsonFeature {
   return {
     geometry: { coordinates: [23.7, 38.0] },
     properties: {
       id,
-      action_forms: [],
+      action_forms: extra.action_forms ?? [],
       thematic_fields: [],
-      channel: null,
+      channel: extra.channel ?? null,
       intensity,
       article_count: 1,
     },
@@ -101,5 +105,17 @@ describe("createClusterMarkerElement", () => {
     const pill = el.querySelector<HTMLElement>('[data-role="remainder-pill"]');
     expect(pill?.textContent).toBe("+7");
     expect(el.children).toHaveLength(3); // center + 1 orbiter + pill
+  });
+
+  it("shows the orbiter's own action-form emoji and channel border style", () => {
+    const orbiter = leaf("o1", "Ειρηνική", {
+      action_forms: ["Κατάληψη"],
+      channel: "Φυσικό (offline)",
+    });
+    const preview: ClusterPreview = { center: leaf("c", null), orbiters: [orbiter], remainderCount: 0 };
+    const el = createClusterMarkerElement(preview);
+    const dot = el.querySelector<HTMLElement>('[data-role="orbiter"]');
+    expect(dot?.textContent).toBe("🏛");
+    expect(dot?.style.borderStyle).toBe("solid");
   });
 });

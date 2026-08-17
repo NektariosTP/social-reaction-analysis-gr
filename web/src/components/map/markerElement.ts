@@ -1,5 +1,5 @@
 import { markerStyle, MARKER_DIAMETER, type MarkerProperties } from "./markerStyle";
-import { intensityColor, INTENSITY_COLOR_NEUTRAL } from "./bubbleColors";
+import { INTENSITY_COLOR_NEUTRAL } from "./bubbleColors";
 import type { GeoJsonFeature } from "../../client/types.gen";
 import type { ClusterPreview } from "./clusterPreview";
 import styles from "./MapView.module.css";
@@ -39,23 +39,30 @@ export function createMarkerElement(
   return wrapper;
 }
 
-const ORBITER_MAX_DIAMETER = 20;
-const ORBITER_MIN_DIAMETER = 10;
+const ORBITER_MAX_DIAMETER = 22;
+const ORBITER_MIN_DIAMETER = 14;
 const ORBIT_GAP = 4;
 
 function orbiterCircle(feature: GeoJsonFeature, size: number): HTMLDivElement {
-  const color = intensityColor(feature.properties.intensity);
+  const style = markerStyle(feature.properties);
   const dot = document.createElement("div");
   dot.dataset.role = "orbiter";
-  dot.dataset.color = color; // jsdom normalizes inline colors to rgb(); expose the source for tests
+  dot.dataset.color = style.fill; // jsdom normalizes inline colors to rgb(); expose the source for tests
   dot.style.position = "absolute";
   dot.style.width = `${size}px`;
   dot.style.height = `${size}px`;
   dot.style.borderRadius = "50%";
-  dot.style.background = color;
-  dot.style.border = "1.5px solid var(--color-surface, #fff)";
+  dot.style.background = style.fill;
+  dot.style.borderStyle = style.borderStyle;
+  dot.style.borderWidth = "1.5px";
+  dot.style.borderColor = "var(--color-surface, #fff)";
   dot.style.boxSizing = "border-box";
+  dot.style.display = "flex";
+  dot.style.alignItems = "center";
+  dot.style.justifyContent = "center";
+  dot.style.fontSize = `${Math.round(size * 0.55)}px`;
   dot.style.pointerEvents = "auto";
+  dot.textContent = style.icon;
   return dot;
 }
 
