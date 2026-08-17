@@ -351,6 +351,10 @@ export type GeoJsonProperties = {
      * First Seen
      */
     first_seen?: string | null;
+    /**
+     * Locations
+     */
+    locations?: Array<LocationPoint>;
 };
 
 /**
@@ -375,6 +379,28 @@ export type HealthResponse = {
      * Db
      */
     db: string;
+};
+
+/**
+ * LocationPoint
+ */
+export type LocationPoint = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lon
+     */
+    lon: number;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Is Primary
+     */
+    is_primary: boolean;
 };
 
 /**

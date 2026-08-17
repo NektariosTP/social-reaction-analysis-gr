@@ -1196,6 +1196,14 @@
               }
             ],
             "title": "First Seen"
+          },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/LocationPoint"
+            },
+            "type": "array",
+            "title": "Locations",
+            "default": []
           }
         },
         "type": "object",
@@ -1237,6 +1245,40 @@
           "db"
         ],
         "title": "HealthResponse"
+      },
+      "LocationPoint": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "is_primary": {
+            "type": "boolean",
+            "title": "Is Primary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lat",
+          "lon",
+          "is_primary"
+        ],
+        "title": "LocationPoint"
       },
       "StatsResponse": {
         "properties": {
