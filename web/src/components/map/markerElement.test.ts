@@ -155,4 +155,10 @@ describe("createClusterMarkerElement", () => {
     expect(dot.style.opacity).toBe("0");
     expect(dot.classList.contains(styles.orbiterEnter)).toBe(true);
   });
+
+  it("tags the cluster wrapper for CSS/test targeting", () => {
+    const preview: ClusterPreview = { center: leaf("c", null), orbiters: [], remainderCount: 0 };
+    const el = createClusterMarkerElement(preview);
+    expect(el.dataset.role).toBe("cluster-wrapper");
+  });
 });

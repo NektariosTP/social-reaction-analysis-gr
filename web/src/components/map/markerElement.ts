@@ -142,6 +142,7 @@ export function createClusterMarkerElement(
   wrapper.style.width = `${wrapperDiameter}px`;
   wrapper.style.height = `${wrapperDiameter}px`;
   wrapper.style.pointerEvents = "none";
+  wrapper.dataset.role = "cluster-wrapper";
 
   const center = createMarkerElement(
     preview.center.properties,

@@ -143,17 +143,23 @@ export function MapView({
 
     const handleZoomStart = () => {
       animateNextEntrance = true;
+      containerRef.current?.classList.add(styles.clusterZooming);
+    };
+    const handleZoomEnd = () => {
+      containerRef.current?.classList.remove(styles.clusterZooming);
+      render();
     };
 
     render();
     map.on("moveend", render);
     map.on("zoomstart", handleZoomStart);
-    map.on("zoomend", render);
+    map.on("zoomend", handleZoomEnd);
 
     return () => {
       map.off("moveend", render);
       map.off("zoomstart", handleZoomStart);
-      map.off("zoomend", render);
+      map.off("zoomend", handleZoomEnd);
+      containerRef.current?.classList.remove(styles.clusterZooming);
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
     };
@@ -199,7 +205,7 @@ export function MapView({
 
   return (
     <div className={styles.container}>
-      <div ref={containerRef} className={styles.map} />
+      <div ref={containerRef} className={styles.map} data-testid="map-canvas" />
       {mapInstance && selectedId && selectedFeature && onClosePopup && (
         <ClusterPopup
           map={mapInstance}

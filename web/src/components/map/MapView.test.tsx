@@ -4,6 +4,7 @@ vi.mock("maplibre-gl");
 import maplibregl from "maplibre-gl";
 import type { GeoJsonFeature } from "../../client/types.gen";
 import { MapView } from "./MapView";
+import styles from "./MapView.module.css";
 
 vi.mock("../../api/queries", () => ({
   useEvent: () => ({
@@ -165,4 +166,19 @@ it("plays the spring-in entrance only on a zoom-triggered render, not a plain pa
     (c.element as HTMLElement).querySelector('[data-role="orbiter"]'),
   )!.element as HTMLElement;
   expect(zoomedCluster.querySelector<HTMLElement>('[data-role="orbiter"]')?.style.opacity).toBe("0");
+});
+
+it("adds a zooming motion cue on zoomstart and removes it on zoomend", () => {
+  const mapInstances = (
+    maplibregl as unknown as { mapInstances: { trigger: (event: string) => void }[] }
+  ).mapInstances;
+  render(<MapView features={[feature]} onSelectEvent={vi.fn()} selectedId={null} />);
+  const map = mapInstances.at(-1)!;
+  const container = screen.getByTestId("map-canvas");
+
+  expect(container.classList.contains(styles.clusterZooming)).toBe(false);
+  map.trigger("zoomstart");
+  expect(container.classList.contains(styles.clusterZooming)).toBe(true);
+  map.trigger("zoomend");
+  expect(container.classList.contains(styles.clusterZooming)).toBe(false);
 });
