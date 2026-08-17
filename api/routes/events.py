@@ -20,6 +20,7 @@ from api.models import (
     GeoJSONFeatureCollection,
     GeoJSONGeometry,
     GeoJSONProperties,
+    LocationPoint,
 )
 from api.temporal import derive_temporal_status
 
@@ -160,6 +161,31 @@ async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list[Ro
     return list(result.all())
 
 
+async def _fetch_event_locations(
+    session: AsyncSession, event_ids: list[str]
+) -> dict[str, list[LocationPoint]]:
+    """Batch-load all geocoded locations for the given events (primary first)."""
+    if not event_ids:
+        return {}
+    result = await session.execute(
+        text(
+            "SELECT event_id::text AS event_id, "
+            "ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lon, "
+            "COALESCE(location_name, label, city) AS label, is_primary "
+            "FROM event_locations "
+            "WHERE event_id = ANY(:ids) AND location IS NOT NULL "
+            "ORDER BY is_primary DESC"
+        ),
+        {"ids": event_ids},
+    )
+    out: dict[str, list[LocationPoint]] = {}
+    for r in result.all():
+        out.setdefault(r.event_id, []).append(
+            LocationPoint(lat=r.lat, lon=r.lon, label=r.label, is_primary=bool(r.is_primary))
+        )
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -234,10 +260,10 @@ async def events_geojson(
     db: AsyncSession = Depends(get_db),
 ) -> GeoJSONFeatureCollection:
     rows = await _fetch_events(db, action_form=action_form, thematic_field=thematic_field, channel=channel, limit=1000)
+    located = [r for r in rows if r.lat is not None and r.lon is not None]
+    locations_by_event = await _fetch_event_locations(db, [str(r.id) for r in located])
     features = []
-    for r in rows:
-        if r.lat is None or r.lon is None:
-            continue
+    for r in located:
         features.append(
             GeoJSONFeature(
                 geometry=GeoJSONGeometry(coordinates=[r.lon, r.lat]),
@@ -252,6 +278,7 @@ async def events_geojson(
                     summary_en=r.summary_en,
                     article_count=r.article_count or 0,
                     first_seen=r.first_seen,
+                    locations=locations_by_event.get(str(r.id), []),
                 ),
             )
         )

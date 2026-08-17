@@ -12,6 +12,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from api.main import app
+from api.models import LocationPoint
 from api.routes.events import list_events
 
 _ATHENS = ZoneInfo("Europe/Athens")
@@ -84,7 +85,8 @@ async def test_get_event_detail_returns_200(client: AsyncClient) -> None:
 
 
 async def test_geojson_returns_feature_collection(client: AsyncClient) -> None:
-    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]):
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
         resp = await client.get("/events/geojson")
     assert resp.status_code == 200
     data = resp.json()
@@ -195,8 +197,33 @@ async def test_list_events_passes_municipality_filter(client: AsyncClient) -> No
 
 async def test_geojson_exposes_region_and_municipality(client: AsyncClient) -> None:
     row = MagicMock(**{**_FAKE_EVENT_ROW.__dict__, "region_code": "Attica", "municipality": "Δήμος Αθηναίων"})
-    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[row]):
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[row]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
         resp = await client.get("/events/geojson")
     props = resp.json()["features"][0]["properties"]
     assert props["region_code"] == "Attica"
     assert props["municipality"] == "Δήμος Αθηναίων"
+
+
+async def test_geojson_embeds_locations(client: AsyncClient) -> None:
+    locs = {
+        "evt-uuid-1": [
+            LocationPoint(lat=37.98, lon=23.72, label="Αθήνα", is_primary=True),
+            LocationPoint(lat=40.64, lon=22.94, label="Θεσσαλονίκη", is_primary=False),
+        ]
+    }
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value=locs):
+        resp = await client.get("/events/geojson")
+    assert resp.status_code == 200
+    props = resp.json()["features"][0]["properties"]
+    assert len(props["locations"]) == 2
+    assert props["locations"][0]["is_primary"] is True
+    assert props["locations"][1]["label"] == "Θεσσαλονίκη"
+
+
+async def test_geojson_locations_empty_when_none(client: AsyncClient) -> None:
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
+        resp = await client.get("/events/geojson")
+    assert resp.json()["features"][0]["properties"]["locations"] == []
