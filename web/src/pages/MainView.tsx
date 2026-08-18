@@ -69,6 +69,11 @@ export function MainView() {
   }
 
   const dateFrom = timeRangeToDateFrom(filters.timeRange);
+  // Geo scoping (region/municipality) is done client-side, NOT via the API:
+  // the server matches region_code exactly, but that column is language-
+  // inconsistent in the data ("Αττική" vs "Attica"), so a server-side region
+  // filter silently drops the Greek-coded events. applyClientFilters
+  // canonicalises the region, matching how the map (geoFeatures) already scopes.
   const eventsQuery = useEvents({
     actionForms: filters.actionForms,
     thematicFields: filters.thematicFields,
@@ -76,15 +81,16 @@ export function MainView() {
     intensities: filters.intensities,
     dateFrom,
     limit: 100,
-    regionCode: geo.region ?? undefined,
-    municipality: geo.municipality ?? undefined,
   });
   const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined });
   const recentCountQuery = useRecentEventsCount();
   const ongoingQuery = useOngoingEvents();
   const upcomingQuery = useUpcomingEvents();
 
-  const events = eventsQuery.data ?? [];
+  const events = applyClientFilters(eventsQuery.data ?? [], {
+    regionCode: geo.region ?? undefined,
+    municipality: geo.municipality ?? undefined,
+  });
   const q = searchQuery.trim().toLowerCase();
   const filteredEvents = q
     ? events.filter((e) => (lang === "el" ? e.summary_el : e.summary_en)?.toLowerCase().includes(q))
@@ -95,9 +101,15 @@ export function MainView() {
     { ...filters, regionCode: geo.region ?? undefined, municipality: geo.municipality ?? undefined },
   ).map((p) => p.feature);
 
+  // Count distinct plotted points, not region_code: the map pins each event at
+  // its own lat/lon, so two events in the same periphery but different places
+  // (e.g. Νάξος + Κως, both "South Aegean") are two locations, and region_code
+  // is also language-inconsistent across events ("Αττική" vs "Attica"). Keying
+  // on coordinates keeps the KPI consistent with what's on the map. Rounded to
+  // ~110m so identical geocodes (e.g. venueless national events) still merge.
   const locationKey = (e: (typeof events)[number]) =>
-    e.region_code ?? (e.lat != null && e.lon != null ? `${e.lat.toFixed(2)},${e.lon.toFixed(2)}` : null);
-  const locationsCount = new Set(events.map(locationKey).filter(Boolean)).size;
+    e.lat != null && e.lon != null ? `${e.lat.toFixed(3)},${e.lon.toFixed(3)}` : e.region_code ?? null;
+  const locationsCount = new Set(filteredEvents.map(locationKey).filter(Boolean)).size;
 
   return (
     <div className={styles.page}>
