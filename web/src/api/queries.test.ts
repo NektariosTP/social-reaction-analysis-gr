@@ -36,7 +36,11 @@ describe("partitionByNational", () => {
 });
 
 describe("applyClientFilters geo scoping", () => {
-  const base = { action_forms: [], thematic_fields: [], intensity: null } as const;
+  const base = {
+    action_forms: [] as string[],
+    thematic_fields: [] as string[],
+    intensity: null as string | null,
+  };
   const rows = [
     { ...base, region_code: "Attica", municipality: "Δήμος Αθηναίων" },
     { ...base, region_code: "Crete", municipality: "Δήμος Ηρακλείου" },
@@ -45,6 +49,17 @@ describe("applyClientFilters geo scoping", () => {
 
   it("filters by regionCode", () => {
     expect(applyClientFilters(rows, { regionCode: "Attica" })).toHaveLength(1);
+  });
+
+  it("matches Greek-coded events when drilling into the English periphery name", () => {
+    // Regression: region_code is language-inconsistent in the data, so drilling
+    // into "Attica" used to drop events stored as "Αττική".
+    const mixed = [
+      { action_forms: [], thematic_fields: [], intensity: null, region_code: "Αττική", municipality: null },
+      { action_forms: [], thematic_fields: [], intensity: null, region_code: "Attica", municipality: null },
+      { action_forms: [], thematic_fields: [], intensity: null, region_code: "Crete", municipality: null },
+    ];
+    expect(applyClientFilters(mixed, { regionCode: "Attica" })).toHaveLength(2);
   });
 
   it("filters by municipality", () => {

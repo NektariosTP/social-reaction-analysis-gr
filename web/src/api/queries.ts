@@ -9,6 +9,7 @@ import {
   listPeripheriesBoundariesPeripheriesGet,
 } from "../client/sdk.gen";
 import type { EventSummary } from "../client/types.gen";
+import { canonicalRegion } from "../i18n/regions";
 
 async function unwrap<T>(result: Promise<{ data?: T; error?: unknown }>): Promise<T> {
   const { data, error } = await result;
@@ -64,7 +65,10 @@ export function applyClientFilters<T extends AxisTaggedEntity>(
     result = result.filter((e) => e.intensity && set.has(e.intensity));
   }
   if (filters.regionCode) {
-    result = result.filter((e) => e.region_code === filters.regionCode);
+    // region_code is language-inconsistent in the data (e.g. "Αττική" vs
+    // "Attica") — canonicalise both sides so drill-down doesn't drop events.
+    const target = canonicalRegion(filters.regionCode);
+    result = result.filter((e) => canonicalRegion(e.region_code) === target);
   }
   if (filters.municipality) {
     result = result.filter((e) => e.municipality === filters.municipality);

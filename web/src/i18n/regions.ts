@@ -26,3 +26,18 @@ export function regionLabel(code: string, lang: "en" | "el"): string {
   if (!region) return code;
   return lang === "el" ? region.el : region.en;
 }
+
+/**
+ * Normalise a periphery code to its canonical English name. Event `region_code`
+ * is inconsistent in the data — some rows store the Greek name ("Αττική"), some
+ * the English ("Attica") — while the boundary layers (and hence drill-down)
+ * always emit English. Comparing raw strings silently drops the Greek-coded
+ * events when a periphery is selected, so both sides must be canonicalised
+ * first. Falls back to the input (trimmed) when it matches no known region.
+ */
+export function canonicalRegion(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const trimmed = code.trim();
+  const region = REGIONS.find((r) => r.en === trimmed || r.el === trimmed);
+  return region ? region.en : trimmed;
+}
