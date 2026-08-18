@@ -1,19 +1,26 @@
 import { useTranslation } from "react-i18next";
 import { INTENSITY } from "../../i18n/taxonomy";
 import { IntensityDots } from "../common";
+import type { FilterState } from "../../hooks/useFilterState";
+import { toggleWithAllSentinel } from "../../hooks/useFilterState";
 import styles from "./AxisMultiSelect.module.css";
 
 interface IntensityRangeSelectProps {
   selected: string[];
-  onToggle: (value: string) => void;
+  onSetFilters: (next: Partial<FilterState>) => void;
 }
 
 const LEVELS = Object.entries(INTENSITY).sort((a, b) => a[1].level - b[1].level);
+const ALL_INTENSITY_VALUES = LEVELS.map(([value]) => value);
 
 /** Intensity is ordinal with only 3 discrete values — implemented as a
  * checklist rather than a continuous slider. */
-export function IntensityRangeSelect({ selected, onToggle }: IntensityRangeSelectProps) {
+export function IntensityRangeSelect({ selected, onSetFilters }: IntensityRangeSelectProps) {
   const { t } = useTranslation();
+
+  function handleToggle(value: string) {
+    onSetFilters({ intensities: toggleWithAllSentinel(ALL_INTENSITY_VALUES, selected, value) });
+  }
 
   return (
     <div className={styles.group}>
@@ -24,7 +31,7 @@ export function IntensityRangeSelect({ selected, onToggle }: IntensityRangeSelec
             <input
               type="checkbox"
               checked={selected.length === 0 || selected.includes(value)}
-              onChange={() => onToggle(value)}
+              onChange={() => handleToggle(value)}
             />
             <IntensityDots value={value} showLabel />
           </label>

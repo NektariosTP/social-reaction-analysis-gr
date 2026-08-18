@@ -1,33 +1,79 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useEvents, useEventsGeoJSON, useRecentEventsCount } from "../api/queries";
-import { applyClientFilters } from "../api/queries";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useEvents, useEventsGeoJSON, useRecentEventsCount, useOngoingEvents, useUpcomingEvents, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
+import { useGeoView } from "../hooks/useGeoView";
 import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
-import { TopBar, Footer } from "../components/layout";
+import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
-import { FilterPanel } from "../components/filters";
-import { StoryCard } from "../components/cards";
-import { ClusterDetailPanel } from "../components/cluster";
 import { OnboardingOverlay } from "../components/onboarding";
-import { Spinner, ErrorState, EmptyState } from "../components/common";
+import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, AreaBlock } from "../components/shell";
+import { Spinner, ErrorState } from "../components/common";
+import type { Region } from "../i18n/regions";
+import { regionLabel } from "../i18n/regions";
 import styles from "./MainView.module.css";
 
-type ViewMode = "split" | "immersive";
-
 export function MainView() {
-  const { t } = useTranslation();
   const [lang] = useLang();
   const { seen, dismiss } = useOnboardingSeen();
   const { filters, setFilters, toggleInList } = useFilterState();
+  const [searchParams] = useSearchParams();
+  const geo = useGeoView();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("split");
-  const [filterOpen, setFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [flyTo, setFlyTo] = useState<{ center: [number, number]; zoom?: number } | null>(null);
+
+  // The floating sidebar (.blocks) sits on top of the map and its width is
+  // responsive (clamp(360px, 28vw, 480px) — see MainView.module.css), so map
+  // framing (fitBounds/flyTo) needs to know its real rendered width to avoid
+  // centering selected content underneath it.
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(0);
+  useEffect(() => {
+    const el = sidebarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setSidebarWidth(entry.contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { id: routeClusterId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  const mode: "list" | "detail" = routeClusterId ? "detail" : "list";
+  const mapSelectedId = previewId ?? routeClusterId ?? null;
+
+  function handleSelectEventFromMap(id: string) {
+    if (mode === "detail") navigate(`/cluster/${id}?${searchParams.toString()}`);
+    else setPreviewId(id);
+  }
+  function handleReadMore(id: string) {
+    setPreviewId(null);
+    navigate(`/cluster/${id}?${searchParams.toString()}`);
+  }
+  function handleClosePreview() {
+    setPreviewId(null);
+  }
+  function handleClosePopup() {
+    if (mode === "detail") handleBack();
+    else handleClosePreview();
+  }
+  function handleSelectEventFromList(id: string) {
+    setPreviewId(null);
+    navigate(`/cluster/${id}?${searchParams.toString()}`);
+  }
+  function handleBack() {
+    navigate(`/?${searchParams.toString()}`);
+  }
 
   const dateFrom = timeRangeToDateFrom(filters.timeRange);
+  // Geo scoping (region/municipality) is done client-side, NOT via the API:
+  // the server matches region_code exactly, but that column is language-
+  // inconsistent in the data ("Αττική" vs "Attica"), so a server-side region
+  // filter silently drops the Greek-coded events. applyClientFilters
+  // canonicalises the region, matching how the map (geoFeatures) already scopes.
   const eventsQuery = useEvents({
     actionForms: filters.actionForms,
     thematicFields: filters.thematicFields,
@@ -38,8 +84,13 @@ export function MainView() {
   });
   const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined });
   const recentCountQuery = useRecentEventsCount();
+  const ongoingQuery = useOngoingEvents();
+  const upcomingQuery = useUpcomingEvents();
 
-  const events = eventsQuery.data ?? [];
+  const events = applyClientFilters(eventsQuery.data ?? [], {
+    regionCode: geo.region ?? undefined,
+    municipality: geo.municipality ?? undefined,
+  });
   const q = searchQuery.trim().toLowerCase();
   const filteredEvents = q
     ? events.filter((e) => (lang === "el" ? e.summary_el : e.summary_en)?.toLowerCase().includes(q))
@@ -47,135 +98,107 @@ export function MainView() {
 
   const geoFeatures = applyClientFilters(
     (geojsonQuery.data?.features ?? []).map((f) => ({ ...f.properties, feature: f })),
-    filters,
+    { ...filters, regionCode: geo.region ?? undefined, municipality: geo.municipality ?? undefined },
   ).map((p) => p.feature);
 
-  // region_code isn't populated for every event yet (geocoding pipeline gap) —
-  // fall back to rounded coordinates so the KPI reflects real geocoded spread
-  // rather than reporting zero whenever region_code is null.
+  // Count distinct plotted points, not region_code: the map pins each event at
+  // its own lat/lon, so two events in the same periphery but different places
+  // (e.g. Νάξος + Κως, both "South Aegean") are two locations, and region_code
+  // is also language-inconsistent across events ("Αττική" vs "Attica"). Keying
+  // on coordinates keeps the KPI consistent with what's on the map. Rounded to
+  // ~110m so identical geocodes (e.g. venueless national events) still merge.
   const locationKey = (e: (typeof events)[number]) =>
-    e.region_code ?? (e.lat != null && e.lon != null ? `${e.lat.toFixed(2)},${e.lon.toFixed(2)}` : null);
-  const locationsCount = new Set(events.map(locationKey).filter(Boolean)).size;
+    e.lat != null && e.lon != null ? `${e.lat.toFixed(3)},${e.lon.toFixed(3)}` : e.region_code ?? null;
+  const locationsCount = new Set(filteredEvents.map(locationKey).filter(Boolean)).size;
 
-  const kpiStrip = (
-    <>
-      <div>
-        <b>{eventsQuery.isLoading ? "—" : filteredEvents.length}</b> {t("kpi.active")}
-      </div>
-      <div>
-        <b>{locationsCount}</b> {t("kpi.locations")}
-      </div>
-      <div>
-        +<b>{recentCountQuery.data ?? "—"}</b> {t("kpi.newLastHour")}
-      </div>
-    </>
-  );
-
-  const searchInput = (
-    <input
-      className={styles.searchInput}
-      style={viewMode === "immersive" ? { width: "100%" } : undefined}
-      placeholder={t("search.placeholder")}
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-    />
-  );
-
-  if (viewMode === "immersive") {
-    return (
-      <div className={styles.immersive}>
+  return (
+    <div className={styles.page}>
+      <div className={styles.mapLayer}>
         {geojsonQuery.isLoading ? (
           <Spinner />
         ) : geojsonQuery.isError ? (
           <ErrorState />
         ) : (
-          <MapView features={geoFeatures} onSelectEvent={setSelectedEventId} selectedId={selectedEventId} />
+          <MapView
+            features={geoFeatures}
+            onSelectEvent={handleSelectEventFromMap}
+            selectedId={mapSelectedId}
+            flyTo={flyTo}
+            onReadMorePopup={mode === "list" ? handleReadMore : undefined}
+            onClosePopup={handleClosePopup}
+            geoView={geo}
+            onSelectPeriphery={geo.selectPeriphery}
+            onSelectMunicipality={geo.selectMunicipality}
+            obstructedLeft={sidebarWidth}
+          />
         )}
-        <button className={styles.floatingBackBtn} onClick={() => setViewMode("split")}>
-          ⊞ {t("view.split")}
-        </button>
-        <div className={styles.floatingTop}>{searchInput}</div>
-        <div className={styles.floatingFeed}>
-          {filteredEvents.slice(0, 5).map((e) => (
-            <StoryCard key={e.id} event={e} variant="compact" />
-          ))}
-        </div>
-        <div className={styles.floatingKpi}>{kpiStrip}</div>
         <MapLegend />
-        {selectedEventId && (
-          <ClusterDetailPanel eventId={selectedEventId} onClose={() => setSelectedEventId(null)} />
-        )}
-        {!seen && <OnboardingOverlay onDismiss={dismiss} />}
       </div>
-    );
-  }
 
-  return (
-    <div className={styles.page}>
-      <TopBar />
-      <div className={styles.viewTabs}>
-        <button className={`${styles.viewTab} ${styles.viewTabActive}`}>{t("view.split")}</button>
-        <button className={styles.viewTab} onClick={() => setViewMode("immersive")}>
-          {t("view.immersive")}
-        </button>
-      </div>
-      <div className={styles.searchRow}>
-        {searchInput}
-        <button className={styles.filterToggle} onClick={() => setFilterOpen((o) => !o)}>
-          {filterOpen ? "⋀" : "⋁"} {t("filters.title")}
-        </button>
-      </div>
-      {filterOpen && (
-        <FilterPanel filters={filters} onToggle={toggleInList} onSetFilters={setFilters} />
-      )}
-      <div className={styles.split}>
-        <div className={styles.mapPane}>
-          {geojsonQuery.isLoading ? (
-            <Spinner />
-          ) : geojsonQuery.isError ? (
-            <ErrorState />
-          ) : (
-            <MapView features={geoFeatures} onSelectEvent={setSelectedEventId} selectedId={selectedEventId} />
-          )}
-          <MapLegend />
-          {selectedEventId && (
-            <ClusterDetailPanel eventId={selectedEventId} onClose={() => setSelectedEventId(null)} />
-          )}
+      <div className={styles.blocks} ref={sidebarRef}>
+        <div className={styles.headerBlock}>
+          <HeaderBlock
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectRegion={(region: Region) => setFlyTo({ center: region.center, zoom: 8 })}
+            filters={filters}
+            onToggleFilterValue={toggleInList}
+            onSetFilters={setFilters}
+          />
         </div>
-        <div className={styles.editorialPane}>
-          <div className={styles.kpiStrip}>
-            <div className={styles.kpiCell}>
-              <div className={styles.kpiValue}>{eventsQuery.isLoading ? "—" : filteredEvents.length}</div>
-              <div className={styles.kpiLabel}>{t("kpi.active")}</div>
-            </div>
-            <div className={styles.kpiCell}>
-              <div className={styles.kpiValue}>{locationsCount}</div>
-              <div className={styles.kpiLabel}>{t("kpi.locations")}</div>
-            </div>
-            <div className={styles.kpiCell}>
-              <div className={styles.kpiValue}>+{recentCountQuery.data ?? "—"}</div>
-              <div className={styles.kpiLabel}>{t("kpi.newLastHour")}</div>
-            </div>
-          </div>
-          <div className={styles.feedHeader}>
-            <span>{t("feed.title")}</span>
-            <span>
-              {t("feed.nlpClustered")} · {filteredEvents.length}
-            </span>
-          </div>
-          <div className={styles.feedList}>
-            {eventsQuery.isLoading && <Spinner />}
-            {eventsQuery.isError && <ErrorState />}
-            {!eventsQuery.isLoading && !eventsQuery.isError && filteredEvents.length === 0 && (
-              <EmptyState />
-            )}
-            {filteredEvents.map((e, i) => (
-              <StoryCard key={e.id} event={e} variant={i === 0 ? "featured" : "compact"} />
-            ))}
+
+        <div className={styles.scrollColumn}>
+          {mode === "list" && (
+            <TemporalBlock
+              ongoing={ongoingQuery.data ?? []}
+              upcoming={upcomingQuery.data ?? []}
+              loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
+              error={ongoingQuery.isError || upcomingQuery.isError}
+              onSelectEvent={handleSelectEventFromList}
+            />
+          )}
+
+          {geo.level !== "none" && (
+            <AreaBlock
+              title={
+                geo.level === "municipality"
+                  ? `${geo.municipality} — ${regionLabel(geo.region!, lang)}`
+                  : regionLabel(geo.region!, lang)
+              }
+              events={filteredEvents}
+              loading={eventsQuery.isLoading}
+              onClose={geo.level === "municipality" ? geo.clearMunicipality : geo.clear}
+            />
+          )}
+
+          <div className={styles.editorialBlock}>
+            <EditorialBlock
+              mode={mode}
+              kpi={{
+                active: eventsQuery.isLoading ? "—" : filteredEvents.length,
+                locations: locationsCount,
+                newLastHour: recentCountQuery.data ?? "—",
+              }}
+              events={filteredEvents}
+              eventsLoading={eventsQuery.isLoading}
+              eventsError={eventsQuery.isError}
+              highlightedEventId={previewId}
+              onSelectEvent={handleSelectEventFromList}
+              detailEventId={routeClusterId ?? ""}
+              onBack={handleBack}
+            />
           </div>
         </div>
       </div>
-      <Footer />
+
+      <div className={styles.footerBar}>
+        <Footer />
+      </div>
+
+      <div className={styles.topRightControls}>
+        <UserControls />
+      </div>
+
       {!seen && <OnboardingOverlay onDismiss={dismiss} />}
     </div>
   );

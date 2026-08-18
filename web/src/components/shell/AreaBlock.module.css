@@ -1,0 +1,14 @@
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+.header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.count { font-weight: 600; }
+.charts { display: flex; flex-direction: column; gap: var(--space-2); }
+.empty { color: var(--color-text-muted); font-size: 0.875rem; }
+.note { color: var(--color-text-muted); font-size: 0.75rem; }

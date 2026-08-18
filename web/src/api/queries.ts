@@ -5,7 +5,11 @@ import {
   getEventEventsEventIdGet,
   getStatsStatsGet,
   listEventsEventsGet,
+  listMunicipalitiesBoundariesMunicipalitiesGet,
+  listPeripheriesBoundariesPeripheriesGet,
 } from "../client/sdk.gen";
+import type { EventSummary } from "../client/types.gen";
+import { canonicalRegion } from "../i18n/regions";
 
 async function unwrap<T>(result: Promise<{ data?: T; error?: unknown }>): Promise<T> {
   const { data, error } = await result;
@@ -20,6 +24,7 @@ export interface EventFilters {
   channel?: string;
   intensities?: string[];
   regionCode?: string;
+  municipality?: string;
   dateFrom?: string;
   dateTo?: string;
   bbox?: string;
@@ -31,6 +36,8 @@ interface AxisTaggedEntity {
   action_forms: string[];
   thematic_fields: string[];
   intensity?: string | null;
+  region_code?: string | null;
+  municipality?: string | null;
 }
 
 /**
@@ -42,7 +49,7 @@ interface AxisTaggedEntity {
  */
 export function applyClientFilters<T extends AxisTaggedEntity>(
   entities: T[],
-  filters: Pick<EventFilters, "actionForms" | "thematicFields" | "intensities">,
+  filters: Pick<EventFilters, "actionForms" | "thematicFields" | "intensities" | "regionCode" | "municipality">,
 ): T[] {
   let result = entities;
   if (filters.actionForms?.length) {
@@ -57,6 +64,15 @@ export function applyClientFilters<T extends AxisTaggedEntity>(
     const set = new Set(filters.intensities);
     result = result.filter((e) => e.intensity && set.has(e.intensity));
   }
+  if (filters.regionCode) {
+    // region_code is language-inconsistent in the data (e.g. "Αττική" vs
+    // "Attica") — canonicalise both sides so drill-down doesn't drop events.
+    const target = canonicalRegion(filters.regionCode);
+    result = result.filter((e) => canonicalRegion(e.region_code) === target);
+  }
+  if (filters.municipality) {
+    result = result.filter((e) => e.municipality === filters.municipality);
+  }
   return result;
 }
 
@@ -69,6 +85,7 @@ export function useEvents(filters: EventFilters = {}) {
           query: {
             channel: filters.channel ?? null,
             region_code: filters.regionCode ?? null,
+            municipality: filters.municipality ?? null,
             date_from: filters.dateFrom ?? null,
             date_to: filters.dateTo ?? null,
             bbox: filters.bbox ?? null,
@@ -121,5 +138,58 @@ export function useRecentEventsCount() {
       return events.length;
     },
     refetchInterval: 60_000,
+  });
+}
+
+/** Splits ongoing events into panhellenic (is_national) vs the rest, preserving order. */
+export function partitionByNational(events: EventSummary[]): {
+  panhellenic: EventSummary[];
+  other: EventSummary[];
+} {
+  const panhellenic: EventSummary[] = [];
+  const other: EventSummary[] = [];
+  for (const e of events) (e.is_national ? panhellenic : other).push(e);
+  return { panhellenic, other };
+}
+
+/** Events scheduled for today (Athens). Filter-independent — the temporal block always shows all. */
+export function useOngoingEvents() {
+  return useQuery({
+    queryKey: ["events-ongoing"],
+    queryFn: () =>
+      unwrap(listEventsEventsGet({ query: { temporal_status: "today", limit: 100 } })),
+  });
+}
+
+/** Upcoming events, soonest first. Filter-independent. */
+export function useUpcomingEvents() {
+  return useQuery({
+    queryKey: ["events-upcoming"],
+    queryFn: () =>
+      unwrap(
+        listEventsEventsGet({
+          query: { temporal_status: "upcoming", order_by: "event_time", limit: 100 },
+        }),
+      ),
+  });
+}
+
+/** All 13 periphery outlines (simplified). Immutable geometry — cached indefinitely. */
+export function usePeripheryBoundaries() {
+  return useQuery({
+    queryKey: ["boundaries", "peripheries"],
+    queryFn: () => unwrap(listPeripheriesBoundariesPeripheriesGet({})),
+    staleTime: Infinity,
+  });
+}
+
+/** Municipalities of one periphery (simplified). Disabled until a periphery is selected. */
+export function useMunicipalityBoundaries(region: string | null) {
+  return useQuery({
+    queryKey: ["boundaries", "municipalities", region],
+    queryFn: () =>
+      unwrap(listMunicipalitiesBoundariesMunicipalitiesGet({ query: { periphery: region! } })),
+    enabled: !!region,
+    staleTime: Infinity,
   });
 }

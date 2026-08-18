@@ -43,6 +43,12 @@ export const CHANNEL: Record<string, TaxonomyEntry> = {
   "Υβριδικό": { en: "Hybrid" },
 };
 
+export const CHANNEL_BORDER_STYLE: Record<string, "solid" | "dashed" | "dotted"> = {
+  "Φυσικό (offline)": "solid",
+  "Υβριδικό": "dashed",
+  "Ψηφιακό (online)": "dotted",
+};
+
 export const INTENSITY: Record<string, IntensityEntry> = {
   "Ειρηνική": { en: "Peaceful", level: 1 },
   "Διαταρακτική (μη βίαιη, παρεμποδιστική)": { en: "Disruptive (non-violent, obstructive)", level: 2 },

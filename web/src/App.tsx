@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MainView } from "./pages/MainView";
-import { ClusterPage } from "./pages/ClusterPage";
 import { StatsPage } from "./pages/StatsPage";
 import { NlpEventPage } from "./pages/NlpEventPage";
 import { AboutPage } from "./pages/AboutPage";
@@ -18,7 +17,7 @@ export function App() {
         <MobileNotice />
         <Routes>
           <Route path="/" element={<MainView />} />
-          <Route path="/cluster/:id" element={<ClusterPage />} />
+          <Route path="/cluster/:id" element={<MainView />} />
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/event/:id" element={<NlpEventPage />} />
           <Route path="/about" element={<AboutPage />} />

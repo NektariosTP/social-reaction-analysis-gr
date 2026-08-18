@@ -1,0 +1,23 @@
+.block {
+  border-left: 3px solid var(--color-border);
+  padding-left: 11px;
+  margin-bottom: 10px;
+}
+
+.label {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.compact {
+  padding-left: 8px;
+  margin-bottom: 6px;
+}
+
+.compact .label {
+  font-size: 7px;
+  margin-bottom: 3px;
+}

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { EventsGeojsonEventsGeojsonGetData, EventsGeojsonEventsGeojsonGetErrors, EventsGeojsonEventsGeojsonGetResponses, GetEventEventsEventIdGetData, GetEventEventsEventIdGetErrors, GetEventEventsEventIdGetResponses, GetStatsStatsGetData, GetStatsStatsGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListEventsEventsGetData, ListEventsEventsGetErrors, ListEventsEventsGetResponses } from './types.gen';
+import type { EventsGeojsonEventsGeojsonGetData, EventsGeojsonEventsGeojsonGetErrors, EventsGeojsonEventsGeojsonGetResponses, GetEventEventsEventIdGetData, GetEventEventsEventIdGetErrors, GetEventEventsEventIdGetResponses, GetStatsStatsGetData, GetStatsStatsGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListEventsEventsGetData, ListEventsEventsGetErrors, ListEventsEventsGetResponses, ListMunicipalitiesBoundariesMunicipalitiesGetData, ListMunicipalitiesBoundariesMunicipalitiesGetErrors, ListMunicipalitiesBoundariesMunicipalitiesGetResponses, ListPeripheriesBoundariesPeripheriesGetData, ListPeripheriesBoundariesPeripheriesGetResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -42,3 +42,13 @@ export const getEventEventsEventIdGet = <ThrowOnError extends boolean = false>(o
  * Get Stats
  */
 export const getStatsStatsGet = <ThrowOnError extends boolean = false>(options?: Options<GetStatsStatsGetData, ThrowOnError>): RequestResult<GetStatsStatsGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetStatsStatsGetResponses, unknown, ThrowOnError>({ url: '/stats', ...options });
+
+/**
+ * List Peripheries
+ */
+export const listPeripheriesBoundariesPeripheriesGet = <ThrowOnError extends boolean = false>(options?: Options<ListPeripheriesBoundariesPeripheriesGetData, ThrowOnError>): RequestResult<ListPeripheriesBoundariesPeripheriesGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListPeripheriesBoundariesPeripheriesGetResponses, unknown, ThrowOnError>({ url: '/boundaries/peripheries', ...options });
+
+/**
+ * List Municipalities
+ */
+export const listMunicipalitiesBoundariesMunicipalitiesGet = <ThrowOnError extends boolean = false>(options: Options<ListMunicipalitiesBoundariesMunicipalitiesGetData, ThrowOnError>): RequestResult<ListMunicipalitiesBoundariesMunicipalitiesGetResponses, ListMunicipalitiesBoundariesMunicipalitiesGetErrors, ThrowOnError> => (options.client ?? client).get<ListMunicipalitiesBoundariesMunicipalitiesGetResponses, ListMunicipalitiesBoundariesMunicipalitiesGetErrors, ThrowOnError>({ url: '/boundaries/municipalities', ...options });

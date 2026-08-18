@@ -35,6 +35,51 @@ export type ArticleSummary = {
 };
 
 /**
+ * BoundaryFeature
+ */
+export type BoundaryFeature = {
+    /**
+     * Type
+     */
+    type?: string;
+    /**
+     * Geometry
+     */
+    geometry: {
+        [key: string]: unknown;
+    };
+    properties: BoundaryProperties;
+};
+
+/**
+ * BoundaryFeatureCollection
+ */
+export type BoundaryFeatureCollection = {
+    /**
+     * Type
+     */
+    type?: string;
+    /**
+     * Features
+     */
+    features: Array<BoundaryFeature>;
+};
+
+/**
+ * BoundaryProperties
+ */
+export type BoundaryProperties = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Region Code
+     */
+    region_code?: string | null;
+};
+
+/**
  * DistributionItem
  */
 export type DistributionItem = {
@@ -93,6 +138,10 @@ export type EventDetail = {
      */
     region_code?: string | null;
     /**
+     * Municipality
+     */
+    municipality?: string | null;
+    /**
      * Article Count
      */
     article_count: number;
@@ -112,6 +161,18 @@ export type EventDetail = {
      * Status
      */
     status: string;
+    /**
+     * Event Time
+     */
+    event_time?: string | null;
+    /**
+     * Temporal Status
+     */
+    temporal_status?: string | null;
+    /**
+     * Is National
+     */
+    is_national?: boolean;
     /**
      * Classification Confidence
      */
@@ -169,6 +230,10 @@ export type EventSummary = {
      */
     region_code?: string | null;
     /**
+     * Municipality
+     */
+    municipality?: string | null;
+    /**
      * Article Count
      */
     article_count: number;
@@ -188,6 +253,18 @@ export type EventSummary = {
      * Status
      */
     status: string;
+    /**
+     * Event Time
+     */
+    event_time?: string | null;
+    /**
+     * Temporal Status
+     */
+    temporal_status?: string | null;
+    /**
+     * Is National
+     */
+    is_national?: boolean;
 };
 
 /**
@@ -239,6 +316,14 @@ export type GeoJsonProperties = {
      */
     id: string;
     /**
+     * Region Code
+     */
+    region_code?: string | null;
+    /**
+     * Municipality
+     */
+    municipality?: string | null;
+    /**
      * Action Forms
      */
     action_forms: Array<string>;
@@ -266,6 +351,10 @@ export type GeoJsonProperties = {
      * First Seen
      */
     first_seen?: string | null;
+    /**
+     * Locations
+     */
+    locations?: Array<LocationPoint>;
 };
 
 /**
@@ -290,6 +379,28 @@ export type HealthResponse = {
      * Db
      */
     db: string;
+};
+
+/**
+ * LocationPoint
+ */
+export type LocationPoint = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lon
+     */
+    lon: number;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Is Primary
+     */
+    is_primary: boolean;
 };
 
 /**
@@ -399,6 +510,10 @@ export type ListEventsEventsGetData = {
          */
         region_code?: string | null;
         /**
+         * Municipality
+         */
+        municipality?: string | null;
+        /**
          * Date From
          *
          * ISO 8601 date
@@ -416,6 +531,18 @@ export type ListEventsEventsGetData = {
          * west,south,east,north
          */
         bbox?: string | null;
+        /**
+         * Temporal Status
+         */
+        temporal_status?: 'upcoming' | 'today' | 'past' | null;
+        /**
+         * Is National
+         */
+        is_national?: boolean | null;
+        /**
+         * Order By
+         */
+        order_by?: 'recent' | 'event_time';
         /**
          * Limit
          */
@@ -531,3 +658,51 @@ export type GetStatsStatsGetResponses = {
 };
 
 export type GetStatsStatsGetResponse = GetStatsStatsGetResponses[keyof GetStatsStatsGetResponses];
+
+export type ListPeripheriesBoundariesPeripheriesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/boundaries/peripheries';
+};
+
+export type ListPeripheriesBoundariesPeripheriesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: BoundaryFeatureCollection;
+};
+
+export type ListPeripheriesBoundariesPeripheriesGetResponse = ListPeripheriesBoundariesPeripheriesGetResponses[keyof ListPeripheriesBoundariesPeripheriesGetResponses];
+
+export type ListMunicipalitiesBoundariesMunicipalitiesGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Periphery
+         *
+         * region_code of the parent periphery
+         */
+        periphery: string;
+    };
+    url: '/boundaries/municipalities';
+};
+
+export type ListMunicipalitiesBoundariesMunicipalitiesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMunicipalitiesBoundariesMunicipalitiesGetError = ListMunicipalitiesBoundariesMunicipalitiesGetErrors[keyof ListMunicipalitiesBoundariesMunicipalitiesGetErrors];
+
+export type ListMunicipalitiesBoundariesMunicipalitiesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: BoundaryFeatureCollection;
+};
+
+export type ListMunicipalitiesBoundariesMunicipalitiesGetResponse = ListMunicipalitiesBoundariesMunicipalitiesGetResponses[keyof ListMunicipalitiesBoundariesMunicipalitiesGetResponses];

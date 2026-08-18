@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { EventSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
+import { regionLabel } from "../../i18n/regions";
 import { formatRelativeTime } from "../../utils/time";
 import { AxisTag, IntensityDots } from "../common";
 import { PoliticianQuote } from "./PoliticianQuote";
@@ -11,16 +12,26 @@ import styles from "./StoryCard.module.css";
 interface StoryCardProps {
   event: EventSummary;
   variant?: "featured" | "compact";
+  onOpen?: (id: string) => void;
 }
 
-export function StoryCard({ event, variant = "compact" }: StoryCardProps) {
+export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const summary = lang === "el" ? event.summary_el : event.summary_en;
   const isFeatured = variant === "featured";
 
   return (
-    <Link to={`/cluster/${event.id}`} className={styles.card}>
+    <Link
+      to={`/cluster/${event.id}`}
+      className={styles.card}
+      onClick={(e) => {
+        if (onOpen && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+          e.preventDefault();
+          onOpen(event.id);
+        }
+      }}
+    >
       <div className={styles.tags}>
         {event.action_forms.map((v) => (
           <AxisTag key={v} value={v} variant="action" />
@@ -45,7 +56,7 @@ export function StoryCard({ event, variant = "compact" }: StoryCardProps) {
 
       <div className={styles.meta}>
         {event.source_count} {t("card.sources")} · {formatRelativeTime(event.last_seen, lang)}
-        {event.region_code ? ` · ${event.region_code}` : ""}
+        {event.region_code ? ` · ${regionLabel(event.region_code, lang)}` : ""}
       </div>
 
       {isFeatured && <div className={styles.cta}>{t("card.viewFullAnalysis")}</div>}

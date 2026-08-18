@@ -40,6 +40,7 @@ class EventSummary(BaseModel):
     lat: float | None = None
     lon: float | None = None
     region_code: str | None = None
+    municipality: str | None = None
     article_count: int
     source_count: int
     first_seen: datetime | None = None
@@ -55,6 +56,13 @@ class EventDetail(EventSummary):
     articles: list[ArticleSummary] = []
 
 
+class LocationPoint(BaseModel):
+    lat: float
+    lon: float
+    label: str | None = None
+    is_primary: bool
+
+
 # ---------------------------------------------------------------------------
 # GeoJSON
 # ---------------------------------------------------------------------------
@@ -66,6 +74,8 @@ class GeoJSONGeometry(BaseModel):
 
 class GeoJSONProperties(BaseModel):
     id: str
+    region_code: str | None = None
+    municipality: str | None = None
     action_forms: list[str]
     thematic_fields: list[str]
     channel: str | None = None
@@ -73,6 +83,7 @@ class GeoJSONProperties(BaseModel):
     summary_en: str | None = None
     article_count: int
     first_seen: datetime | None = None
+    locations: list[LocationPoint] = []
 
 
 class GeoJSONFeature(BaseModel):
@@ -84,6 +95,26 @@ class GeoJSONFeature(BaseModel):
 class GeoJSONFeatureCollection(BaseModel):
     type: str = "FeatureCollection"
     features: list[GeoJSONFeature]
+
+
+# ---------------------------------------------------------------------------
+# Boundaries
+# ---------------------------------------------------------------------------
+
+class BoundaryProperties(BaseModel):
+    name: str
+    region_code: str | None = None
+
+
+class BoundaryFeature(BaseModel):
+    type: str = "Feature"
+    geometry: dict[str, Any]
+    properties: BoundaryProperties
+
+
+class BoundaryFeatureCollection(BaseModel):
+    type: str = "FeatureCollection"
+    features: list[BoundaryFeature]
 
 
 # ---------------------------------------------------------------------------

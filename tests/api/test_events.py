@@ -12,6 +12,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from api.main import app
+from api.models import LocationPoint
 from api.routes.events import list_events
 
 _ATHENS = ZoneInfo("Europe/Athens")
@@ -33,6 +34,7 @@ _FAKE_EVENT_ROW = MagicMock(
     lat=37.9838,
     lon=23.7275,
     region_code=None,
+    municipality=None,
     article_count=5,
     source_count=3,
     first_seen=None,
@@ -83,7 +85,8 @@ async def test_get_event_detail_returns_200(client: AsyncClient) -> None:
 
 
 async def test_geojson_returns_feature_collection(client: AsyncClient) -> None:
-    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]):
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
         resp = await client.get("/events/geojson")
     assert resp.status_code == 200
     data = resp.json()
@@ -109,7 +112,7 @@ def _row(**over):
     base = dict(
         id="evt-1", action_forms=["Απεργία/Στάση εργασίας"], thematic_fields=["Εργασιακό"],
         channel="Φυσικό", intensity="Ειρηνική", summary_el="ε", summary_en="e",
-        lat=None, lon=None, region_code=None, article_count=3, source_count=2,
+        lat=None, lon=None, region_code=None, municipality=None, article_count=3, source_count=2,
         first_seen=None, last_seen=None, status="enriched",
         event_time=None, is_national=True,
     )
@@ -137,3 +140,90 @@ async def test_list_events_derives_upcoming_for_future_event_time() -> None:
         out = await list_events(db=AsyncMock())
     assert out[0].temporal_status == "upcoming"
     assert out[0].is_national is False
+
+
+from api.routes.events import _ORDER_BY_SQL, _TEMPORAL_DAY_OPS
+
+
+def test_temporal_day_ops_cover_all_statuses() -> None:
+    assert _TEMPORAL_DAY_OPS == {"upcoming": ">", "today": "=", "past": "<"}
+
+
+def test_order_by_sql_maps_to_safe_fragments() -> None:
+    assert "last_seen DESC" in _ORDER_BY_SQL["recent"]
+    assert _ORDER_BY_SQL["event_time"] == "event_time ASC NULLS LAST"
+
+
+@pytest.mark.asyncio
+async def test_list_events_passes_temporal_params(client: AsyncClient) -> None:
+    mock = AsyncMock(return_value=[])
+    with patch("api.routes.events._fetch_events", mock):
+        resp = await client.get("/events?temporal_status=today&is_national=true&order_by=event_time")
+    assert resp.status_code == 200
+    kwargs = mock.call_args.kwargs
+    assert kwargs["temporal_status"] == "today"
+    assert kwargs["is_national"] is True
+    assert kwargs["order_by"] == "event_time"
+
+
+@pytest.mark.asyncio
+async def test_list_events_rejects_bad_temporal_status(client: AsyncClient) -> None:
+    resp = await client.get("/events?temporal_status=tomorrow")
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_events_rejects_bad_order_by(client: AsyncClient) -> None:
+    resp = await client.get("/events?order_by=random")
+    assert resp.status_code == 422
+
+
+async def test_list_events_exposes_municipality(client: AsyncClient) -> None:
+    row = MagicMock(**{**_FAKE_EVENT_ROW.__dict__, "municipality": "Δήμος Αθηναίων"})
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[row]):
+        resp = await client.get("/events")
+    assert resp.status_code == 200
+    assert resp.json()[0]["municipality"] == "Δήμος Αθηναίων"
+
+
+@pytest.mark.asyncio
+async def test_list_events_passes_municipality_filter(client: AsyncClient) -> None:
+    mock = AsyncMock(return_value=[])
+    with patch("api.routes.events._fetch_events", mock):
+        resp = await client.get("/events?municipality=Δήμος Αθηναίων")
+    assert resp.status_code == 200
+    assert mock.call_args.kwargs["municipality"] == "Δήμος Αθηναίων"
+
+
+async def test_geojson_exposes_region_and_municipality(client: AsyncClient) -> None:
+    row = MagicMock(**{**_FAKE_EVENT_ROW.__dict__, "region_code": "Attica", "municipality": "Δήμος Αθηναίων"})
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[row]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
+        resp = await client.get("/events/geojson")
+    props = resp.json()["features"][0]["properties"]
+    assert props["region_code"] == "Attica"
+    assert props["municipality"] == "Δήμος Αθηναίων"
+
+
+async def test_geojson_embeds_locations(client: AsyncClient) -> None:
+    locs = {
+        "evt-uuid-1": [
+            LocationPoint(lat=37.98, lon=23.72, label="Αθήνα", is_primary=True),
+            LocationPoint(lat=40.64, lon=22.94, label="Θεσσαλονίκη", is_primary=False),
+        ]
+    }
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value=locs):
+        resp = await client.get("/events/geojson")
+    assert resp.status_code == 200
+    props = resp.json()["features"][0]["properties"]
+    assert len(props["locations"]) == 2
+    assert props["locations"][0]["is_primary"] is True
+    assert props["locations"][1]["label"] == "Θεσσαλονίκη"
+
+
+async def test_geojson_locations_empty_when_none(client: AsyncClient) -> None:
+    with patch("api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[_FAKE_EVENT_ROW]), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
+        resp = await client.get("/events/geojson")
+    assert resp.json()["features"][0]["properties"]["locations"] == []
