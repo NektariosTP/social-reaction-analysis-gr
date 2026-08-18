@@ -30,7 +30,7 @@ describe("useBoundaryLayers", () => {
   it("adds a peripheries source and fill/line layers", () => {
     const map = new mock.Map({});
     renderHook(() =>
-      useBoundaryLayers(map, { level: "none", region: null, municipality: null }, { selectPeriphery: vi.fn(), selectMunicipality: vi.fn() }),
+      useBoundaryLayers(map, true, { level: "none", region: null, municipality: null }, { selectPeriphery: vi.fn(), selectMunicipality: vi.fn() }),
     );
     expect(mock.mapSourceCalls.some((s) => s.id === "peripheries")).toBe(true);
     const layerIds = mock.mapLayerCalls.map((l) => l.layer.id);
@@ -40,8 +40,20 @@ describe("useBoundaryLayers", () => {
   it("adds a municipalities source when a region is selected", () => {
     const map = new mock.Map({});
     renderHook(() =>
-      useBoundaryLayers(map, { level: "periphery", region: "Attica", municipality: null }, { selectPeriphery: vi.fn(), selectMunicipality: vi.fn() }),
+      useBoundaryLayers(map, true, { level: "periphery", region: "Attica", municipality: null }, { selectPeriphery: vi.fn(), selectMunicipality: vi.fn() }),
     );
     expect(mock.mapSourceCalls.some((s) => s.id === "municipalities")).toBe(true);
+  });
+
+  // Regression: adding sources/layers before the style finishes loading throws
+  // "Style is not done loading" in real maplibre, which crashed the whole app
+  // (white screen) when boundary data was already cache-warm.
+  it("does not touch sources/layers until the style is loaded", () => {
+    const map = new mock.Map({});
+    renderHook(() =>
+      useBoundaryLayers(map, false, { level: "periphery", region: "Attica", municipality: null }, { selectPeriphery: vi.fn(), selectMunicipality: vi.fn() }),
+    );
+    expect(mock.mapSourceCalls.length).toBe(0);
+    expect(mock.mapLayerCalls.length).toBe(0);
   });
 });

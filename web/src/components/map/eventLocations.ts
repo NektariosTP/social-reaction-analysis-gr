@@ -15,12 +15,17 @@ interface Loc {
 
 /**
  * Derive satellite circles + connector lines for multi-location events.
- * Only events in `individualEventIds` (un-clustered primaries) contribute, so
- * connectors never dangle off a cluster bubble.
+ *
+ * Every multi-location event contributes, regardless of viewport or clustering.
+ * We deliberately do NOT gate on whether the primary is currently rendered as
+ * its own marker: a secondary can be on screen while the primary is panned off
+ * (the connector just runs off-screen), and the primary is often swallowed into
+ * a nearby cluster — in both cases the satellites/connectors must still show.
+ * Connectors anchor to the event's own primary coordinate (≈ the cluster's
+ * position when it is clustered), so they don't dangle in empty space.
  */
 export function buildLocationOverlay(
   features: GeoJsonFeature[],
-  individualEventIds: Set<string>,
   selectedId: string | null,
 ): LocationOverlay {
   const secondaries: GeoJSON.Feature[] = [];
@@ -29,7 +34,7 @@ export function buildLocationOverlay(
   for (const f of features) {
     const id = f.properties.id;
     const locations = (f.properties.locations ?? []) as Loc[];
-    if (locations.length < 2 || !individualEventIds.has(id)) continue;
+    if (locations.length < 2) continue;
 
     const primary = locations.find((l) => l.is_primary) ?? {
       lon: (f.geometry.coordinates as number[])[0],

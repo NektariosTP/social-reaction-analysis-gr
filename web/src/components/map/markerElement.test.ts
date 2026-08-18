@@ -84,7 +84,8 @@ describe("createClusterMarkerElement", () => {
       remainderCount: 0,
     };
     const el = createClusterMarkerElement(preview);
-    expect(el.children).toHaveLength(3); // center + 2 orbiters
+    const pulse = el.querySelector<HTMLElement>('[data-role="cluster-pulse"]')!;
+    expect(pulse.children).toHaveLength(3); // center + 2 orbiters
     expect(el.querySelector('[data-role="remainder-pill"]')).toBeNull();
   });
 
@@ -105,7 +106,8 @@ describe("createClusterMarkerElement", () => {
     const el = createClusterMarkerElement(preview);
     const pill = el.querySelector<HTMLElement>('[data-role="remainder-pill"]');
     expect(pill?.textContent).toBe("+7");
-    expect(el.children).toHaveLength(3); // center + 1 orbiter + pill
+    const pulse = el.querySelector<HTMLElement>('[data-role="cluster-pulse"]')!;
+    expect(pulse.children).toHaveLength(3); // center + 1 orbiter + pill
   });
 
   it("shows the orbiter's own action-form emoji and channel border style", () => {

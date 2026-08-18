@@ -85,6 +85,12 @@
     opacity 200ms ease-out;
 }
 
+/* Pulse the inner element (see createClusterMarkerElement), never the
+   cluster-wrapper: maplibre-gl re-writes the wrapper's inline transform every
+   frame to keep it geo-anchored, so animating the wrapper's transform mid-zoom
+   clobbered that positioning (the cluster jumped away / drifted). The inner box
+   fills the wrapper and scales around its own centre, so the pulse is purely
+   cosmetic and never moves the anchor. */
 @keyframes clusterZoomPulse {
   0%,
   100% {
@@ -95,6 +101,6 @@
   }
 }
 
-.clusterZooming [data-role="cluster-wrapper"] {
+.clusterZooming [data-role="cluster-pulse"] {
   animation: clusterZoomPulse 900ms ease-in-out infinite;
 }

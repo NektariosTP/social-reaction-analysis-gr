@@ -19,11 +19,7 @@ const DASH_SEQUENCE: number[][] = [
 ];
 
 export interface LocationOverlayHandle {
-  updateOverlay(
-    features: GeoJsonFeature[],
-    individualEventIds: Set<string>,
-    selectedId: string | null,
-  ): void;
+  updateOverlay(features: GeoJsonFeature[], selectedId: string | null): void;
 }
 
 export function useLocationOverlay(
@@ -50,8 +46,10 @@ export function useLocationOverlay(
       source: CONNECTOR_SOURCE,
       paint: {
         "line-color": ["get", "color"],
-        "line-opacity": ["case", ["get", "selected"], 0.9, 0.3],
-        "line-width": ["case", ["get", "selected"], 2.5, 1.5],
+        // Keep the unselected state clearly legible (not a faint ghost) while
+        // still visibly emphasising the selected event.
+        "line-opacity": ["case", ["get", "selected"], 0.95, 0.65],
+        "line-width": ["case", ["get", "selected"], 3, 2],
         "line-dasharray": [0, 4, 3],
       },
     });
@@ -61,11 +59,11 @@ export function useLocationOverlay(
       source: SECONDARY_SOURCE,
       paint: {
         "circle-color": ["get", "color"],
-        "circle-radius": 6,
-        "circle-opacity": ["case", ["get", "selected"], 0.9, 0.35],
-        "circle-stroke-width": 1,
+        "circle-radius": ["case", ["get", "selected"], 8, 7],
+        "circle-opacity": ["case", ["get", "selected"], 0.95, 0.8],
+        "circle-stroke-width": 1.5,
         "circle-stroke-color": "#ffffff",
-        "circle-stroke-opacity": ["case", ["get", "selected"], 0.9, 0.4],
+        "circle-stroke-opacity": ["case", ["get", "selected"], 1, 0.9],
       },
     });
 
@@ -101,6 +99,12 @@ export function useLocationOverlay(
 
     return () => {
       cancelAnimationFrame(raf);
+      // React runs unmount cleanups in mount order, and MapView's map-init
+      // effect (registered first) calls map.remove() before this one runs when
+      // the whole MapView unmounts (e.g. navigating back off the cluster-detail
+      // mini-map). Touching a removed map throws ("reading 'getLayer' of
+      // undefined") — its layers/sources are already gone anyway, so bail.
+      if ((map as unknown as { _removed?: boolean })._removed) return;
       if (map.getLayer(SECONDARY_LAYER)) map.removeLayer(SECONDARY_LAYER);
       if (map.getLayer(CONNECTOR_LAYER)) map.removeLayer(CONNECTOR_LAYER);
       if (map.getSource(SECONDARY_SOURCE)) map.removeSource(SECONDARY_SOURCE);
@@ -109,13 +113,9 @@ export function useLocationOverlay(
   }, [map, styleLoaded]);
 
   return {
-    updateOverlay(features, individualEventIds, selectedId) {
+    updateOverlay(features, selectedId) {
       if (!map) return;
-      const { secondaries, connectors } = buildLocationOverlay(
-        features,
-        individualEventIds,
-        selectedId,
-      );
+      const { secondaries, connectors } = buildLocationOverlay(features, selectedId);
       hasDataRef.current = connectors.features.length > 0;
       (map.getSource(CONNECTOR_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(connectors);
       (map.getSource(SECONDARY_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(secondaries);

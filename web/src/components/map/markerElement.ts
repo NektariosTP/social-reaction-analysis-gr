@@ -144,6 +144,18 @@ export function createClusterMarkerElement(
   wrapper.style.pointerEvents = "none";
   wrapper.dataset.role = "cluster-wrapper";
 
+  // maplibre-gl owns `wrapper`'s inline `transform` (it re-writes translate()
+  // every frame to keep the marker geo-anchored). The zoom "pulse" animation
+  // must therefore live on an inner element it never touches — animating the
+  // wrapper's own transform clobbers that translate mid-zoom (the cluster
+  // jumped to the map's top-left corner / drifted). This inner box fills the
+  // wrapper, so the children's left/top math is unchanged, and it pulses
+  // symmetrically around its own centre (= the geo anchor).
+  const pulse = document.createElement("div");
+  pulse.style.position = "absolute";
+  pulse.style.inset = "0";
+  pulse.dataset.role = "cluster-pulse";
+
   const center = createMarkerElement(
     preview.center.properties,
     preview.center.properties.article_count,
@@ -153,7 +165,7 @@ export function createClusterMarkerElement(
   center.style.left = `${wrapperDiameter / 2 - centerRadius}px`;
   center.style.top = `${wrapperDiameter / 2 - centerRadius}px`;
   center.style.pointerEvents = "auto";
-  wrapper.appendChild(center);
+  pulse.appendChild(center);
 
   const ringSlots = preview.orbiters.length + (preview.remainderCount > 0 ? 1 : 0);
   preview.orbiters.forEach((orbiter, i) => {
@@ -162,7 +174,7 @@ export function createClusterMarkerElement(
         ? ORBITER_MAX_DIAMETER
         : ORBITER_MAX_DIAMETER -
           (i / (ringSlots - 1)) * (ORBITER_MAX_DIAMETER - ORBITER_MIN_DIAMETER);
-    wrapper.appendChild(
+    pulse.appendChild(
       placeOnRing(
         orbiterCircle(orbiter, size),
         i,
@@ -174,7 +186,7 @@ export function createClusterMarkerElement(
     );
   });
   if (preview.remainderCount > 0) {
-    wrapper.appendChild(
+    pulse.appendChild(
       placeOnRing(
         remainderPill(preview.remainderCount, ORBITER_MIN_DIAMETER),
         preview.orbiters.length,
@@ -186,5 +198,6 @@ export function createClusterMarkerElement(
     );
   }
 
+  wrapper.appendChild(pulse);
   return wrapper;
 }

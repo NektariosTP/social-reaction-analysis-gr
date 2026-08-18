@@ -51,7 +51,7 @@ describe("useLocationOverlay", () => {
   it("pushes derived data to the sources on updateOverlay", () => {
     const map = new mock.Map({});
     const { result } = renderHook(() => useLocationOverlay(map, true, vi.fn()));
-    result.current.updateOverlay([multiLocFeature("a")], new Set(["a"]), "a");
+    result.current.updateOverlay([multiLocFeature("a")], "a");
     // one secondary + one connector collection pushed
     expect(mock.mapSetDataCalls.length).toBeGreaterThanOrEqual(2);
     const pushed = mock.mapSetDataCalls.map((c) => c.data as GeoJSON.FeatureCollection);

@@ -52,6 +52,7 @@ function fitToFeature(
 /** Adds periphery + municipality GL layers driven by the geo view. Marker effect is untouched. */
 export function useBoundaryLayers(
   map: maplibregl.Map | null,
+  styleLoaded: boolean,
   view: Pick<GeoView, "level" | "region" | "municipality">,
   handlers: BoundaryHandlers,
   obstructedLeft = 0,
@@ -59,9 +60,14 @@ export function useBoundaryLayers(
   const peripheries = usePeripheryBoundaries();
   const municipalities = useMunicipalityBoundaries(view.region);
 
-  // Periphery fill + line, always present once data + map are ready.
+  // Periphery fill + line, always present once data + map are ready. Gated on
+  // styleLoaded: addSource/addLayer throw "Style is not done loading" if the
+  // style hasn't finished loading, which crashes the whole app (no error
+  // boundary). This races when boundary data is already cache-warm — e.g. a
+  // second map instance (the cluster-detail mini-map) mounting after the main
+  // map populated the query cache.
   useEffect(() => {
-    if (!map || !peripheries.data) return;
+    if (!map || !styleLoaded || !peripheries.data) return;
     ensureSource(map, PERIPHERY_SRC, peripheries.data);
     if (!map.getLayer("peripheries-fill")) {
       map.addLayer({ id: "peripheries-fill", type: "fill", source: PERIPHERY_SRC, paint: { "fill-color": "#4f7cac", "fill-opacity": 0.08 } } as never);
@@ -73,11 +79,11 @@ export function useBoundaryLayers(
     };
     map.on("click", "peripheries-fill", onClick);
     return () => { map.off("click", "peripheries-fill", onClick); };
-  }, [map, peripheries.data, handlers]);
+  }, [map, styleLoaded, peripheries.data, handlers]);
 
   // Municipality fill + line, only while a periphery is selected.
   useEffect(() => {
-    if (!map) return;
+    if (!map || !styleLoaded) return;
     if (view.level === "none" || !municipalities.data) {
       ["municipalities-fill", "municipalities-line"].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
       if (map.getSource(MUNI_SRC)) map.removeSource(MUNI_SRC);
@@ -101,17 +107,17 @@ export function useBoundaryLayers(
     };
     map.on("click", "municipalities-fill", onClick);
     return () => { map.off("click", "municipalities-fill", onClick); };
-  }, [map, view.level, view.municipality, municipalities.data, handlers]);
+  }, [map, styleLoaded, view.level, view.municipality, municipalities.data, handlers]);
 
   // Hide the periphery fill/outline once its municipalities are on screen — at that point
   // the country-wide shape is just clutter under the municipality layer. The AreaBlock
   // column keeps showing the periphery name regardless.
   useEffect(() => {
-    if (!map) return;
+    if (!map || !styleLoaded) return;
     const visibility = view.level === "none" ? "visible" : "none";
     if (map.getLayer("peripheries-fill")) map.setLayoutProperty("peripheries-fill", "visibility", visibility);
     if (map.getLayer("peripheries-line")) map.setLayoutProperty("peripheries-line", "visibility", visibility);
-  }, [map, view.level, peripheries.data]);
+  }, [map, styleLoaded, view.level, peripheries.data]);
 
   // Zoom to the selected periphery.
   useEffect(() => {

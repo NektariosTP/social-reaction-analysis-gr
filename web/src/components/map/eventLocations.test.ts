@@ -28,31 +28,35 @@ const sat2 = { lat: 35.34, lon: 25.14, label: "Ηράκλειο", is_primary: fa
 
 describe("buildLocationOverlay", () => {
   it("skips single-location events", () => {
-    const out = buildLocationOverlay([feat("a", [primary])], new Set(["a"]), null);
+    const out = buildLocationOverlay([feat("a", [primary])], null);
     expect(out.secondaries.features).toHaveLength(0);
     expect(out.connectors.features).toHaveLength(0);
   });
 
-  it("skips events whose primary is clustered away", () => {
-    const out = buildLocationOverlay([feat("a", [primary, sat1])], new Set(), null);
-    expect(out.secondaries.features).toHaveLength(0);
+  it("still emits the overlay when the primary is clustered / off-screen", () => {
+    // Regression: the overlay used to be gated on the primary being rendered as
+    // its own (un-clustered, in-viewport) marker, so satellites vanished the
+    // moment the primary joined a cluster or panned off screen.
+    const out = buildLocationOverlay([feat("a", [primary, sat1])], null);
+    expect(out.secondaries.features).toHaveLength(1);
+    expect(out.connectors.features).toHaveLength(1);
   });
 
   it("emits one secondary + connector per satellite", () => {
-    const out = buildLocationOverlay([feat("a", [primary, sat1, sat2])], new Set(["a"]), null);
+    const out = buildLocationOverlay([feat("a", [primary, sat1, sat2])], null);
     expect(out.secondaries.features).toHaveLength(2);
     expect(out.connectors.features).toHaveLength(2);
   });
 
   it("orders connector coords secondary -> primary", () => {
-    const out = buildLocationOverlay([feat("a", [primary, sat1])], new Set(["a"]), null);
+    const out = buildLocationOverlay([feat("a", [primary, sat1])], null);
     const line = out.connectors.features[0].geometry as GeoJSON.LineString;
     expect(line.coordinates[0]).toEqual([sat1.lon, sat1.lat]);
     expect(line.coordinates[1]).toEqual([primary.lon, primary.lat]);
   });
 
   it("marks selected and colours by intensity", () => {
-    const out = buildLocationOverlay([feat("a", [primary, sat1])], new Set(["a"]), "a");
+    const out = buildLocationOverlay([feat("a", [primary, sat1])], "a");
     expect(out.secondaries.features[0].properties).toMatchObject({
       eventId: "a",
       selected: true,

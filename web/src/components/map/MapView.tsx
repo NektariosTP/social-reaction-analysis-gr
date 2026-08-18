@@ -135,10 +135,9 @@ export function MapView({
           .addTo(map);
       });
 
-      const individualEventIds = new Set(
-        points.filter((p) => !p.isCluster).map((p) => p.feature!.properties.id),
-      );
-      overlay.updateOverlay(featuresRef.current, individualEventIds, selectedId ?? null);
+      // Overlay covers every multi-location event regardless of viewport or
+      // clustering (see buildLocationOverlay) — it isn't derived from `points`.
+      overlay.updateOverlay(featuresRef.current, selectedId ?? null);
     };
 
     const handleZoomStart = () => {
@@ -194,6 +193,7 @@ export function MapView({
 
   useBoundaryLayers(
     mapInstance,
+    styleLoaded,
     geoView ?? { level: "none", region: null, municipality: null },
     boundaryHandlers,
     obstructedLeft,
