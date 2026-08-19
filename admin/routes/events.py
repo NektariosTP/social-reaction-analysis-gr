@@ -214,6 +214,7 @@ async def _save_event_locations(session: AsyncSession, event_id: str, form: Any)
     loc_lons = form.getlist("loc_lon")
     loc_names = form.getlist("loc_name")
     loc_cities = form.getlist("loc_city")
+    loc_municipalities = form.getlist("loc_municipality")
     loc_primaries = set(form.getlist("loc_is_primary"))
     loc_deletes = set(form.getlist("loc_delete"))
 
@@ -232,6 +233,7 @@ async def _save_event_locations(session: AsyncSession, event_id: str, form: Any)
         lon = float(lon_raw)
         name = loc_names[i] if i < len(loc_names) else ""
         city = loc_cities[i] if i < len(loc_cities) else ""
+        municipality = loc_municipalities[i] if i < len(loc_municipalities) else ""
         is_primary = idx in loc_primaries
 
         if loc_id:
@@ -239,20 +241,21 @@ async def _save_event_locations(session: AsyncSession, event_id: str, form: Any)
                 text("""
                     UPDATE event_locations SET
                         location = ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
-                        location_name = :name, city = :city, is_primary = :is_primary
+                        location_name = :name, city = :city, municipality = :municipality,
+                        is_primary = :is_primary
                     WHERE id = :id
                 """),
                 {"lat": lat, "lon": lon, "name": name or None, "city": city or None,
-                 "is_primary": is_primary, "id": loc_id},
+                 "municipality": municipality or None, "is_primary": is_primary, "id": loc_id},
             )
         else:
             await session.execute(
                 text("""
-                    INSERT INTO event_locations (event_id, location, location_name, city, is_primary)
-                    VALUES (:event_id, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :name, :city, :is_primary)
+                    INSERT INTO event_locations (event_id, location, location_name, city, municipality, is_primary)
+                    VALUES (:event_id, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :name, :city, :municipality, :is_primary)
                 """),
                 {"event_id": event_id, "lat": lat, "lon": lon, "name": name or None,
-                 "city": city or None, "is_primary": is_primary},
+                 "city": city or None, "municipality": municipality or None, "is_primary": is_primary},
             )
 
 
@@ -270,8 +273,12 @@ async def edit_event_submit(
     summary_el = form.get("summary_el", "") or None
     summary_en = form.get("summary_en", "") or None
     region_code = form.get("region_code", "") or None
+    region_code_original = form.get("region_code_original", "") or None
+    municipality = form.get("municipality", "") or None
+    is_national = "is_national" in form
     lat_raw = form.get("lat", "")
     lon_raw = form.get("lon", "")
+    event_time_raw = form.get("event_time", "")
 
     errors: list[str] = []
     if not set(action_forms).issubset(set(AXIS_ACTION_FORMS)):
@@ -284,6 +291,15 @@ async def edit_event_submit(
         errors.append("Invalid intensity.")
     if status not in ALL_STATUSES:
         errors.append("Invalid status.")
+    if region_code is not None and region_code not in canonical_region_names() \
+            and region_code != region_code_original:
+        errors.append("Invalid region.")
+
+    event_time = None
+    try:
+        event_time = _parse_event_time(event_time_raw)
+    except ValueError:
+        errors.append("Invalid event time.")
 
     lat: float | None = None
     lon: float | None = None
@@ -297,10 +313,11 @@ async def edit_event_submit(
         event = await _fetch_event_detail(session, event_id)
         locations = await _fetch_event_locations(session, event_id)
         articles = await _fetch_event_articles(session, event_id)
+        municipality_names = await _fetch_municipality_names(session)
         return templates.TemplateResponse(
             request,
             "event_edit.html",
-            _edit_form_context(event, locations, articles, " ".join(errors)),
+            _edit_form_context(event, locations, articles, " ".join(errors), municipality_names),
             status_code=422,
         )
 
@@ -314,6 +331,9 @@ async def edit_event_submit(
                 summary_el = :summary_el,
                 summary_en = :summary_en,
                 region_code = :region_code,
+                municipality = :municipality,
+                is_national = :is_national,
+                event_time = :event_time,
                 status = :status,
                 primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL
                     THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography
@@ -328,6 +348,9 @@ async def edit_event_submit(
             "summary_el": summary_el,
             "summary_en": summary_en,
             "region_code": region_code,
+            "municipality": municipality,
+            "is_national": is_national,
+            "event_time": event_time,
             "status": status,
             "lat": lat,
             "lon": lon,
