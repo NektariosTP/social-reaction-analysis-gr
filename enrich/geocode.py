@@ -303,6 +303,11 @@ def _load_regions() -> list[tuple[str, object]]:
     return out
 
 
+def canonical_region_names() -> list[str]:
+    """Sorted list of the 13 canonical English periphery names (for admin/UX)."""
+    return sorted(name for name, _ in _load_regions())
+
+
 def region_for_point(lat: float, lon: float) -> str | None:
     """Return the canonical English periphery name containing (lat, lon), or None."""
     point = Point(lon, lat)
