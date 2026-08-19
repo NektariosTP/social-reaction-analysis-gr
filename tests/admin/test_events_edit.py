@@ -88,6 +88,35 @@ async def test_edit_event_submit_rejects_invalid_axis_value(client) -> None:
     assert resp.status_code == 422
 
 
+async def test_edit_event_form_renders_new_fields(client):
+    c, mock_session = client
+    detail = MagicMock()
+    detail.first.return_value = MagicMock(
+        id="evt-1", action_forms=[], thematic_fields=[], channel="Φυσικό (offline)",
+        intensity="Ειρηνική", summary_el="", summary_en="", classification_confidence=None,
+        lat=37.98, lon=23.72, region_code="Attica", article_count=1, source_count=1,
+        first_seen=None, last_seen=None, status="pending_review",
+        event_time=None, is_national=False, municipality="Αθηναίων",
+    )
+    locations = MagicMock()
+    locations.all.return_value = []
+    articles = MagicMock()
+    articles.all.return_value = []
+    muni_names = MagicMock()
+    muni_names.scalars.return_value.all.return_value = ["Αθηναίων", "Θεσσαλονίκης"]
+    mock_session.execute = AsyncMock(side_effect=[detail, locations, articles, muni_names])
+
+    resp = await c.get("/events/evt-1")
+
+    assert resp.status_code == 200
+    body = resp.text
+    assert 'name="event_time"' in body
+    assert 'name="is_national"' in body
+    assert 'name="municipality"' in body
+    assert '<datalist id="municipalities"' in body
+    assert 'name="region_code"' in body  # now a <select>
+
+
 async def test_edit_event_submit_saves_valid_data(client) -> None:
     c, mock_session = client
     mock_session.execute = AsyncMock()

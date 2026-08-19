@@ -15,6 +15,7 @@ from starlette.responses import RedirectResponse, Response
 from admin.auth import require_admin
 from admin.db import get_db
 from enrich.classify import AXIS_ACTION_FORMS, AXIS_CHANNEL, AXIS_INTENSITY, AXIS_THEMATIC_FIELDS
+from enrich.geocode import canonical_region_names
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="admin/templates")
@@ -124,7 +125,8 @@ async def _fetch_event_detail(session: AsyncSession, event_id: str) -> Any | Non
                    ST_Y(primary_location::geometry) AS lat,
                    ST_X(primary_location::geometry) AS lon,
                    region_code, article_count, source_count,
-                   first_seen, last_seen, status
+                   first_seen, last_seen, status,
+                   event_time, is_national, municipality
             FROM events WHERE id = :id
         """),
         {"id": event_id},
@@ -136,7 +138,7 @@ async def _fetch_event_locations(session: AsyncSession, event_id: str) -> list[A
     result = await session.execute(
         text("""
             SELECT id, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lon,
-                   location_name, city, is_primary
+                   location_name, city, municipality, is_primary
             FROM event_locations WHERE event_id = :id ORDER BY is_primary DESC, id
         """),
         {"id": event_id},
@@ -155,7 +157,25 @@ async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list[An
     return result.all()
 
 
-def _edit_form_context(event: Any, locations: list[Any], articles: list[Any], error: str | None) -> dict[str, Any]:
+async def _fetch_municipality_names(session: AsyncSession) -> list[str]:
+    """All δήμος names for the datalist. Fail-soft: any DB error -> []."""
+    try:
+        result = await session.execute(text("SELECT name FROM municipalities ORDER BY name"))
+        return list(result.scalars().all())
+    except Exception:  # noqa: BLE001 — datalist is best-effort UX, never blocks editing
+        return []
+
+
+def _edit_form_context(
+    event: Any,
+    locations: list[Any],
+    articles: list[Any],
+    error: str | None,
+    municipality_names: list[str],
+) -> dict[str, Any]:
+    event_time_local = ""
+    if event is not None and getattr(event, "event_time", None) is not None:
+        event_time_local = event.event_time.astimezone(_ATHENS).strftime("%Y-%m-%dT%H:%M")
     return {
         "event": event,
         "locations": locations,
@@ -165,6 +185,9 @@ def _edit_form_context(event: Any, locations: list[Any], articles: list[Any], er
         "axis_thematic_fields": AXIS_THEMATIC_FIELDS,
         "axis_channel": AXIS_CHANNEL,
         "axis_intensity": AXIS_INTENSITY,
+        "region_names": canonical_region_names(),
+        "municipality_names": municipality_names,
+        "event_time_local": event_time_local,
         "error": error,
     }
 
@@ -178,8 +201,10 @@ async def edit_event_form(
         return HTMLResponse("Event not found", status_code=404)
     locations = await _fetch_event_locations(session, event_id)
     articles = await _fetch_event_articles(session, event_id)
+    municipality_names = await _fetch_municipality_names(session)
     return templates.TemplateResponse(
-        request, "event_edit.html", _edit_form_context(event, locations, articles, None)
+        request, "event_edit.html",
+        _edit_form_context(event, locations, articles, None, municipality_names),
     )
 
 
