@@ -1,7 +1,9 @@
 """Tests for the admin event editor (GET/POST /events/{id})."""
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -9,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from admin.auth import require_admin
 from admin.db import get_db
 from admin.main import app
+from admin.routes.events import _parse_event_time
 
 
 @pytest.fixture
@@ -41,6 +44,21 @@ def _valid_form() -> dict[str, object]:
         "lat": "37.98",
         "lon": "23.72",
     }
+
+
+def test_parse_event_time_blank_is_none():
+    assert _parse_event_time("") is None
+
+
+def test_parse_event_time_naive_is_athens_local():
+    dt = _parse_event_time("2026-09-01T18:30")
+    assert dt == datetime(2026, 9, 1, 18, 30, tzinfo=ZoneInfo("Europe/Athens"))
+    assert dt.tzinfo is not None
+
+
+def test_parse_event_time_garbage_raises():
+    with pytest.raises(ValueError):
+        _parse_event_time("not-a-date")
 
 
 async def test_edit_event_form_404_for_missing_event(client) -> None:

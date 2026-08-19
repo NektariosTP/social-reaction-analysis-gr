@@ -1,7 +1,9 @@
 """Admin event queue, browse, editor, and delete routes."""
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
@@ -18,6 +20,17 @@ router = APIRouter(dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="admin/templates")
 
 ALL_STATUSES = ["detected", "pending_review", "enriched", "archived", "closed", "rejected"]
+_ATHENS = ZoneInfo("Europe/Athens")
+
+
+def _parse_event_time(raw: str) -> datetime | None:
+    """Parse a datetime-local value as Europe/Athens wall-clock. '' -> None."""
+    if not raw:
+        return None
+    dt = datetime.fromisoformat(raw)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS)
+    return dt
 
 
 async def _fetch_admin_events(
