@@ -1,7 +1,9 @@
 """Admin event queue, browse, editor, and delete routes."""
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
@@ -13,11 +15,23 @@ from starlette.responses import RedirectResponse, Response
 from admin.auth import require_admin
 from admin.db import get_db
 from enrich.classify import AXIS_ACTION_FORMS, AXIS_CHANNEL, AXIS_INTENSITY, AXIS_THEMATIC_FIELDS
+from enrich.geocode import canonical_region_names
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="admin/templates")
 
 ALL_STATUSES = ["detected", "pending_review", "enriched", "archived", "closed", "rejected"]
+_ATHENS = ZoneInfo("Europe/Athens")
+
+
+def _parse_event_time(raw: str) -> datetime | None:
+    """Parse a datetime-local value as Europe/Athens wall-clock. '' -> None."""
+    if not raw:
+        return None
+    dt = datetime.fromisoformat(raw)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS)
+    return dt
 
 
 async def _fetch_admin_events(
@@ -111,7 +125,8 @@ async def _fetch_event_detail(session: AsyncSession, event_id: str) -> Any | Non
                    ST_Y(primary_location::geometry) AS lat,
                    ST_X(primary_location::geometry) AS lon,
                    region_code, article_count, source_count,
-                   first_seen, last_seen, status
+                   first_seen, last_seen, status,
+                   event_time, is_national, municipality
             FROM events WHERE id = :id
         """),
         {"id": event_id},
@@ -123,7 +138,7 @@ async def _fetch_event_locations(session: AsyncSession, event_id: str) -> list[A
     result = await session.execute(
         text("""
             SELECT id, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lon,
-                   location_name, city, is_primary
+                   location_name, city, municipality, is_primary
             FROM event_locations WHERE event_id = :id ORDER BY is_primary DESC, id
         """),
         {"id": event_id},
@@ -142,7 +157,25 @@ async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list[An
     return result.all()
 
 
-def _edit_form_context(event: Any, locations: list[Any], articles: list[Any], error: str | None) -> dict[str, Any]:
+async def _fetch_municipality_names(session: AsyncSession) -> list[str]:
+    """All δήμος names for the datalist. Fail-soft: any DB error -> []."""
+    try:
+        result = await session.execute(text("SELECT name FROM municipalities ORDER BY name"))
+        return list(result.scalars().all())
+    except Exception:  # noqa: BLE001 — datalist is best-effort UX, never blocks editing
+        return []
+
+
+def _edit_form_context(
+    event: Any,
+    locations: list[Any],
+    articles: list[Any],
+    error: str | None,
+    municipality_names: list[str],
+) -> dict[str, Any]:
+    event_time_local = ""
+    if event is not None and getattr(event, "event_time", None) is not None:
+        event_time_local = event.event_time.astimezone(_ATHENS).strftime("%Y-%m-%dT%H:%M")
     return {
         "event": event,
         "locations": locations,
@@ -152,6 +185,9 @@ def _edit_form_context(event: Any, locations: list[Any], articles: list[Any], er
         "axis_thematic_fields": AXIS_THEMATIC_FIELDS,
         "axis_channel": AXIS_CHANNEL,
         "axis_intensity": AXIS_INTENSITY,
+        "region_names": canonical_region_names(),
+        "municipality_names": municipality_names,
+        "event_time_local": event_time_local,
         "error": error,
     }
 
@@ -165,8 +201,10 @@ async def edit_event_form(
         return HTMLResponse("Event not found", status_code=404)
     locations = await _fetch_event_locations(session, event_id)
     articles = await _fetch_event_articles(session, event_id)
+    municipality_names = await _fetch_municipality_names(session)
     return templates.TemplateResponse(
-        request, "event_edit.html", _edit_form_context(event, locations, articles, None)
+        request, "event_edit.html",
+        _edit_form_context(event, locations, articles, None, municipality_names),
     )
 
 
@@ -176,6 +214,7 @@ async def _save_event_locations(session: AsyncSession, event_id: str, form: Any)
     loc_lons = form.getlist("loc_lon")
     loc_names = form.getlist("loc_name")
     loc_cities = form.getlist("loc_city")
+    loc_municipalities = form.getlist("loc_municipality")
     loc_primaries = set(form.getlist("loc_is_primary"))
     loc_deletes = set(form.getlist("loc_delete"))
 
@@ -194,6 +233,7 @@ async def _save_event_locations(session: AsyncSession, event_id: str, form: Any)
         lon = float(lon_raw)
         name = loc_names[i] if i < len(loc_names) else ""
         city = loc_cities[i] if i < len(loc_cities) else ""
+        municipality = loc_municipalities[i] if i < len(loc_municipalities) else ""
         is_primary = idx in loc_primaries
 
         if loc_id:
@@ -201,20 +241,21 @@ async def _save_event_locations(session: AsyncSession, event_id: str, form: Any)
                 text("""
                     UPDATE event_locations SET
                         location = ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
-                        location_name = :name, city = :city, is_primary = :is_primary
+                        location_name = :name, city = :city, municipality = :municipality,
+                        is_primary = :is_primary
                     WHERE id = :id
                 """),
                 {"lat": lat, "lon": lon, "name": name or None, "city": city or None,
-                 "is_primary": is_primary, "id": loc_id},
+                 "municipality": municipality or None, "is_primary": is_primary, "id": loc_id},
             )
         else:
             await session.execute(
                 text("""
-                    INSERT INTO event_locations (event_id, location, location_name, city, is_primary)
-                    VALUES (:event_id, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :name, :city, :is_primary)
+                    INSERT INTO event_locations (event_id, location, location_name, city, municipality, is_primary)
+                    VALUES (:event_id, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :name, :city, :municipality, :is_primary)
                 """),
                 {"event_id": event_id, "lat": lat, "lon": lon, "name": name or None,
-                 "city": city or None, "is_primary": is_primary},
+                 "city": city or None, "municipality": municipality or None, "is_primary": is_primary},
             )
 
 
@@ -232,8 +273,12 @@ async def edit_event_submit(
     summary_el = form.get("summary_el", "") or None
     summary_en = form.get("summary_en", "") or None
     region_code = form.get("region_code", "") or None
+    region_code_original = form.get("region_code_original", "") or None
+    municipality = form.get("municipality", "") or None
+    is_national = "is_national" in form
     lat_raw = form.get("lat", "")
     lon_raw = form.get("lon", "")
+    event_time_raw = form.get("event_time", "")
 
     errors: list[str] = []
     if not set(action_forms).issubset(set(AXIS_ACTION_FORMS)):
@@ -246,6 +291,15 @@ async def edit_event_submit(
         errors.append("Invalid intensity.")
     if status not in ALL_STATUSES:
         errors.append("Invalid status.")
+    if region_code is not None and region_code not in canonical_region_names() \
+            and region_code != region_code_original:
+        errors.append("Invalid region.")
+
+    event_time = None
+    try:
+        event_time = _parse_event_time(event_time_raw)
+    except ValueError:
+        errors.append("Invalid event time.")
 
     lat: float | None = None
     lon: float | None = None
@@ -259,10 +313,11 @@ async def edit_event_submit(
         event = await _fetch_event_detail(session, event_id)
         locations = await _fetch_event_locations(session, event_id)
         articles = await _fetch_event_articles(session, event_id)
+        municipality_names = await _fetch_municipality_names(session)
         return templates.TemplateResponse(
             request,
             "event_edit.html",
-            _edit_form_context(event, locations, articles, " ".join(errors)),
+            _edit_form_context(event, locations, articles, " ".join(errors), municipality_names),
             status_code=422,
         )
 
@@ -276,6 +331,9 @@ async def edit_event_submit(
                 summary_el = :summary_el,
                 summary_en = :summary_en,
                 region_code = :region_code,
+                municipality = :municipality,
+                is_national = :is_national,
+                event_time = :event_time,
                 status = :status,
                 primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL
                     THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision), CAST(:lat AS double precision)), 4326)::geography
@@ -290,6 +348,9 @@ async def edit_event_submit(
             "summary_el": summary_el,
             "summary_en": summary_en,
             "region_code": region_code,
+            "municipality": municipality,
+            "is_national": is_national,
+            "event_time": event_time,
             "status": status,
             "lat": lat,
             "lon": lon,

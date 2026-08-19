@@ -7,7 +7,23 @@ import pytest
 import respx
 from httpx import Response
 
-from enrich.geocode import GeocodeResult, LocationMention, geocode_event, geocode_text, lookup_gazetteer
+from enrich.geocode import (
+    GeocodeResult,
+    LocationMention,
+    canonical_region_names,
+    geocode_event,
+    geocode_text,
+    lookup_gazetteer,
+)
+
+
+def test_canonical_region_names_returns_sorted_peripheries():
+    names = canonical_region_names()
+    assert len(names) == 13
+    assert names == sorted(names)
+    assert "Central Macedonia" in names
+    # returns plain strings, not (name, geom) tuples
+    assert all(isinstance(n, str) for n in names)
 
 
 def test_gazetteer_hit_for_athens() -> None:
