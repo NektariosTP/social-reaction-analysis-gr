@@ -8,7 +8,7 @@ import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, AreaBlock } from "../components/shell";
+import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, AreaBlock, ContextBlock } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import type { Region } from "../i18n/regions";
 import { regionLabel } from "../i18n/regions";
@@ -157,6 +157,8 @@ export function MainView() {
               onSelectEvent={handleSelectEventFromList}
             />
           )}
+
+          <ContextBlock regionCode={geo.level === "none" ? null : geo.region ?? null} />
 
           {geo.level !== "none" && (
             <AreaBlock
