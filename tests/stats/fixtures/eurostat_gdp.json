@@ -1,0 +1,11 @@
+{
+  "version": "2.0", "class": "dataset",
+  "id": ["unit", "geo", "time"], "size": [1, 2, 2],
+  "dimension": {
+    "unit": {"category": {"index": {"EUR": 0}}},
+    "geo": {"category": {"index": {"EL30": 0, "EL52": 1},
+                          "label": {"EL30": "Attiki", "EL52": "Kentriki Makedonia"}}},
+    "time": {"category": {"index": {"2021": 0, "2022": 1}}}
+  },
+  "value": {"0": 100, "1": 110, "2": 50, "3": 55}
+}
