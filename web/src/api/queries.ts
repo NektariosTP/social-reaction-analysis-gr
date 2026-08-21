@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import "./client";
 import {
+  choroplethStatsChoroplethGet,
+  eventContextEventsEventIdContextGet,
   eventsGeojsonEventsGeojsonGet,
   getEventEventsEventIdGet,
   getStatsStatsGet,
   listEventsEventsGet,
   listMunicipalitiesBoundariesMunicipalitiesGet,
   listPeripheriesBoundariesPeripheriesGet,
+  regionIndicatorsRegionsRegionCodeIndicatorsGet,
 } from "../client/sdk.gen";
 import type { EventSummary } from "../client/types.gen";
 import { canonicalRegion } from "../i18n/regions";
@@ -191,5 +194,33 @@ export function useMunicipalityBoundaries(region: string | null) {
       unwrap(listMunicipalitiesBoundariesMunicipalitiesGet({ query: { periphery: region! } })),
     enabled: !!region,
     staleTime: Infinity,
+  });
+}
+
+/** Always-on + thematic indicators for a periphery (or "GR" for national). */
+export function useRegionIndicators(regionCode: string | null) {
+  return useQuery({
+    queryKey: ["region-indicators", regionCode],
+    queryFn: () =>
+      unwrap(regionIndicatorsRegionsRegionCodeIndicatorsGet({ path: { region_code: regionCode! } })),
+    enabled: !!regionCode,
+  });
+}
+
+/** Deterministic thematic context for one event — no LLM, Axis-2 theme match only. */
+export function useEventContext(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ["event-context", eventId],
+    queryFn: () => unwrap(eventContextEventsEventIdContextGet({ path: { event_id: eventId! } })),
+    enabled: !!eventId,
+  });
+}
+
+/** Latest per-periphery value for one indicator — backs the map choropleth overlay. */
+export function useChoropleth(indicator: string | null) {
+  return useQuery({
+    queryKey: ["choropleth", indicator],
+    queryFn: () => unwrap(choroplethStatsChoroplethGet({ query: { indicator: indicator! } })),
+    enabled: !!indicator,
   });
 }
