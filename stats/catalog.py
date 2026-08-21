@@ -23,6 +23,7 @@ class IndicatorSpec:
     cadence: str
     always_on: bool
     themes: tuple[str, ...]
+    filters: tuple[tuple[str, str], ...] = ()  # pins non-geo/time dims, e.g. (("unit", "EUR_HAB"),)
 
 
 @lru_cache(maxsize=4)
@@ -53,5 +54,6 @@ def load_catalog(path: str | None = None) -> list[IndicatorSpec]:
             cadence=entry.get("cadence", "annual"),
             always_on=bool(entry.get("always_on", False)),
             themes=tuple(entry.get("themes") or []),
+            filters=tuple(sorted((entry.get("filters") or {}).items())),
         ))
     return specs

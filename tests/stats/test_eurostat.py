@@ -16,6 +16,14 @@ def test_build_url_includes_dataset_geolevel_and_format():
     assert "geoLevel=nuts2" in url
     assert "format=JSON" in url
 
+def test_build_url_appends_filters_to_pin_auxiliary_dimensions():
+    spec = IndicatorSpec(
+        key="gdp_per_capita", label_el="ΑΕΠ", label_en="GDP", unit="EUR",
+        source="eurostat", dataset="nama_10r_2gdp", geo_level="nuts2",
+        cadence="annual", always_on=True, themes=(), filters=(("unit", "EUR_HAB"),),
+    )
+    assert "&unit=EUR_HAB" in build_url(spec)
+
 def test_parse_picks_latest_period_per_region_and_maps_names():
     doc = json.loads(Path("tests/stats/fixtures/eurostat_gdp.json").read_text(encoding="utf-8"))
     rows = {r.region_code: r for r in parse_jsonstat(doc, SPEC)}

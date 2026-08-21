@@ -8,6 +8,7 @@
   cadence: annual
   always_on: true
   themes: [Εργασιακό, Οικονομικό]
+  filters: {age: Y15-74}
 - key: youth_unemployment_rate
   label_el: "Ανεργία νέων (15–24)"
   label_en: "Youth unemployment (15–24)"
@@ -18,6 +19,7 @@
   cadence: annual
   always_on: false
   themes: [Εργασιακό, Οικονομικό, Δικαιώματα/Κοινωνικό]
+  filters: {age: Y15-24}
 - key: employment_rate
   label_el: "Ποσοστό απασχόλησης"
   label_en: "Employment rate"
@@ -28,6 +30,7 @@
   cadence: annual
   always_on: true
   themes: [Εργασιακό, Οικονομικό]
+  filters: {age: Y20-64}
 - key: gdp_per_capita
   label_el: "ΑΕΠ κατά κεφαλήν"
   label_en: "GDP per capita"
@@ -38,6 +41,7 @@
   cadence: annual
   always_on: true
   themes: [Οικονομικό]
+  filters: {unit: EUR_HAB}
 - key: household_income_per_capita
   label_el: "Διαθέσιμο εισόδημα νοικοκυριών κ.κ."
   label_en: "Household disposable income per capita"
@@ -48,6 +52,7 @@
   cadence: annual
   always_on: false
   themes: [Οικονομικό, Δικαιώματα/Κοινωνικό]
+  filters: {unit: EUR_HAB, direct: BAL, na_item: B6N}
 - key: at_risk_of_poverty
   label_el: "Κίνδυνος φτώχειας"
   label_en: "At-risk-of-poverty rate"
@@ -88,6 +93,7 @@
   cadence: annual
   always_on: false
   themes: [Δικαιώματα/Κοινωνικό]
+  filters: {indic_de: OLDDEP1, unit: PC}
 - key: tertiary_education
   label_el: "Τριτοβάθμια εκπαίδευση (25–64)"
   label_en: "Tertiary education attainment"
@@ -98,6 +104,7 @@
   cadence: annual
   always_on: false
   themes: [Εκπαίδευση]
+  filters: {isced11: ED5-8, age: Y25-64}
 - key: early_school_leavers
   label_el: "Πρόωρη εγκατάλειψη σχολείου"
   label_en: "Early leavers from education"
@@ -113,7 +120,7 @@
   label_en: "Voice & Accountability (pctile)"
   unit: "pctile"
   source: worldbank
-  dataset: VA.PER.RNK
+  dataset: GOV_WGI_VA.SC
   geo_level: national
   cadence: annual
   always_on: false
@@ -123,7 +130,7 @@
   label_en: "Rule of Law (pctile)"
   unit: "pctile"
   source: worldbank
-  dataset: RL.PER.RNK
+  dataset: GOV_WGI_RL.SC
   geo_level: national
   cadence: annual
   always_on: false
@@ -133,7 +140,7 @@
   label_en: "Political Stability (pctile)"
   unit: "pctile"
   source: worldbank
-  dataset: PV.PER.RNK
+  dataset: GOV_WGI_PV.SC
   geo_level: national
   cadence: annual
   always_on: false
@@ -143,7 +150,7 @@
   label_en: "Control of Corruption (pctile)"
   unit: "pctile"
   source: worldbank
-  dataset: CC.PER.RNK
+  dataset: GOV_WGI_CC.SC
   geo_level: national
   cadence: annual
   always_on: false

@@ -12,10 +12,13 @@ _BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
 
 
 def build_url(spec: IndicatorSpec) -> str:
-    return (
+    url = (
         f"{_BASE}/{spec.dataset}"
         f"?format=JSON&lang=EN&geoLevel={spec.geo_level}&sinceTimePeriod=2015"
     )
+    for dim, value in spec.filters:
+        url += f"&{dim}={value}"
+    return url
 
 
 def _strides(sizes: list[int]) -> list[int]:
