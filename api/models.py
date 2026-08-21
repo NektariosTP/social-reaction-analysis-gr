@@ -135,3 +135,39 @@ class StatsResponse(BaseModel):
     by_intensity: list[DistributionItem]
     by_region: list[DistributionItem]
     by_date: list[DistributionItem]
+
+
+# ---------------------------------------------------------------------------
+# Region indicators / context
+# ---------------------------------------------------------------------------
+
+class IndicatorValue(BaseModel):
+    key: str
+    label_el: str
+    label_en: str
+    unit: str | None = None
+    value: float | None = None
+    period: str | None = None
+    source: str | None = None
+    source_url: str | None = None
+
+
+class RegionIndicatorsResponse(BaseModel):
+    region_code: str
+    always_on: list[IndicatorValue] = []
+    thematic: list[IndicatorValue] = []
+
+
+class EventContextResponse(RegionIndicatorsResponse):
+    pass
+
+
+class ChoroplethValue(BaseModel):
+    region_code: str
+    value: float | None = None
+    period: str | None = None
+
+
+class ChoroplethResponse(BaseModel):
+    indicator: str
+    values: list[ChoroplethValue] = []
