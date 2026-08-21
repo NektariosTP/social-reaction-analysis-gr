@@ -20,6 +20,11 @@ vi.mock("../../api/queries", () => ({
     isLoading: false,
     isError: false,
   }),
+  useEventContext: () => ({
+    data: { region_code: "GR", always_on: [], thematic: [] },
+    isLoading: false,
+    isError: false,
+  }),
 }));
 
 vi.mock("../map", () => ({ MapView: () => <div data-testid="mini-map" /> }));

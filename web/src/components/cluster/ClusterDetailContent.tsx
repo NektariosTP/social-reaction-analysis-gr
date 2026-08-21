@@ -5,6 +5,7 @@ import { regionLabel } from "../../i18n/regions";
 import { formatRelativeTime } from "../../utils/time";
 import { MapView } from "../map";
 import { AxisTag, IntensityDots, Spinner, ErrorState } from "../common";
+import { EventContextPanel } from "../context/EventContextPanel";
 import { ClassificationTable } from "./ClassificationTable";
 import { SourceEvidenceList } from "./SourceEvidenceList";
 import { SourceBreakdown } from "./SourceBreakdown";
@@ -110,6 +111,8 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
       <div className={styles.section}>
         <RelatedClusters />
       </div>
+
+      <EventContextPanel eventId={event.id} />
     </div>
   );
 }
