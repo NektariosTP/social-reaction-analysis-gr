@@ -1,0 +1,180 @@
+- key: unemployment_rate
+  label_el: "Ανεργία"
+  label_en: "Unemployment rate"
+  unit: "%"
+  source: eurostat
+  dataset: lfst_r_lfu3rt
+  geo_level: nuts2
+  cadence: annual
+  always_on: true
+  themes: [Εργασιακό, Οικονομικό]
+- key: youth_unemployment_rate
+  label_el: "Ανεργία νέων (15–24)"
+  label_en: "Youth unemployment (15–24)"
+  unit: "%"
+  source: eurostat
+  dataset: lfst_r_lfu3rt
+  geo_level: nuts2
+  cadence: annual
+  always_on: false
+  themes: [Εργασιακό, Οικονομικό, Δικαιώματα/Κοινωνικό]
+- key: employment_rate
+  label_el: "Ποσοστό απασχόλησης"
+  label_en: "Employment rate"
+  unit: "%"
+  source: eurostat
+  dataset: lfst_r_lfe2emprt
+  geo_level: nuts2
+  cadence: annual
+  always_on: true
+  themes: [Εργασιακό, Οικονομικό]
+- key: gdp_per_capita
+  label_el: "ΑΕΠ κατά κεφαλήν"
+  label_en: "GDP per capita"
+  unit: "EUR"
+  source: eurostat
+  dataset: nama_10r_2gdp
+  geo_level: nuts2
+  cadence: annual
+  always_on: true
+  themes: [Οικονομικό]
+- key: household_income_per_capita
+  label_el: "Διαθέσιμο εισόδημα νοικοκυριών κ.κ."
+  label_en: "Household disposable income per capita"
+  unit: "EUR"
+  source: eurostat
+  dataset: nama_10r_2hhinc
+  geo_level: nuts2
+  cadence: annual
+  always_on: false
+  themes: [Οικονομικό, Δικαιώματα/Κοινωνικό]
+- key: at_risk_of_poverty
+  label_el: "Κίνδυνος φτώχειας"
+  label_en: "At-risk-of-poverty rate"
+  unit: "%"
+  source: eurostat
+  dataset: ilc_peps11n
+  geo_level: nuts2
+  cadence: annual
+  always_on: false
+  themes: [Οικονομικό, Δικαιώματα/Κοινωνικό]
+- key: population
+  label_el: "Πληθυσμός"
+  label_en: "Population"
+  unit: "persons"
+  source: eurostat
+  dataset: demo_r_pjanaggr3
+  geo_level: nuts2
+  cadence: annual
+  always_on: true
+  themes: []
+- key: population_density
+  label_el: "Πυκνότητα πληθυσμού"
+  label_en: "Population density"
+  unit: "per km²"
+  source: eurostat
+  dataset: demo_r_d3dens
+  geo_level: nuts2
+  cadence: annual
+  always_on: false
+  themes: []
+- key: old_age_dependency
+  label_el: "Δείκτης γήρανσης"
+  label_en: "Old-age dependency ratio"
+  unit: "%"
+  source: eurostat
+  dataset: demo_r_pjanind3
+  geo_level: nuts2
+  cadence: annual
+  always_on: false
+  themes: [Δικαιώματα/Κοινωνικό]
+- key: tertiary_education
+  label_el: "Τριτοβάθμια εκπαίδευση (25–64)"
+  label_en: "Tertiary education attainment"
+  unit: "%"
+  source: eurostat
+  dataset: edat_lfse_04
+  geo_level: nuts2
+  cadence: annual
+  always_on: false
+  themes: [Εκπαίδευση]
+- key: early_school_leavers
+  label_el: "Πρόωρη εγκατάλειψη σχολείου"
+  label_en: "Early leavers from education"
+  unit: "%"
+  source: eurostat
+  dataset: edat_lfse_16
+  geo_level: nuts2
+  cadence: annual
+  always_on: false
+  themes: [Εκπαίδευση, Δικαιώματα/Κοινωνικό]
+- key: voice_accountability
+  label_el: "Λογοδοσία / Ελευθερία λόγου"
+  label_en: "Voice & Accountability (pctile)"
+  unit: "pctile"
+  source: worldbank
+  dataset: VA.PER.RNK
+  geo_level: national
+  cadence: annual
+  always_on: false
+  themes: [Πολιτικό/Θεσμικό, Αστυνομική Βία, Δικαιώματα/Κοινωνικό]
+- key: rule_of_law
+  label_el: "Κράτος δικαίου"
+  label_en: "Rule of Law (pctile)"
+  unit: "pctile"
+  source: worldbank
+  dataset: RL.PER.RNK
+  geo_level: national
+  cadence: annual
+  always_on: false
+  themes: [Πολιτικό/Θεσμικό, Αστυνομική Βία]
+- key: political_stability
+  label_el: "Πολιτική σταθερότητα"
+  label_en: "Political Stability (pctile)"
+  unit: "pctile"
+  source: worldbank
+  dataset: PV.PER.RNK
+  geo_level: national
+  cadence: annual
+  always_on: false
+  themes: [Πολιτικό/Θεσμικό, Αστυνομική Βία]
+- key: control_of_corruption
+  label_el: "Έλεγχος διαφθοράς"
+  label_en: "Control of Corruption (pctile)"
+  unit: "pctile"
+  source: worldbank
+  dataset: CC.PER.RNK
+  geo_level: national
+  cadence: annual
+  always_on: false
+  themes: [Πολιτικό/Θεσμικό]
+- key: gini_index
+  label_el: "Δείκτης Gini (ανισότητα)"
+  label_en: "Gini index"
+  unit: "index"
+  source: worldbank
+  dataset: SI.POV.GINI
+  geo_level: national
+  cadence: annual
+  always_on: false
+  themes: [Οικονομικό, Δικαιώματα/Κοινωνικό]
+- key: inflation_cpi
+  label_el: "Πληθωρισμός (ΔΤΚ)"
+  label_en: "Inflation, CPI"
+  unit: "%"
+  source: worldbank
+  dataset: FP.CPI.TOTL.ZG
+  geo_level: national
+  cadence: annual
+  always_on: true
+  themes: [Οικονομικό]
+- key: gdp_growth
+  label_el: "Ρυθμός ανάπτυξης ΑΕΠ"
+  label_en: "GDP growth"
+  unit: "%"
+  source: worldbank
+  dataset: NY.GDP.MKTP.KD.ZG
+  geo_level: national
+  cadence: annual
+  always_on: true
+  themes: [Οικονομικό]
