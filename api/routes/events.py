@@ -14,15 +14,21 @@ from zoneinfo import ZoneInfo
 from api.db import get_db
 from api.models import (
     ArticleSummary,
+    EventContextResponse,
     EventDetail,
     EventSummary,
     GeoJSONFeature,
     GeoJSONFeatureCollection,
     GeoJSONGeometry,
     GeoJSONProperties,
+    IndicatorValue,
     LocationPoint,
 )
+from api.routes.regions import latest_rows
 from api.temporal import derive_temporal_status
+from stats.catalog import load_catalog
+from stats.context import assemble
+from stats.crosswalk import canonical_region_name
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["events"])
@@ -321,4 +327,24 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         is_national=bool(row.is_national),
         classification_confidence=dict(row.classification_confidence) if row.classification_confidence else None,
         articles=articles,
+    )
+
+
+@router.get("/{event_id}/context", response_model=EventContextResponse)
+async def event_context(event_id: str, db: AsyncSession = Depends(get_db)) -> EventContextResponse:
+    row = (await db.execute(
+        text("SELECT region_code, thematic_fields FROM events WHERE id = :id"),
+        {"id": event_id},
+    )).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="event not found")
+    canonical = canonical_region_name(row[0])
+    codes = [c for c in [canonical, "GR"] if c]
+    value_rows = await latest_rows(db, codes) if codes else []
+    catalog = load_catalog()
+    always_on, thematic = assemble(catalog, value_rows, thematic_fields=list(row[1] or []))
+    return EventContextResponse(
+        region_code=canonical or "GR",
+        always_on=[IndicatorValue(**i) for i in always_on],
+        thematic=[IndicatorValue(**i) for i in thematic],
     )
