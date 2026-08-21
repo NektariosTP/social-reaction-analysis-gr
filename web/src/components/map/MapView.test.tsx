@@ -24,6 +24,7 @@ vi.mock("../../api/queries", () => ({
   }),
   usePeripheryBoundaries: () => ({ data: undefined }),
   useMunicipalityBoundaries: () => ({ data: undefined }),
+  useChoropleth: () => ({ data: undefined }),
 }));
 
 const feature: GeoJsonFeature = {

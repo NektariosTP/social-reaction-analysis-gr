@@ -5,9 +5,10 @@ import styles from "./ContextBlock.module.css";
 
 interface ContextBlockProps {
   regionCode: string | null;  // null ⇒ national
+  onSelectIndicator?: (key: string | null) => void;
 }
 
-export function ContextBlock({ regionCode }: ContextBlockProps) {
+export function ContextBlock({ regionCode, onSelectIndicator }: ContextBlockProps) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const { data, isLoading, isError } = useRegionIndicators(regionCode ?? "GR");
@@ -21,6 +22,21 @@ export function ContextBlock({ regionCode }: ContextBlockProps) {
   return (
     <div className={styles.block}>
       <div className={styles.header}>{title}</div>
+      {onSelectIndicator && items.length > 0 && (
+        <select
+          className={styles.picker}
+          aria-label={t("context.mapOverlay", "Show on map")}
+          defaultValue=""
+          onChange={(e) => onSelectIndicator(e.target.value || null)}
+        >
+          <option value="">{t("context.mapOverlayNone", "Map overlay: none")}</option>
+          {items.map((i) => (
+            <option key={i.key} value={i.key}>
+              {lang === "el" ? i.label_el : i.label_en}
+            </option>
+          ))}
+        </select>
+      )}
       {isLoading ? (
         <p className={styles.empty}>…</p>
       ) : isError || items.length === 0 ? (

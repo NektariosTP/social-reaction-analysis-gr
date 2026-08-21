@@ -41,6 +41,7 @@ export function MainView() {
   const { id: routeClusterId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [choroplethIndicator, setChoroplethIndicator] = useState<string | null>(null);
 
   const mode: "list" | "detail" = routeClusterId ? "detail" : "list";
   const mapSelectedId = previewId ?? routeClusterId ?? null;
@@ -130,6 +131,7 @@ export function MainView() {
             onSelectPeriphery={geo.selectPeriphery}
             onSelectMunicipality={geo.selectMunicipality}
             obstructedLeft={sidebarWidth}
+            choroplethIndicator={choroplethIndicator}
           />
         )}
         <MapLegend />
@@ -158,7 +160,10 @@ export function MainView() {
             />
           )}
 
-          <ContextBlock regionCode={geo.level === "none" ? null : geo.region ?? null} />
+          <ContextBlock
+            regionCode={geo.level === "none" ? null : geo.region ?? null}
+            onSelectIndicator={setChoroplethIndicator}
+          />
 
           {geo.level !== "none" && (
             <AreaBlock
