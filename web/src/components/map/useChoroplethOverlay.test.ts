@@ -48,13 +48,34 @@ describe("buildLabelExpression", () => {
 });
 
 describe("buildLabelPoints", () => {
+  const multiPolygonBoundary = (regionCode: string): GeoJSON.Feature => ({
+    type: "Feature",
+    properties: { region_code: regionCode },
+    geometry: {
+      type: "MultiPolygon",
+      coordinates: [
+        // small island, far off to the side — must NOT pull the anchor toward it
+        [[[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1], [0, 0]]],
+        // large main island: a 2x2 square centered at (10, 10)
+        [[[9, 9], [11, 9], [11, 11], [9, 11], [9, 9]]],
+      ],
+    },
+  });
+
   it("produces exactly one Point feature per periphery with a value, regardless of island count", () => {
     // South Aegean/Ionian Islands/Attica boundaries are MultiPolygons with dozens
     // of disjoint island parts; labels must not be placed once per island.
-    const fc = buildLabelPoints([
-      { region_code: "Attica", value: 10.5 },
-      { region_code: "South Aegean", value: 8.1 },
-    ]);
+    const boundaries: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: [multiPolygonBoundary("Attica"), multiPolygonBoundary("South Aegean")],
+    };
+    const fc = buildLabelPoints(
+      [
+        { region_code: "Attica", value: 10.5 },
+        { region_code: "South Aegean", value: 8.1 },
+      ],
+      boundaries,
+    );
     expect(fc.features).toHaveLength(2);
     expect(fc.features.every((f) => f.geometry.type === "Point")).toBe(true);
     expect(fc.features.map((f) => f.properties?.region_code).sort()).toEqual([
@@ -63,11 +84,48 @@ describe("buildLabelPoints", () => {
     ]);
   });
 
-  it("excludes peripheries with no value and unknown region codes", () => {
-    const fc = buildLabelPoints([
-      { region_code: "Attica", value: null },
-      { region_code: "Not A Real Region", value: 5 },
-    ]);
+  it("anchors the label at the centroid of the largest polygon part, not the small islands", () => {
+    const boundaries: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: [multiPolygonBoundary("Ionian Islands")],
+    };
+    const fc = buildLabelPoints([{ region_code: "Ionian Islands", value: 9.0 }], boundaries);
+    const [lon, lat] = (fc.features[0].geometry as GeoJSON.Point).coordinates;
+    expect(lon).toBeCloseTo(10, 5);
+    expect(lat).toBeCloseTo(10, 5);
+  });
+
+  it("keys off the boundary feature's own region_code — no separate lookup table to drift out of sync", () => {
+    const boundaries: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { region_code: "West Macedonia" },
+          geometry: {
+            type: "Polygon",
+            coordinates: [[[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]]],
+          },
+        },
+      ],
+    };
+    const fc = buildLabelPoints([{ region_code: "West Macedonia", value: 15.3 }], boundaries);
+    expect(fc.features).toHaveLength(1);
+    expect(fc.features[0].properties?.region_code).toBe("West Macedonia");
+  });
+
+  it("excludes peripheries with no value and boundary features with no matching value", () => {
+    const boundaries: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: [multiPolygonBoundary("Attica")],
+    };
+    const fc = buildLabelPoints(
+      [
+        { region_code: "Attica", value: null },
+        { region_code: "Not A Real Region", value: 5 },
+      ],
+      boundaries,
+    );
     expect(fc.features).toHaveLength(0);
   });
 });
