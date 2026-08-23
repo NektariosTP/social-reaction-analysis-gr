@@ -3,7 +3,6 @@ import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
 import { regionLabel } from "../../i18n/regions";
 import { formatRelativeTime } from "../../utils/time";
-import { MapView } from "../map";
 import { AxisTag, IntensityDots, Spinner, ErrorState } from "../common";
 import { EventContextPanel } from "../context/EventContextPanel";
 import { ClassificationTable } from "./ClassificationTable";
@@ -12,7 +11,6 @@ import { SourceBreakdown } from "./SourceBreakdown";
 import { ClusterTimeline } from "./ClusterTimeline";
 import { OfficialStatements } from "./OfficialStatements";
 import { RelatedClusters } from "./RelatedClusters";
-import type { GeoJsonFeature } from "../../client/types.gen";
 import styles from "./ClusterDetailContent.module.css";
 
 interface ClusterDetailContentProps {
@@ -27,25 +25,6 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
   if (isLoading) return <Spinner />;
   if (isError) return <ErrorState />;
   if (!event) return null;
-
-  const miniMapFeature: GeoJsonFeature[] =
-    event.lat != null && event.lon != null
-      ? [
-          {
-            geometry: { coordinates: [event.lon, event.lat] },
-            properties: {
-              id: event.id,
-              action_forms: event.action_forms,
-              thematic_fields: event.thematic_fields,
-              channel: event.channel,
-              intensity: event.intensity,
-              summary_en: event.summary_en,
-              article_count: event.article_count,
-              first_seen: event.first_seen,
-            },
-          },
-        ]
-      : [];
 
   return (
     <div className={styles.content}>
@@ -91,12 +70,6 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
       <div className={styles.section}>
         <OfficialStatements />
       </div>
-
-      {miniMapFeature.length > 0 && (
-        <div className={styles.miniMap}>
-          <MapView features={miniMapFeature} onSelectEvent={() => {}} />
-        </div>
-      )}
 
       <div className={styles.section}>
         <div className={styles.sectionLabel}>{t("cluster.classification")}</div>
