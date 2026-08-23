@@ -1,22 +1,54 @@
 import { describe, it, expect } from "vitest";
-import { buildChoroplethExpression } from "./useChoroplethOverlay";
+import {
+  buildChoroplethExpression,
+  buildLabelExpression,
+  formatChoroplethValue,
+} from "./useChoroplethOverlay";
 
-describe("buildChoroplethExpression", () => {
-  it("maps region_code to a match expression with a fallback", () => {
-    const expr = buildChoroplethExpression([
-      { region_code: "Attica", value: 10, period: "2023" },
-      { region_code: "Crete", value: 20, period: "2023" },
-    ]);
-    // ["match", ["get","region_code"], "Attica", <color>, "Crete", <color>, <fallback>]
-    expect(Array.isArray(expr)).toBe(true);
-    if (!Array.isArray(expr)) throw new Error("expected array");
-    expect(expr[0]).toBe("match");
-    expect(expr).toContain("Attica");
-    expect(expr).toContain("Crete");
-    expect(expr[expr.length - 1]).toBe("#cccccc"); // no-data fallback
+const NO_DATA = "#cccccc";
+
+describe("buildChoroplethExpression (rank-normalized)", () => {
+  it("returns a single NO_DATA color when there are no values", () => {
+    expect(buildChoroplethExpression([])).toBe(NO_DATA);
+    expect(buildChoroplethExpression([{ region_code: "Attica", value: null }])).toBe(NO_DATA);
   });
 
-  it("returns a flat fallback fill when there are no values", () => {
-    expect(buildChoroplethExpression([])).toEqual("#cccccc");
+  it("assigns distinct colors by rank for distinct values", () => {
+    const expr = buildChoroplethExpression([
+      { region_code: "A", value: 1 },
+      { region_code: "B", value: 5 },
+      { region_code: "C", value: 9 },
+    ]) as unknown[];
+    // ["match", ["get","region_code"], "A", cA, "B", cB, "C", cC, NO_DATA]
+    const cA = expr[3], cB = expr[5], cC = expr[7];
+    expect(cA).not.toBe(cB);
+    expect(cB).not.toBe(cC);
+    expect(expr[expr.length - 1]).toBe(NO_DATA);
+  });
+
+  it("does not flatten the field when one value is a large outlier", () => {
+    // rank spacing is even regardless of magnitude skew
+    const expr = buildChoroplethExpression([
+      { region_code: "A", value: 1 },
+      { region_code: "B", value: 2 },
+      { region_code: "C", value: 1000 },
+    ]) as unknown[];
+    expect(expr[3]).not.toBe(expr[5]); // A vs B still differ
+  });
+});
+
+describe("buildLabelExpression", () => {
+  it("maps region_code to a formatted value string", () => {
+    const expr = buildLabelExpression([{ region_code: "Attica", value: 10.5 }]) as unknown[];
+    expect(expr[0]).toBe("match");
+    expect(expr).toContain("Attica");
+    expect(expr).toContain("10.5");
+  });
+});
+
+describe("formatChoroplethValue", () => {
+  it("keeps at most one decimal and appends % only for percent units", () => {
+    expect(formatChoroplethValue(10.53, "%")).toBe("10.5%");
+    expect(formatChoroplethValue(20000, "EUR")).toBe("20,000");
   });
 });

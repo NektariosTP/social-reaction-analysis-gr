@@ -8,30 +8,65 @@ const RAMP = ["#f7fbff", "#c6dbef", "#6baed6", "#2171b5", "#08306b"];
 
 type ChoroplethExpression = string | unknown[];
 
-function color(value: number, min: number, max: number): string {
-  if (max <= min) return RAMP[2];
-  const idx = Math.min(RAMP.length - 1, Math.floor(((value - min) / (max - min)) * RAMP.length));
-  return RAMP[idx];
+/** Blend two "#rrggbb" colors; t in [0,1]. */
+function lerpColor(a: string, b: string, t: number): string {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const ch = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return "#" + ch.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
+/** Sequential ramp color at fraction f in [0,1]. */
+function rampColor(f: number): string {
+  const p = Math.max(0, Math.min(1, f)) * (RAMP.length - 1);
+  const lo = Math.floor(p);
+  if (lo >= RAMP.length - 1) return RAMP[RAMP.length - 1];
+  return lerpColor(RAMP[lo], RAMP[lo + 1], p - lo);
+}
+
+/** value → rank fraction in [0,1] over the distinct present values (ties share a rank). */
+function rankFractions(values: ChoroplethValue[]): Map<number, number> {
+  const distinct = [...new Set(values.filter((v) => v.value != null).map((v) => v.value as number))].sort(
+    (x, y) => x - y,
+  );
+  const out = new Map<number, number>();
+  distinct.forEach((v, i) => out.set(v, distinct.length === 1 ? 0.5 : i / (distinct.length - 1)));
+  return out;
 }
 
 export function buildChoroplethExpression(values: ChoroplethValue[]): ChoroplethExpression {
-  const nums = values.filter((v) => v.value != null).map((v) => v.value as number);
-  if (nums.length === 0) return NO_DATA;
-  const min = Math.min(...nums);
-  const max = Math.max(...nums);
+  const ranks = rankFractions(values);
+  if (ranks.size === 0) return NO_DATA;
   const expr: unknown[] = ["match", ["get", "region_code"]];
   for (const v of values) {
     if (v.value == null) continue;
-    expr.push(v.region_code, color(v.value, min, max));
+    expr.push(v.region_code, rampColor(ranks.get(v.value as number) ?? 0.5));
   }
   expr.push(NO_DATA);
   return expr as ChoroplethExpression;
 }
 
+export function formatChoroplethValue(value: number, unit?: string | null): string {
+  const num = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
+  return unit === "%" ? `${num}%` : num;
+}
+
+export function buildLabelExpression(values: ChoroplethValue[]): ChoroplethExpression {
+  const present = values.filter((v) => v.value != null);
+  if (present.length === 0) return "";
+  const expr: unknown[] = ["match", ["get", "region_code"]];
+  for (const v of present) {
+    expr.push(v.region_code, formatChoroplethValue(v.value as number, v.unit));
+  }
+  expr.push("");
+  return expr as ChoroplethExpression;
+}
+
 const SRC = "choropleth-src";
 const LAYER = "choropleth-fill";
+const LABEL_LAYER = "choropleth-label";
 
-/** Data-driven fill layer shading periphery boundaries by the selected indicator's latest value. */
+/** Data-driven fill + value labels shading periphery boundaries by the selected indicator. */
 export function useChoroplethOverlay(
   map: maplibregl.Map | null,
   styleLoaded: boolean,
@@ -43,6 +78,7 @@ export function useChoroplethOverlay(
   useEffect(() => {
     if (!map || !styleLoaded || !boundaries) return;
     if (!indicator) {
+      if (map.getLayer(LABEL_LAYER)) map.removeLayer(LABEL_LAYER);
       if (map.getLayer(LAYER)) map.removeLayer(LAYER);
       if (map.getSource(SRC)) map.removeSource(SRC);
       return;
@@ -51,10 +87,25 @@ export function useChoroplethOverlay(
       map.addSource(SRC, { type: "geojson", data: boundaries } as never);
       map.addLayer({
         id: LAYER, type: "fill", source: SRC,
-        paint: { "fill-opacity": 0.45, "fill-color": NO_DATA },
+        paint: { "fill-opacity": 0.55, "fill-color": NO_DATA },
+      } as never);
+      map.addLayer({
+        id: LABEL_LAYER, type: "symbol", source: SRC,
+        layout: {
+          "symbol-placement": "point",
+          "text-field": "",
+          "text-size": 13,
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        },
+        paint: {
+          "text-color": "#111111",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.5,
+        },
       } as never);
     }
-    const expr = buildChoroplethExpression(values?.values ?? []);
-    map.setPaintProperty(LAYER, "fill-color", expr as never);
+    const rows = values?.values ?? [];
+    map.setPaintProperty(LAYER, "fill-color", buildChoroplethExpression(rows) as never);
+    map.setLayoutProperty(LABEL_LAYER, "text-field", buildLabelExpression(rows) as never);
   }, [map, styleLoaded, boundaries, indicator, values]);
 }
