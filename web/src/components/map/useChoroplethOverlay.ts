@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type maplibregl from "maplibre-gl";
 import type { ChoroplethValue } from "../../client/types.gen";
 import { useChoropleth, usePeripheryBoundaries } from "../../api/queries";
+import { REGIONS } from "../../i18n/regions";
 
 const NO_DATA = "#cccccc";
 const RAMP = ["#f7fbff", "#c6dbef", "#6baed6", "#2171b5", "#08306b"];
@@ -62,9 +63,31 @@ export function buildLabelExpression(values: ChoroplethValue[]): ChoroplethExpre
   return expr as ChoroplethExpression;
 }
 
+/**
+ * One Point feature per periphery that has a value. Peripheries with disjoint
+ * island chains (South Aegean, Ionian Islands, Attica, ...) are MultiPolygons;
+ * a symbol layer with symbol-placement:"point" sourced from that polygon data
+ * places one label per constituent polygon (i.e. per island), not per feature.
+ * Labels are rendered from this dedicated point source instead, while the fill
+ * layer keeps shading the full polygon boundaries.
+ */
+export function buildLabelPoints(values: ChoroplethValue[]): GeoJSON.FeatureCollection {
+  const present = new Set(values.filter((v) => v.value != null).map((v) => v.region_code));
+  return {
+    type: "FeatureCollection",
+    features: REGIONS.filter((r) => present.has(r.en)).map((r) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: r.center },
+      properties: { region_code: r.en },
+    })),
+  };
+}
+
 const SRC = "choropleth-src";
+const LABEL_SRC = "choropleth-label-src";
 const LAYER = "choropleth-fill";
 const LABEL_LAYER = "choropleth-label";
+const EMPTY_POINTS: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /** Data-driven fill + value labels shading periphery boundaries by the selected indicator. */
 export function useChoroplethOverlay(
@@ -81,6 +104,7 @@ export function useChoroplethOverlay(
       if (map.getLayer(LABEL_LAYER)) map.removeLayer(LABEL_LAYER);
       if (map.getLayer(LAYER)) map.removeLayer(LAYER);
       if (map.getSource(SRC)) map.removeSource(SRC);
+      if (map.getSource(LABEL_SRC)) map.removeSource(LABEL_SRC);
       return;
     }
     if (!map.getSource(SRC)) {
@@ -89,10 +113,12 @@ export function useChoroplethOverlay(
         id: LAYER, type: "fill", source: SRC,
         paint: { "fill-opacity": 0.55, "fill-color": NO_DATA },
       } as never);
+    }
+    if (!map.getSource(LABEL_SRC)) {
+      map.addSource(LABEL_SRC, { type: "geojson", data: EMPTY_POINTS } as never);
       map.addLayer({
-        id: LABEL_LAYER, type: "symbol", source: SRC,
+        id: LABEL_LAYER, type: "symbol", source: LABEL_SRC,
         layout: {
-          "symbol-placement": "point",
           "text-field": "",
           "text-size": 13,
           "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
@@ -106,6 +132,7 @@ export function useChoroplethOverlay(
     }
     const rows = values?.values ?? [];
     map.setPaintProperty(LAYER, "fill-color", buildChoroplethExpression(rows) as never);
+    (map.getSource(LABEL_SRC) as maplibregl.GeoJSONSource).setData(buildLabelPoints(rows) as never);
     map.setLayoutProperty(LABEL_LAYER, "text-field", buildLabelExpression(rows) as never);
   }, [map, styleLoaded, boundaries, indicator, values]);
 }
