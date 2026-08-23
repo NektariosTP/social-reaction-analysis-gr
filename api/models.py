@@ -171,3 +171,14 @@ class ChoroplethValue(BaseModel):
 class ChoroplethResponse(BaseModel):
     indicator: str
     values: list[ChoroplethValue] = []
+
+
+class IndicatorCatalogEntry(BaseModel):
+    key: str
+    label_el: str
+    label_en: str
+    unit: str | None = None
+
+
+class IndicatorCatalogResponse(BaseModel):
+    indicators: list[IndicatorCatalogEntry] = []

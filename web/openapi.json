@@ -622,6 +622,28 @@
           }
         }
       }
+    },
+    "/stats/indicators": {
+      "get": {
+        "tags": [
+          "regions"
+        ],
+        "summary": "Indicator Catalog",
+        "description": "Choropleth-capable (periphery-varying) indicators for the map overlay picker.",
+        "operationId": "indicator_catalog_stats_indicators_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorCatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1456,6 +1478,54 @@
           "db"
         ],
         "title": "HealthResponse"
+      },
+      "IndicatorCatalogEntry": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label_el": {
+            "type": "string",
+            "title": "Label El"
+          },
+          "label_en": {
+            "type": "string",
+            "title": "Label En"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label_el",
+          "label_en"
+        ],
+        "title": "IndicatorCatalogEntry"
+      },
+      "IndicatorCatalogResponse": {
+        "properties": {
+          "indicators": {
+            "items": {
+              "$ref": "#/components/schemas/IndicatorCatalogEntry"
+            },
+            "type": "array",
+            "title": "Indicators",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "IndicatorCatalogResponse"
       },
       "IndicatorValue": {
         "properties": {

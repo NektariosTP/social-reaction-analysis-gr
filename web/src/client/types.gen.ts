@@ -432,6 +432,38 @@ export type HealthResponse = {
 };
 
 /**
+ * IndicatorCatalogEntry
+ */
+export type IndicatorCatalogEntry = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Label El
+     */
+    label_el: string;
+    /**
+     * Label En
+     */
+    label_en: string;
+    /**
+     * Unit
+     */
+    unit?: string | null;
+};
+
+/**
+ * IndicatorCatalogResponse
+ */
+export type IndicatorCatalogResponse = {
+    /**
+     * Indicators
+     */
+    indicators?: Array<IndicatorCatalogEntry>;
+};
+
+/**
  * IndicatorValue
  */
 export type IndicatorValue = {
@@ -902,3 +934,19 @@ export type ChoroplethStatsChoroplethGetResponses = {
 };
 
 export type ChoroplethStatsChoroplethGetResponse = ChoroplethStatsChoroplethGetResponses[keyof ChoroplethStatsChoroplethGetResponses];
+
+export type IndicatorCatalogStatsIndicatorsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/stats/indicators';
+};
+
+export type IndicatorCatalogStatsIndicatorsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: IndicatorCatalogResponse;
+};
+
+export type IndicatorCatalogStatsIndicatorsGetResponse = IndicatorCatalogStatsIndicatorsGetResponses[keyof IndicatorCatalogStatsIndicatorsGetResponses];

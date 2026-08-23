@@ -40,3 +40,15 @@ async def test_region_indicators_endpoint(client):
     body = resp.json()
     assert body["region_code"] == "Attica"
     assert body["always_on"] == [] and body["thematic"] == []
+
+
+async def test_indicator_catalog_lists_only_nuts2(client):
+    resp = await client.get("/stats/indicators")
+    assert resp.status_code == 200
+    keys = {i["key"] for i in resp.json()["indicators"]}
+    # periphery-varying (eurostat/nuts2) indicators are present …
+    assert "unemployment_rate" in keys
+    assert "gdp_per_capita" in keys
+    # … and national (worldbank) indicators are excluded
+    assert "gdp_growth" not in keys
+    assert "inflation_cpi" not in keys

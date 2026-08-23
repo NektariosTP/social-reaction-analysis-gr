@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db import get_db
 from api.models import (
-    ChoroplethResponse, ChoroplethValue, IndicatorValue, RegionIndicatorsResponse,
+    ChoroplethResponse, ChoroplethValue, IndicatorCatalogEntry, IndicatorCatalogResponse,
+    IndicatorValue, RegionIndicatorsResponse,
 )
 from stats.catalog import load_catalog
 from stats.context import assemble
@@ -60,3 +61,16 @@ async def choropleth(
     """), {"indicator": indicator})
     values = [ChoroplethValue(region_code=r[0], value=r[1], period=r[2]) for r in result.all()]
     return ChoroplethResponse(indicator=indicator, values=values)
+
+
+@router.get("/stats/indicators", response_model=IndicatorCatalogResponse)
+async def indicator_catalog() -> IndicatorCatalogResponse:
+    """Choropleth-capable (periphery-varying) indicators for the map overlay picker."""
+    entries = [
+        IndicatorCatalogEntry(
+            key=s.key, label_el=s.label_el, label_en=s.label_en, unit=s.unit
+        )
+        for s in load_catalog()
+        if s.geo_level == "nuts2"
+    ]
+    return IndicatorCatalogResponse(indicators=entries)
