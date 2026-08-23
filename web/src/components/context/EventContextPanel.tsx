@@ -15,9 +15,13 @@ export function EventContextPanel({ eventId }: EventContextPanelProps) {
   const { data, isLoading } = useEventContext(eventId);
   if (isLoading || !data) return null;
 
+  const all = [...(data.always_on ?? []), ...(data.thematic ?? [])];
+  const periphery = all.filter((i) => i.source === "eurostat");
+  const national = all.filter((i) => i.source === "worldbank");
+
   const groups: [string, IndicatorValue[]][] = [
-    [t("context.general", "Regional context"), data.always_on ?? []],
-    [t("context.thematic", "Related to this event"), data.thematic ?? []],
+    [`${t("context.peripherySpecific", "Periphery-specific")} — ${data.region_code}`, periphery],
+    [t("context.nationalGreece", "National — Greece"), national],
   ];
 
   return (
@@ -25,9 +29,7 @@ export function EventContextPanel({ eventId }: EventContextPanelProps) {
       {groups.map(([heading, items]) =>
         items.length === 0 ? null : (
           <div key={heading} className={sectionStyles.section}>
-            <div className={sectionStyles.sectionLabel}>
-              {heading} — {data.region_code}
-            </div>
+            <div className={sectionStyles.sectionLabel}>{heading}</div>
             <ul className={styles.list}>
               {items.map((i) => (
                 <li key={i.key} className={styles.row}>
