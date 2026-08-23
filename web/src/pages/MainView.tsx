@@ -8,7 +8,7 @@ import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, AreaBlock, ContextBlock } from "../components/shell";
+import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, ContextBlock } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import type { Region } from "../i18n/regions";
 import { regionLabel } from "../i18n/regions";
@@ -162,21 +162,22 @@ export function MainView() {
 
           <ContextBlock
             regionCode={geo.level === "none" ? null : geo.region ?? null}
-            onSelectIndicator={setChoroplethIndicator}
-          />
-
-          {geo.level !== "none" && (
-            <AreaBlock
-              title={
-                geo.level === "municipality"
+            title={
+              geo.level === "none"
+                ? undefined
+                : geo.level === "municipality"
                   ? `${geo.municipality} — ${regionLabel(geo.region!, lang)}`
                   : regionLabel(geo.region!, lang)
-              }
-              events={filteredEvents}
-              loading={eventsQuery.isLoading}
-              onClose={geo.level === "municipality" ? geo.clearMunicipality : geo.clear}
-            />
-          )}
+            }
+            onClose={
+              geo.level === "none"
+                ? undefined
+                : geo.level === "municipality"
+                  ? geo.clearMunicipality
+                  : geo.clear
+            }
+            onSelectIndicator={setChoroplethIndicator}
+          />
 
           <div className={styles.editorialBlock}>
             <EditorialBlock

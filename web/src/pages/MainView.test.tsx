@@ -28,6 +28,7 @@ vi.mock("../api/queries", () => ({
   useUpcomingEvents: () => ({ data: [], isLoading: false, isError: false }),
   useEvent: () => ({ data: undefined, isLoading: true, isError: false }),
   useRegionIndicators: () => ({ data: { region_code: "GR", always_on: [], thematic: [] }, isLoading: false, isError: false }),
+  useIndicatorCatalog: () => ({ data: { indicators: [] } }),
   applyClientFilters: (entities: unknown[]) => entities,
   partitionByNational: (events: { is_national?: boolean }[]) => ({
     panhellenic: events.filter((e) => e.is_national),

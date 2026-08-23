@@ -6,6 +6,7 @@ import {
   eventsGeojsonEventsGeojsonGet,
   getEventEventsEventIdGet,
   getStatsStatsGet,
+  indicatorCatalogStatsIndicatorsGet,
   listEventsEventsGet,
   listMunicipalitiesBoundariesMunicipalitiesGet,
   listPeripheriesBoundariesPeripheriesGet,
@@ -222,5 +223,14 @@ export function useChoropleth(indicator: string | null) {
     queryKey: ["choropleth", indicator],
     queryFn: () => unwrap(choroplethStatsChoroplethGet({ query: { indicator: indicator! } })),
     enabled: !!indicator,
+  });
+}
+
+/** Periphery-varying indicators for the map overlay picker. */
+export function useIndicatorCatalog() {
+  return useQuery({
+    queryKey: ["indicator-catalog"],
+    queryFn: () => unwrap(indicatorCatalogStatsIndicatorsGet({})),
+    staleTime: Infinity,
   });
 }

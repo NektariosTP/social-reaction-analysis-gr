@@ -10,6 +10,9 @@
   font-size: 12px;
   margin-bottom: var(--space-2);
   color: var(--color-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .picker {
@@ -71,4 +74,20 @@
   margin-top: var(--space-2);
   font-size: 10px;
   color: var(--color-text-muted);
+}
+
+.groupLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  margin: 0.5rem 0 0.15rem;
+}
+.close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
 }
