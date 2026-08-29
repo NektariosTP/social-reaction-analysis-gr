@@ -74,6 +74,16 @@ def embed_texts(
     return out
 
 
+def embed_query(text: str) -> np.ndarray:
+    """Embed a single short text into one L2-normalized vector.
+
+    Reuses the cached model and the same chunk+mean-pool path as embed_texts,
+    so reaction text lands in the same space as article/event centroids.
+    """
+    model = _load_model()
+    return embed_texts(model, [text])[0]
+
+
 async def embed_articles(session: AsyncSession) -> int:
     """Embed all articles where embedding IS NULL. Returns count of newly embedded rows."""
     result = await session.execute(
