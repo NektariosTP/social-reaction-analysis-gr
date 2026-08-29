@@ -1,0 +1,26 @@
+# Union statement feeds verified live (see docs/union-reactions-spec.md source table).
+- org_slug: genop_dei
+  actor_name: "ΓΕΝΟΠ/ΔΕΗ"
+  feed_url: "https://genop.gr/feed/"
+  feed_format: rss
+  tier: ready
+- org_slug: pame
+  actor_name: "ΠΑΜΕ"
+  feed_url: "https://pamehellas.gr/feed"
+  feed_format: rss
+  tier: ready
+- org_slug: adedy
+  actor_name: "ΑΔΕΔΥ"
+  feed_url: "https://adedy.gr/feed/"
+  feed_format: rss
+  tier: ready
+- org_slug: poedhn
+  actor_name: "ΠΟΕΔΗΝ"
+  feed_url: "https://poedhn.gr/anakoinoseis/itemlist?format=feed&moduleID=104"
+  feed_format: rss
+  tier: ready
+- org_slug: oikodomon
+  actor_name: "Ομοσπονδία Οικοδόμων Ελλάδας"
+  feed_url: "https://omospondiaoikodomon.gr/feed/"
+  feed_format: rss
+  tier: ready
