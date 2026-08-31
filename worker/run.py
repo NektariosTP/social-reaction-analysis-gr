@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import (
 from enrich.pipeline import run_enrich_pipeline
 from ingestion.run import run_ingestion
 from nlp.pipeline import run_nlp_pipeline
+from reactions.pipeline import run_reactions_pipeline
 from worker.archival import run_archival_sweep
 from worker.config import settings
 
@@ -50,6 +51,12 @@ async def run_worker_cycle(engine: AsyncEngine) -> dict[str, object]:
             metrics["enrich"] = await run_enrich_pipeline(engine=engine)
         except Exception:
             logger.exception("[worker] enrich phase failed")
+
+    if settings.pipeline_mode in ("scrape_and_nlp", "full"):
+        try:
+            metrics["reactions"] = await run_reactions_pipeline(engine=engine)
+        except Exception:
+            logger.exception("[worker] reactions phase failed")
 
     session_factory = _make_session_factory(engine)
     try:
