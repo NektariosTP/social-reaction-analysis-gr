@@ -1,6 +1,11 @@
 # Top Greek cities and region capitals — static lat/lon lookup.
 # Used as fallback for geocoding (zero-network, instant).
+# Entry key = surface form matched in text (word-boundary + Greek inflection);
+# optional `name` = display label. Named venues carry their OWN point, not their city's.
 "Αθήνα":     {lat: 37.9838,  lon: 23.7275}
+# ΔΕΘ (Thessaloniki International Fair / HELEXPO) — its own venue point, listed before the
+# city so a "ΔΕΘ" mention resolves to the fairgrounds rather than the generic city centroid.
+"ΔΕΘ":       {lat: 40.6264,  lon: 22.9540, name: "Διεθνής Έκθεση Θεσσαλονίκης (ΔΕΘ)"}
 "Θεσσαλονίκη": {lat: 40.6401,  lon: 22.9444}
 "Πάτρα":     {lat: 38.2466,  lon: 21.7346}
 "Ηράκλειο":  {lat: 35.3387,  lon: 25.1442}

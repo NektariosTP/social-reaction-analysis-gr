@@ -56,20 +56,34 @@ class _LlmLocations(BaseModel):
     locations: list[LocationMention]
 
 
+# Trailing Greek-letter run so a nominative key still matches its inflected forms
+# (e.g. "θεσσαλονίκη" → "θεσσαλονίκης"). ς is within α-ω; accented vowels listed explicitly.
+_GREEK_SUFFIX = "[α-ωάέήίόύώϊϋΐΰ]*"
+
+
 @lru_cache(maxsize=1)
-def _load_gazetteer() -> dict[str, dict[str, float]]:
-    raw: dict[str, dict[str, float]] = yaml.safe_load(_GAZETTEER_PATH.read_text(encoding="utf-8"))
-    return {name.lower(): data for name, data in (raw or {}).items()}
+def _load_gazetteer() -> list[tuple[re.Pattern[str], float, float, str]]:
+    """Compile each entry once into (word-boundary pattern, lat, lon, display_name).
+
+    The YAML key is the surface form matched in text; optional `name` is the display
+    label (defaults to the key). Leading \\b rejects mid-word hits (e.g. 'δεθ' inside
+    'συνδεθείτε'); the trailing suffix keeps inflected matches.
+    """
+    raw: dict[str, dict] = yaml.safe_load(_GAZETTEER_PATH.read_text(encoding="utf-8")) or {}
+    entries: list[tuple[re.Pattern[str], float, float, str]] = []
+    for key, data in raw.items():
+        pattern = re.compile(r"\b" + re.escape(key.lower()) + _GREEK_SUFFIX)
+        display = data.get("name") or key
+        entries.append((pattern, float(data["lat"]), float(data["lon"]), display))
+    return entries
 
 
 def lookup_gazetteer(text: str) -> GeocodeResult | None:
     """Return first gazetteer match found in text, or None."""
-    gazetteer = _load_gazetteer()
     text_lower = text.lower()
-    for name, coords in gazetteer.items():
-        if name in text_lower:
-            city_name = name.title()
-            return GeocodeResult(lat=coords["lat"], lon=coords["lon"], location_name=city_name, city=city_name)
+    for pattern, lat, lon, display in _load_gazetteer():
+        if pattern.search(text_lower):
+            return GeocodeResult(lat=lat, lon=lon, location_name=display, city=display)
     return None
 
 
