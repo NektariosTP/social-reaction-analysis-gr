@@ -49,6 +49,8 @@ class EventSummary(BaseModel):
     event_time: datetime | None = None
     temporal_status: str | None = None
     is_national: bool = False
+    announced_by: str | None = None
+    participating_unions: list[str] = []
 
 
 class EventDetail(EventSummary):

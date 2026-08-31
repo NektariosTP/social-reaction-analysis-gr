@@ -224,6 +224,14 @@ export type EventDetail = {
      */
     is_national?: boolean;
     /**
+     * Announced By
+     */
+    announced_by?: string | null;
+    /**
+     * Participating Unions
+     */
+    participating_unions?: Array<string>;
+    /**
      * Classification Confidence
      */
     classification_confidence?: {
@@ -315,6 +323,14 @@ export type EventSummary = {
      * Is National
      */
     is_national?: boolean;
+    /**
+     * Announced By
+     */
+    announced_by?: string | null;
+    /**
+     * Participating Unions
+     */
+    participating_unions?: Array<string>;
 };
 
 /**

@@ -73,7 +73,7 @@ async def _fetch_events(
     limit: int = 50,
     offset: int = 0,
 ) -> list[Row[Any]]:
-    conditions = ["status = 'enriched'"]
+    conditions = ["status IN ('enriched', 'announced')"]
     params: dict[str, Any] = {"limit": limit, "offset": offset}
 
     if action_form:
@@ -128,7 +128,12 @@ async def _fetch_events(
             f"ST_Y(primary_location::geometry) AS lat, "
             f"ST_X(primary_location::geometry) AS lon, "
             f"region_code, municipality, article_count, source_count, first_seen, last_seen, status, "
-            f"event_time, is_national "
+            f"event_time, is_national, "
+            f"(SELECT array_agg(u.actor_name ORDER BY u.first_seen) FROM ("
+            f"   SELECT r.actor_name, MIN(r.observed_at) AS first_seen"
+            f"   FROM event_reactions r WHERE r.event_id = events.id"
+            f"   GROUP BY r.actor_name"
+            f" ) u) AS participating_unions /* [0] is announced_by, Python-derived */ "
             f"FROM events WHERE {where} "
             f"ORDER BY {_ORDER_BY_SQL[order_by]} "
             f"LIMIT :limit OFFSET :offset"
@@ -147,6 +152,11 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] |
             "ST_X(primary_location::geometry) AS lon, "
             "region_code, municipality, article_count, source_count, first_seen, last_seen, status, "
             "event_time, is_national, "
+            "(SELECT array_agg(u.actor_name ORDER BY u.first_seen) FROM ("
+            "   SELECT r.actor_name, MIN(r.observed_at) AS first_seen"
+            "   FROM event_reactions r WHERE r.event_id = events.id"
+            "   GROUP BY r.actor_name"
+            " ) u) AS participating_unions, /* [0] is announced_by, Python-derived */ "
             "classification_confidence "
             "FROM events WHERE id = :id"
         ),
@@ -253,6 +263,8 @@ async def list_events(
             event_time=r.event_time,
             temporal_status=derive_temporal_status(r.event_time, now),
             is_national=bool(r.is_national),
+            participating_unions=list(getattr(r, "participating_unions", None) or []),
+            announced_by=(list(getattr(r, "participating_unions", None) or []) or [None])[0],
         )
         for r in rows
     ]
@@ -325,6 +337,8 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         event_time=row.event_time,
         temporal_status=derive_temporal_status(row.event_time, now),
         is_national=bool(row.is_national),
+        participating_unions=list(getattr(row, "participating_unions", None) or []),
+        announced_by=(list(getattr(row, "participating_unions", None) or []) or [None])[0],
         classification_confidence=dict(row.classification_confidence) if row.classification_confidence else None,
         articles=articles,
     )

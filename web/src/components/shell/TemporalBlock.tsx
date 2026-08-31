@@ -38,6 +38,16 @@ function TemporalEventRow({
       onClick={() => onSelect(event.id)}
     >
       <span className={styles.rowChip}>{chip}</span>
+      {event.announced_by && (
+        <span className={styles.rowChip} data-announced>
+          📣 {event.announced_by}
+          {event.participating_unions && event.participating_unions.length > 1 && (
+            <> · joined by {event.participating_unions.slice(1, 3).join(", ")}
+              {event.participating_unions.length > 3
+                ? ` +${event.participating_unions.length - 3}` : ""}</>
+          )}
+        </span>
+      )}
       <span className={styles.rowSummary}>{summary}</span>
     </button>
   );

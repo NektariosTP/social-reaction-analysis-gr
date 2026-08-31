@@ -20,7 +20,7 @@ from enrich.geocode import canonical_region_names
 router = APIRouter(dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="admin/templates")
 
-ALL_STATUSES = ["detected", "pending_review", "enriched", "archived", "closed", "rejected"]
+ALL_STATUSES = ["detected", "pending_review", "enriched", "announced", "archived", "closed", "rejected"]
 _ATHENS = ZoneInfo("Europe/Athens")
 
 
