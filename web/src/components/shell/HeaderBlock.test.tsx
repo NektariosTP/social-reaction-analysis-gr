@@ -15,7 +15,6 @@ function setup(overrides: Partial<React.ComponentProps<typeof HeaderBlock>> = {}
   const props = {
     searchQuery: "",
     onSearchChange: vi.fn(),
-    onSelectRegion: vi.fn(),
     filters: baseFilters,
     onToggleFilterValue: vi.fn(),
     onSetFilters: vi.fn(),
@@ -26,54 +25,10 @@ function setup(overrides: Partial<React.ComponentProps<typeof HeaderBlock>> = {}
 }
 
 describe("HeaderBlock", () => {
-  it("shows the Browse by region option (not region chips directly) on search focus", () => {
-    setup();
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
-    expect(screen.getByText("Browse by region")).toBeInTheDocument();
-    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
-  });
-
-  it("drills into region chips when Browse by region is clicked, with a back control", () => {
-    setup();
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
-    fireEvent.click(screen.getByText("Browse by region"));
-    expect(screen.getByText("Attica")).toBeInTheDocument();
-    expect(screen.getByText("‹ Back")).toBeInTheDocument();
-  });
-
-  it("returns to the options list when Back is clicked", () => {
-    setup();
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
-    fireEvent.click(screen.getByText("Browse by region"));
-    fireEvent.click(screen.getByText("‹ Back"));
-    expect(screen.getByText("Browse by region")).toBeInTheDocument();
-    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
-  });
-
-  it("calls onSelectRegion and collapses when a region shortcut is clicked", () => {
-    const props = setup();
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
-    fireEvent.click(screen.getByText("Browse by region"));
-    fireEvent.click(screen.getByText("Crete"));
-    expect(props.onSelectRegion).toHaveBeenCalledWith(expect.objectContaining({ en: "Crete" }));
-    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
-  });
-
-  it("resets to the options view each time the search panel is reopened", () => {
-    setup();
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
-    fireEvent.click(screen.getByText("Browse by region"));
-    fireEvent.click(screen.getByText(/filters/i));
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
-    expect(screen.getByText("Browse by region")).toBeInTheDocument();
-    expect(screen.queryByText("Attica")).not.toBeInTheDocument();
-  });
-
   it("expands the filter panel and closes the search panel if it was open", () => {
     setup();
     fireEvent.focus(screen.getByPlaceholderText(/search/i));
     fireEvent.click(screen.getByText(/filters/i));
-    expect(screen.queryByText("Browse by region")).not.toBeInTheDocument();
     expect(screen.getByText("Clear")).toBeInTheDocument();
   });
 
@@ -98,20 +53,18 @@ describe("HeaderBlock", () => {
     fireEvent.click(screen.getByText("Save"));
     expect(screen.queryByText("Clear")).not.toBeInTheDocument();
   });
-});
 
   it("closes the filter popup when clicking outside the header block", () => {
     render(
       <div>
         <div data-testid="outside">outside</div>
-        <HeaderBlock {...{
-          searchQuery: "",
-          onSearchChange: vi.fn(),
-          onSelectRegion: vi.fn(),
-          filters: baseFilters,
-          onToggleFilterValue: vi.fn(),
-          onSetFilters: vi.fn(),
-        }} />
+        <HeaderBlock
+          searchQuery=""
+          onSearchChange={vi.fn()}
+          filters={baseFilters}
+          onToggleFilterValue={vi.fn()}
+          onSetFilters={vi.fn()}
+        />
       </div>,
     );
     fireEvent.click(screen.getByText(/filters/i));
@@ -139,6 +92,6 @@ describe("HeaderBlock", () => {
     const props = setup({ searchQuery: "athens" });
     fireEvent.focus(screen.getByPlaceholderText(/search/i));
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByText("Browse by region")).not.toBeInTheDocument();
     expect(props.onSearchChange).not.toHaveBeenCalled();
   });
+});

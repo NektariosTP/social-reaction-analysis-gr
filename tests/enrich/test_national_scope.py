@@ -36,5 +36,4 @@ async def test_national_with_named_venue_keeps_venue() -> None:
             nominatim_url="http://test-nominatim",
         )
     assert results  # venue pin wins, national scope doesn't suppress a real venue
-    assert results[0].region_code == "Attica"
     assert results[0].location_name == "Προπύλαια"

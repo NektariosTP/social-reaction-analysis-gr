@@ -27,8 +27,6 @@ vi.mock("../api/queries", () => ({
   useOngoingEvents: () => ({ data: [], isLoading: false, isError: false }),
   useUpcomingEvents: () => ({ data: [], isLoading: false, isError: false }),
   useEvent: () => ({ data: undefined, isLoading: true, isError: false }),
-  useRegionIndicators: () => ({ data: { region_code: "GR", always_on: [], thematic: [] }, isLoading: false, isError: false }),
-  useIndicatorCatalog: () => ({ data: { indicators: [] } }),
   applyClientFilters: (entities: unknown[]) => entities,
   partitionByNational: (events: { is_national?: boolean }[]) => ({
     panhellenic: events.filter((e) => e.is_national),
@@ -95,15 +93,5 @@ describe("MainView temporal block", () => {
   it("hides the temporal block in detail mode", () => {
     renderMainView("/cluster/evt-1");
     expect(screen.queryByRole("button", { name: /upcoming/i })).not.toBeInTheDocument();
-  });
-});
-
-describe("MainView geographic drill-down", () => {
-  it("shows the area block when a periphery is selected in the URL", async () => {
-    renderMainView("/?region=Attica");
-    // ContextBlock also renders the region name as its header, so scope to
-    // the AreaBlock specifically via its unique close button.
-    expect(await screen.findByRole("button", { name: "Close area view" })).toBeInTheDocument();
-    expect(screen.getAllByText("Attica").length).toBeGreaterThan(0);
   });
 });

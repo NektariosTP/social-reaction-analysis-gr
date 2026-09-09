@@ -40,7 +40,6 @@ async def test_tehran_marked_foreign() -> None:
             nominatim_url="http://test-nominatim",
         )
     assert results and results[0].is_foreign is True
-    assert results[0].region_code is None
 
 
 @respx.mock
@@ -64,7 +63,6 @@ async def test_llm_flagged_foreign_skips_nominatim() -> None:
     assert results and results[0].is_foreign is True
     assert results[0].lat is None
     assert results[0].lon is None
-    assert results[0].region_code is None
 
 
 async def test_embassy_maps_to_athens_and_is_domestic() -> None:
@@ -79,7 +77,6 @@ async def test_embassy_maps_to_athens_and_is_domestic() -> None:
         )
     assert results
     assert results[0].is_foreign is False
-    assert results[0].region_code == "Attica"
 
 
 def test_lookup_embassy_known() -> None:

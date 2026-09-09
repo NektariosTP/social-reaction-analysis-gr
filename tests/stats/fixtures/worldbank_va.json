@@ -1,7 +1,0 @@
-[
-  {"page": 1, "pages": 1, "total": 2},
-  [
-    {"indicator": {"id": "VA.PER.RNK"}, "countryiso3code": "GRC", "date": "2023", "value": 71.2},
-    {"indicator": {"id": "VA.PER.RNK"}, "countryiso3code": "GRC", "date": "2022", "value": null}
-  ]
-]

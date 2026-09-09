@@ -36,11 +36,6 @@ vi.mock("../../api/queries", () => ({
     isLoading: false,
     isError: false,
   })),
-  useEventContext: () => ({
-    data: { region_code: "GR", always_on: [], thematic: [] },
-    isLoading: false,
-    isError: false,
-  }),
 }));
 
 vi.mock("../map", () => ({ MapView: () => <div className="maplibregl-map" data-testid="mini-map" /> }));
@@ -60,7 +55,7 @@ describe("ClusterDetailContent", () => {
       data: locatedEvent,
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof useEvent>);
+    } as unknown as ReturnType<typeof useEvent>);
     const { container } = render(
       <MemoryRouter>
         <ClusterDetailContent eventId="evt-1" />

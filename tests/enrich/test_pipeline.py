@@ -138,7 +138,7 @@ async def test_enrich_event_proceeds_when_not_noise() -> None:
     assert "status = 'pending_review'" in str(update_call[0][0])
 
 
-async def test_enrich_event_persists_municipality_and_passes_session_to_geocode() -> None:
+async def test_enrich_event_passes_session_to_geocode() -> None:
     session = AsyncMock()
     art_result = MagicMock()
     art_result.all.return_value = [("Τίτλος 1", "Σώμα 1", datetime(2026, 8, 9, 10, 0))]
@@ -148,8 +148,6 @@ async def test_enrich_event_persists_municipality_and_passes_session_to_geocode(
         lat=37.9755,
         lon=23.7348,
         location_name="Σύνταγμα",
-        region_code="Attica",
-        municipality="Δήμος Αθηναίων",
         is_primary=True,
         city="Αθήνα",
     )
@@ -191,11 +189,11 @@ async def test_enrich_event_persists_municipality_and_passes_session_to_geocode(
 
     assert mock_geocode.call_args.kwargs["session"] is session
     update_call = [c for c in session.execute.call_args_list if "UPDATE events" in str(c.args[0])][0]
-    assert update_call.args[1]["municipality"] == "Δήμος Αθηναίων"
+    assert update_call.args[1]["lat"] == 37.9755
     insert_call = [
         c for c in session.execute.call_args_list if "INSERT INTO event_locations" in str(c.args[0])
     ][0]
-    assert insert_call.args[1]["municipality"] == "Δήμος Αθηναίων"
+    assert insert_call.args[1]["location_name"] == "Σύνταγμα"
 
 
 async def test_enrich_event_persists_event_time_from_summary() -> None:
@@ -307,8 +305,7 @@ async def test_enrich_event_local_located_persists_is_national_false() -> None:
     session.execute = AsyncMock(return_value=art_result)
 
     geo_result = MagicMock(
-        lat=35.34, lon=25.13, location_name="Ηράκλειο", region_code="Crete",
-        municipality="Δήμος Ηρακλείου", is_primary=True, city="Ηράκλειο",
+        lat=35.34, lon=25.13, location_name="Ηράκλειο", is_primary=True, city="Ηράκλειο",
     )
 
     with (

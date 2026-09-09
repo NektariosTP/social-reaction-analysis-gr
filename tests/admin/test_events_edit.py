@@ -40,13 +40,10 @@ def _valid_form() -> dict[str, object]:
         "status": "enriched",
         "summary_el": "Περίληψη",
         "summary_en": "Summary",
-        "region_code": "",
-        "region_code_original": "",
         "lat": "37.98",
         "lon": "23.72",
         "event_time": "",
         # is_national omitted -> unchecked
-        "municipality": "",
     }
 
 
@@ -91,11 +88,7 @@ async def test_edit_event_submit_rejects_invalid_axis_value(client) -> None:
     detail_result.first.return_value = MagicMock(status="pending_review", event_time=None)
     empty_result = MagicMock()
     empty_result.all.return_value = []
-    muni_result = MagicMock()
-    muni_result.scalars.return_value.all.return_value = []
-    mock_session.execute = AsyncMock(
-        side_effect=[detail_result, empty_result, empty_result, muni_result]
-    )
+    mock_session.execute = AsyncMock(side_effect=[detail_result, empty_result, empty_result])
 
     form = _valid_form()
     form["action_forms"] = ["Not a real axis value"]
@@ -111,17 +104,15 @@ async def test_edit_event_form_renders_new_fields(client):
     detail.first.return_value = MagicMock(
         id="evt-1", action_forms=[], thematic_fields=[], channel="Φυσικό (offline)",
         intensity="Ειρηνική", summary_el="", summary_en="", classification_confidence=None,
-        lat=37.98, lon=23.72, region_code="Attica", article_count=1, source_count=1,
+        lat=37.98, lon=23.72, article_count=1, source_count=1,
         first_seen=None, last_seen=None, status="pending_review",
-        event_time=None, is_national=False, municipality="Αθηναίων",
+        event_time=None, is_national=False,
     )
     locations = MagicMock()
     locations.all.return_value = []
     articles = MagicMock()
     articles.all.return_value = []
-    muni_names = MagicMock()
-    muni_names.scalars.return_value.all.return_value = ["Αθηναίων", "Θεσσαλονίκης"]
-    mock_session.execute = AsyncMock(side_effect=[detail, locations, articles, muni_names])
+    mock_session.execute = AsyncMock(side_effect=[detail, locations, articles])
 
     resp = await c.get("/events/evt-1")
 
@@ -129,9 +120,6 @@ async def test_edit_event_form_renders_new_fields(client):
     body = resp.text
     assert 'name="event_time"' in body
     assert 'name="is_national"' in body
-    assert 'name="municipality"' in body
-    assert '<datalist id="municipalities"' in body
-    assert 'name="region_code"' in body  # now a <select>
 
 
 async def test_edit_event_submit_saves_valid_data(client) -> None:
@@ -168,10 +156,8 @@ async def test_submit_rejects_unparseable_event_time(client):
     detail.first.return_value = MagicMock(event_time=None)
     empty = MagicMock()
     empty.all.return_value = []
-    muni = MagicMock()
-    muni.scalars.return_value.all.return_value = []
-    # error-path re-fetch: detail, locations, articles, municipality names
-    mock_session.execute = AsyncMock(side_effect=[detail, empty, empty, muni])
+    # error-path re-fetch: detail, locations, articles
+    mock_session.execute = AsyncMock(side_effect=[detail, empty, empty])
     form = _valid_form()
     form["event_time"] = "not-a-date"
 
@@ -180,51 +166,17 @@ async def test_submit_rejects_unparseable_event_time(client):
     assert resp.status_code == 422
 
 
-async def test_submit_rejects_noncanonical_region_unless_original(client):
-    c, mock_session = client
-    detail = MagicMock()
-    detail.first.return_value = MagicMock(event_time=None)
-    empty = MagicMock()
-    empty.all.return_value = []
-    muni = MagicMock()
-    muni.scalars.return_value.all.return_value = []
-    mock_session.execute = AsyncMock(side_effect=[detail, empty, empty, muni])
-    form = _valid_form()
-    form["region_code"] = "Not A Periphery"
-    form["region_code_original"] = ""
-
-    resp = await c.post("/events/evt-1", data=form)
-
-    assert resp.status_code == 422
-
-
-async def test_submit_accepts_legacy_region_matching_original(client):
+async def test_submit_persists_new_location(client):
     c, mock_session = client
     mock_session.execute = AsyncMock()
     mock_session.commit = AsyncMock()
     form = _valid_form()
-    form["region_code"] = "Legacy Dead Region"
-    form["region_code_original"] = "Legacy Dead Region"
-
-    resp = await c.post("/events/evt-1", data=form, follow_redirects=False)
-
-    assert resp.status_code == 303
-    params = _captured_update_params(mock_session)
-    assert params["region_code"] == "Legacy Dead Region"
-
-
-async def test_submit_persists_location_municipality(client):
-    c, mock_session = client
-    mock_session.execute = AsyncMock()
-    mock_session.commit = AsyncMock()
-    form = _valid_form()
-    # one new location row (blank loc_id -> INSERT) with a municipality
+    # one new location row (blank loc_id -> INSERT)
     form["loc_id"] = ""
     form["loc_lat"] = "40.64"
     form["loc_lon"] = "22.94"
     form["loc_name"] = "Πλατεία"
     form["loc_city"] = "Θεσσαλονίκη"
-    form["loc_municipality"] = "Θεσσαλονίκης"
 
     resp = await c.post("/events/evt-1", data=form, follow_redirects=False)
 
@@ -233,4 +185,4 @@ async def test_submit_persists_location_municipality(client):
         call.args[1] for call in mock_session.execute.await_args_list
         if "insert into event_locations" in str(call.args[0]).lower()
     ]
-    assert inserted and inserted[0]["municipality"] == "Θεσσαλονίκης"
+    assert inserted and inserted[0]["city"] == "Θεσσαλονίκη"
