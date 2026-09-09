@@ -50,21 +50,6 @@
 
   <label>Primary latitude: <input type="text" name="lat" value="{{ event.lat if event.lat is not none else '' }}"></label>
   <label>Primary longitude: <input type="text" name="lon" value="{{ event.lon if event.lon is not none else '' }}"></label>
-  <label>Region:
-    <select name="region_code">
-      <option value="">— none —</option>
-      {% for r in region_names %}
-      <option value="{{ r }}" {% if r == event.region_code %}selected{% endif %}>{{ r }}</option>
-      {% endfor %}
-      {% if event.region_code and event.region_code not in region_names %}
-      <option value="{{ event.region_code }}" selected>{{ event.region_code }} (legacy)</option>
-      {% endif %}
-    </select>
-  </label>
-  <input type="hidden" name="region_code_original" value="{{ event.region_code or '' }}"><br>
-
-  <label>Municipality: <input type="text" name="municipality" list="municipalities"
-    value="{{ event.municipality or '' }}"></label><br>
 
   <label>Event time:
     <input type="datetime-local" name="event_time" value="{{ event_time_local }}"></label>
@@ -74,14 +59,13 @@
   <fieldset>
     <legend>Locations</legend>
     <table>
-      <tr><th>Lat</th><th>Lon</th><th>Name</th><th>City</th><th>Municipality</th><th>Primary</th><th>Delete</th></tr>
+      <tr><th>Lat</th><th>Lon</th><th>Name</th><th>City</th><th>Primary</th><th>Delete</th></tr>
       {% for loc in locations %}
       <tr>
         <td><input type="text" name="loc_lat" value="{{ loc.lat }}"></td>
         <td><input type="text" name="loc_lon" value="{{ loc.lon }}"></td>
         <td><input type="text" name="loc_name" value="{{ loc.location_name or '' }}"></td>
         <td><input type="text" name="loc_city" value="{{ loc.city or '' }}"></td>
-        <td><input type="text" name="loc_municipality" list="municipalities" value="{{ loc.municipality or '' }}"></td>
         <td><input type="checkbox" name="loc_is_primary" value="{{ loop.index0 }}" {% if loc.is_primary %}checked{% endif %}></td>
         <td>
           <input type="checkbox" name="loc_delete" value="{{ loop.index0 }}">
@@ -95,15 +79,11 @@
         <td><input type="text" name="loc_lon" value=""></td>
         <td><input type="text" name="loc_name" value=""></td>
         <td><input type="text" name="loc_city" value=""></td>
-        <td><input type="text" name="loc_municipality" list="municipalities" value=""></td>
         <td><input type="checkbox" name="loc_is_primary" value="{{ loop.index0 + locations|length }}"></td>
         <td><input type="hidden" name="loc_id" value=""></td>
       </tr>
       {% endfor %}
     </table>
-    <datalist id="municipalities">
-      {% for m in municipality_names %}<option value="{{ m }}">{% endfor %}
-    </datalist>
   </fieldset>
 
   <button type="submit">Save</button>
