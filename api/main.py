@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import RequestResponseEndpoint
 
 from api.config import settings
-from api.routes import boundaries, events, health, regions, stats
+from api.routes import events, health
 
 app = FastAPI(
     title="Social Reaction Analysis GR",
@@ -30,6 +30,3 @@ async def add_cache_control(request: Request, call_next: RequestResponseEndpoint
 
 app.include_router(health.router)
 app.include_router(events.router)
-app.include_router(stats.router)
-app.include_router(boundaries.router)
-app.include_router(regions.router)
