@@ -19,7 +19,6 @@ import yaml
 from pydantic import BaseModel
 
 from enrich.config import settings
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import json
@@ -39,8 +38,6 @@ class GeocodeResult(BaseModel):
     lon: float | None
     location_name: str
     city: str | None = None
-    region_code: str | None = None
-    municipality: str | None = None
     is_foreign: bool = False
     is_primary: bool = True
 
@@ -317,12 +314,7 @@ def _load_regions() -> list[tuple[str, object]]:
     return out
 
 
-def canonical_region_names() -> list[str]:
-    """Sorted list of the 13 canonical English periphery names (for admin/UX)."""
-    return sorted(name for name, _ in _load_regions())
-
-
-def region_for_point(lat: float, lon: float) -> str | None:
+def _region_for_point(lat: float, lon: float) -> str | None:
     """Return the canonical English periphery name containing (lat, lon), or None."""
     point = Point(lon, lat)
     for name, geom in _load_regions():
@@ -331,36 +323,9 @@ def region_for_point(lat: float, lon: float) -> str | None:
     return None
 
 
-async def municipality_for_point(session: AsyncSession, lat: float, lon: float) -> str | None:
-    """Return the δήμος (municipality) name covering (lat, lon), or None.
-
-    Uses ST_Covers on the geography column directly — boundary-inclusive and able
-    to use the GIST(geom) index — rather than a planar ST_Contains(geom::geometry, …)
-    that would seq-scan and miss points on a shared δήμος border. Fail-soft: any DB
-    error (unreachable DB, missing/empty municipalities table) degrades to None so
-    the caller's region_code/distance path keeps working — municipality is best-effort
-    enrichment, never a hard dependency of geocoding.
-    """
-    try:
-        row = (
-            await session.execute(
-                text(
-                    "SELECT name FROM municipalities "
-                    "WHERE ST_Covers(geom, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) "
-                    "LIMIT 1"
-                ),
-                {"lat": lat, "lon": lon},
-            )
-        ).first()
-        return row[0] if row else None
-    except Exception as exc:  # noqa: BLE001 — municipality is best-effort; never fatal
-        logger.debug("[geocode] municipality_for_point failed: %s", exc)
-        return None
-
-
 def point_in_greece(lat: float, lon: float) -> bool:
-    """True iff (lat, lon) falls inside any of the 13 peripheries."""
-    return region_for_point(lat, lon) is not None
+    """True iff (lat, lon) falls inside any of the 13 peripheries (geofence only)."""
+    return _region_for_point(lat, lon) is not None
 
 
 @lru_cache(maxsize=1)
@@ -385,14 +350,10 @@ def lookup_embassy(country: str) -> GeocodeResult | None:
 async def _finalize(
     results: list[GeocodeResult], session: AsyncSession | None = None
 ) -> list[GeocodeResult]:
-    """Stamp region_code + is_foreign on each geocoded result; municipality too
-    when a DB session is available (offline callers/tests get municipality=None)."""
+    """Stamp is_foreign via the in-Greece geofence; no region/municipality labels."""
     for r in results:
         if r.lat is None or r.lon is None:
             continue  # LLM-confirmed foreign, no coordinate to check
-        r.region_code = region_for_point(r.lat, r.lon)
         if not r.is_foreign:
             r.is_foreign = not point_in_greece(r.lat, r.lon)
-        if session is not None and not r.is_foreign:
-            r.municipality = await municipality_for_point(session, r.lat, r.lon)
     return results
