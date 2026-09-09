@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
@@ -6,10 +6,7 @@ import { buildClusterIndex, getClusterPoints } from "./clustering";
 import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
 import { buildClusterPreview, LEAF_SAMPLE_SIZE } from "./clusterPreview";
 import { ClusterPopup } from "./ClusterPopup";
-import { useBoundaryLayers } from "./useBoundaryLayers";
-import { useChoroplethOverlay } from "./useChoroplethOverlay";
 import { useLocationOverlay } from "./useLocationOverlay";
-import type { GeoView } from "../../hooks/useGeoView";
 import styles from "./MapView.module.css";
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
@@ -28,13 +25,8 @@ interface MapViewProps {
   flyTo?: { center: [number, number]; zoom?: number } | null;
   onReadMorePopup?: (id: string) => void;
   onClosePopup?: () => void;
-  geoView?: Pick<GeoView, "level" | "region" | "municipality">;
-  onSelectPeriphery?: (name: string) => void;
-  onSelectMunicipality?: (name: string) => void;
   /** Width (px) of UI chrome overlaying the left edge of the map (e.g. the floating sidebar). */
   obstructedLeft?: number;
-  /** Indicator key to shade periphery boundaries by, or null for no overlay. */
-  choroplethIndicator?: string | null;
 }
 
 export function MapView({
@@ -44,11 +36,7 @@ export function MapView({
   flyTo,
   onReadMorePopup,
   onClosePopup,
-  geoView,
-  onSelectPeriphery,
-  onSelectMunicipality,
   obstructedLeft = 0,
-  choroplethIndicator = null,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -186,24 +174,6 @@ export function MapView({
       offset: [obstructedLeft / 2, 0],
     });
   }, [selectedId, obstructedLeft]);
-
-  const boundaryHandlers = useMemo(
-    () => ({
-      selectPeriphery: onSelectPeriphery ?? (() => {}),
-      selectMunicipality: onSelectMunicipality ?? (() => {}),
-    }),
-    [onSelectPeriphery, onSelectMunicipality],
-  );
-
-  useBoundaryLayers(
-    mapInstance,
-    styleLoaded,
-    geoView ?? { level: "none", region: null, municipality: null },
-    boundaryHandlers,
-    obstructedLeft,
-  );
-
-  useChoroplethOverlay(mapInstance, styleLoaded, choroplethIndicator);
 
   const selectedFeature = selectedId
     ? features.find((f) => f.properties.id === selectedId)

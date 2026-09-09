@@ -1,16 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
-import { regionLabel } from "../../i18n/regions";
 import { formatRelativeTime } from "../../utils/time";
 import { AxisTag, IntensityDots, Spinner, ErrorState } from "../common";
-import { EventContextPanel } from "../context/EventContextPanel";
 import { ClassificationTable } from "./ClassificationTable";
 import { SourceEvidenceList } from "./SourceEvidenceList";
 import { SourceBreakdown } from "./SourceBreakdown";
-import { ClusterTimeline } from "./ClusterTimeline";
-import { OfficialStatements } from "./OfficialStatements";
-import { RelatedClusters } from "./RelatedClusters";
 import styles from "./ClusterDetailContent.module.css";
 
 interface ClusterDetailContentProps {
@@ -42,7 +37,6 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
       <h2 className={styles.headline}>{(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}</h2>
 
       <div className={styles.metaChips}>
-        {event.region_code && <span className={styles.metaChip}>📍 {regionLabel(event.region_code, lang)}</span>}
         <span className={styles.metaChip}>
           {event.article_count} {t("card.sources")}
         </span>
@@ -57,18 +51,10 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
       </div>
 
       <div className={styles.section}>
-        <ClusterTimeline />
-      </div>
-
-      <div className={styles.section}>
         <div className={styles.sectionLabel}>
           {t("cluster.sourceEvidence")} ({event.articles?.length ?? 0})
         </div>
         <SourceEvidenceList articles={event.articles ?? []} />
-      </div>
-
-      <div className={styles.section}>
-        <OfficialStatements />
       </div>
 
       <div className={styles.section}>
@@ -80,12 +66,6 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
         <div className={styles.sectionLabel}>{t("cluster.sourceBreakdown")}</div>
         <SourceBreakdown articles={event.articles ?? []} />
       </div>
-
-      <div className={styles.section}>
-        <RelatedClusters />
-      </div>
-
-      <EventContextPanel eventId={event.id} />
     </div>
   );
 }

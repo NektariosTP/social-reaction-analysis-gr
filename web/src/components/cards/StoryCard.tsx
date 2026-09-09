@@ -2,11 +2,8 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { EventSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
-import { regionLabel } from "../../i18n/regions";
 import { formatRelativeTime } from "../../utils/time";
 import { AxisTag, IntensityDots } from "../common";
-import { PoliticianQuote } from "./PoliticianQuote";
-import { TrendingHashtags } from "./TrendingHashtags";
 import styles from "./StoryCard.module.css";
 
 interface StoryCardProps {
@@ -47,16 +44,8 @@ export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps
         {summary ?? "…"}
       </div>
 
-      {isFeatured && (
-        <div className={styles.stack}>
-          <PoliticianQuote />
-          <TrendingHashtags />
-        </div>
-      )}
-
       <div className={styles.meta}>
         {event.source_count} {t("card.sources")} · {formatRelativeTime(event.last_seen, lang)}
-        {event.region_code ? ` · ${regionLabel(event.region_code, lang)}` : ""}
       </div>
 
       {isFeatured && <div className={styles.cta}>{t("card.viewFullAnalysis")}</div>}
