@@ -14,21 +14,15 @@ from zoneinfo import ZoneInfo
 from api.db import get_db
 from api.models import (
     ArticleSummary,
-    EventContextResponse,
     EventDetail,
     EventSummary,
     GeoJSONFeature,
     GeoJSONFeatureCollection,
     GeoJSONGeometry,
     GeoJSONProperties,
-    IndicatorValue,
     LocationPoint,
 )
-from api.routes.regions import latest_rows
 from api.temporal import derive_temporal_status
-from stats.catalog import load_catalog
-from stats.context import assemble
-from stats.crosswalk import canonical_region_name
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["events"])
@@ -62,8 +56,6 @@ async def _fetch_events(
     thematic_field: str | None = None,
     channel: str | None = None,
     intensity: str | None = None,
-    region_code: str | None = None,
-    municipality: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
     bbox: str | None = None,
@@ -88,12 +80,6 @@ async def _fetch_events(
     if intensity:
         conditions.append("intensity = :intensity")
         params["intensity"] = intensity
-    if region_code:
-        conditions.append("region_code = :region_code")
-        params["region_code"] = region_code
-    if municipality:
-        conditions.append("municipality = :municipality")
-        params["municipality"] = municipality
     if date_from:
         conditions.append("first_seen >= :date_from")
         params["date_from"] = _parse_iso_datetime(date_from, "date_from")
@@ -127,7 +113,7 @@ async def _fetch_events(
             f"summary_el, summary_en, "
             f"ST_Y(primary_location::geometry) AS lat, "
             f"ST_X(primary_location::geometry) AS lon, "
-            f"region_code, municipality, article_count, source_count, first_seen, last_seen, status, "
+            f"article_count, source_count, first_seen, last_seen, status, "
             f"event_time, is_national, "
             f"(SELECT array_agg(u.actor_name ORDER BY u.first_seen) FROM ("
             f"   SELECT r.actor_name, MIN(r.observed_at) AS first_seen"
@@ -150,7 +136,7 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] |
             "summary_el, summary_en, "
             "ST_Y(primary_location::geometry) AS lat, "
             "ST_X(primary_location::geometry) AS lon, "
-            "region_code, municipality, article_count, source_count, first_seen, last_seen, status, "
+            "article_count, source_count, first_seen, last_seen, status, "
             "event_time, is_national, "
             "(SELECT array_agg(u.actor_name ORDER BY u.first_seen) FROM ("
             "   SELECT r.actor_name, MIN(r.observed_at) AS first_seen"
@@ -212,8 +198,6 @@ async def list_events(
     thematic_field: Annotated[str | None, Query()] = None,
     channel: Annotated[str | None, Query()] = None,
     intensity: Annotated[str | None, Query()] = None,
-    region_code: Annotated[str | None, Query()] = None,
-    municipality: Annotated[str | None, Query()] = None,
     date_from: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     date_to: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     bbox: Annotated[str | None, Query(description="west,south,east,north")] = None,
@@ -230,8 +214,6 @@ async def list_events(
         thematic_field=thematic_field,
         channel=channel,
         intensity=intensity,
-        region_code=region_code,
-        municipality=municipality,
         date_from=date_from,
         date_to=date_to,
         bbox=bbox,
@@ -253,8 +235,6 @@ async def list_events(
             summary_en=r.summary_en,
             lat=r.lat,
             lon=r.lon,
-            region_code=r.region_code,
-            municipality=r.municipality,
             article_count=r.article_count or 0,
             source_count=r.source_count or 0,
             first_seen=r.first_seen,
@@ -287,8 +267,6 @@ async def events_geojson(
                 geometry=GeoJSONGeometry(coordinates=[r.lon, r.lat]),
                 properties=GeoJSONProperties(
                     id=str(r.id),
-                    region_code=str(r.region_code) if r.region_code else None,
-                    municipality=r.municipality,
                     action_forms=list(r.action_forms or []),
                     thematic_fields=list(r.thematic_fields or []),
                     channel=r.channel,
@@ -327,8 +305,6 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         summary_en=row.summary_en,
         lat=row.lat,
         lon=row.lon,
-        region_code=row.region_code,
-        municipality=row.municipality,
         article_count=row.article_count or 0,
         source_count=row.source_count or 0,
         first_seen=row.first_seen,
@@ -341,24 +317,4 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         announced_by=(list(getattr(row, "participating_unions", None) or []) or [None])[0],
         classification_confidence=dict(row.classification_confidence) if row.classification_confidence else None,
         articles=articles,
-    )
-
-
-@router.get("/{event_id}/context", response_model=EventContextResponse)
-async def event_context(event_id: str, db: AsyncSession = Depends(get_db)) -> EventContextResponse:
-    row = (await db.execute(
-        text("SELECT region_code, thematic_fields FROM events WHERE id = :id"),
-        {"id": event_id},
-    )).first()
-    if row is None:
-        raise HTTPException(status_code=404, detail="event not found")
-    canonical = canonical_region_name(row[0])
-    codes = [c for c in [canonical, "GR"] if c]
-    value_rows = await latest_rows(db, codes) if codes else []
-    catalog = load_catalog()
-    always_on, thematic = assemble(catalog, value_rows, thematic_fields=list(row[1] or []))
-    return EventContextResponse(
-        region_code=canonical or "GR",
-        always_on=[IndicatorValue(**i) for i in always_on],
-        thematic=[IndicatorValue(**i) for i in thematic],
     )
