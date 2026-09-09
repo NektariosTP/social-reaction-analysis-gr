@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChoroplethStatsChoroplethGetData, ChoroplethStatsChoroplethGetErrors, ChoroplethStatsChoroplethGetResponses, EventContextEventsEventIdContextGetData, EventContextEventsEventIdContextGetErrors, EventContextEventsEventIdContextGetResponses, EventsGeojsonEventsGeojsonGetData, EventsGeojsonEventsGeojsonGetErrors, EventsGeojsonEventsGeojsonGetResponses, GetEventEventsEventIdGetData, GetEventEventsEventIdGetErrors, GetEventEventsEventIdGetResponses, GetStatsStatsGetData, GetStatsStatsGetResponses, HealthHealthGetData, HealthHealthGetResponses, IndicatorCatalogStatsIndicatorsGetData, IndicatorCatalogStatsIndicatorsGetResponses, ListEventsEventsGetData, ListEventsEventsGetErrors, ListEventsEventsGetResponses, ListMunicipalitiesBoundariesMunicipalitiesGetData, ListMunicipalitiesBoundariesMunicipalitiesGetErrors, ListMunicipalitiesBoundariesMunicipalitiesGetResponses, ListPeripheriesBoundariesPeripheriesGetData, ListPeripheriesBoundariesPeripheriesGetResponses, RegionIndicatorsRegionsRegionCodeIndicatorsGetData, RegionIndicatorsRegionsRegionCodeIndicatorsGetErrors, RegionIndicatorsRegionsRegionCodeIndicatorsGetResponses } from './types.gen';
+import type { EventsGeojsonEventsGeojsonGetData, EventsGeojsonEventsGeojsonGetErrors, EventsGeojsonEventsGeojsonGetResponses, GetEventEventsEventIdGetData, GetEventEventsEventIdGetErrors, GetEventEventsEventIdGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListEventsEventsGetData, ListEventsEventsGetErrors, ListEventsEventsGetResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -37,40 +37,3 @@ export const eventsGeojsonEventsGeojsonGet = <ThrowOnError extends boolean = fal
  * Get Event
  */
 export const getEventEventsEventIdGet = <ThrowOnError extends boolean = false>(options: Options<GetEventEventsEventIdGetData, ThrowOnError>): RequestResult<GetEventEventsEventIdGetResponses, GetEventEventsEventIdGetErrors, ThrowOnError> => (options.client ?? client).get<GetEventEventsEventIdGetResponses, GetEventEventsEventIdGetErrors, ThrowOnError>({ url: '/events/{event_id}', ...options });
-
-/**
- * Event Context
- */
-export const eventContextEventsEventIdContextGet = <ThrowOnError extends boolean = false>(options: Options<EventContextEventsEventIdContextGetData, ThrowOnError>): RequestResult<EventContextEventsEventIdContextGetResponses, EventContextEventsEventIdContextGetErrors, ThrowOnError> => (options.client ?? client).get<EventContextEventsEventIdContextGetResponses, EventContextEventsEventIdContextGetErrors, ThrowOnError>({ url: '/events/{event_id}/context', ...options });
-
-/**
- * Get Stats
- */
-export const getStatsStatsGet = <ThrowOnError extends boolean = false>(options?: Options<GetStatsStatsGetData, ThrowOnError>): RequestResult<GetStatsStatsGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetStatsStatsGetResponses, unknown, ThrowOnError>({ url: '/stats', ...options });
-
-/**
- * List Peripheries
- */
-export const listPeripheriesBoundariesPeripheriesGet = <ThrowOnError extends boolean = false>(options?: Options<ListPeripheriesBoundariesPeripheriesGetData, ThrowOnError>): RequestResult<ListPeripheriesBoundariesPeripheriesGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListPeripheriesBoundariesPeripheriesGetResponses, unknown, ThrowOnError>({ url: '/boundaries/peripheries', ...options });
-
-/**
- * List Municipalities
- */
-export const listMunicipalitiesBoundariesMunicipalitiesGet = <ThrowOnError extends boolean = false>(options: Options<ListMunicipalitiesBoundariesMunicipalitiesGetData, ThrowOnError>): RequestResult<ListMunicipalitiesBoundariesMunicipalitiesGetResponses, ListMunicipalitiesBoundariesMunicipalitiesGetErrors, ThrowOnError> => (options.client ?? client).get<ListMunicipalitiesBoundariesMunicipalitiesGetResponses, ListMunicipalitiesBoundariesMunicipalitiesGetErrors, ThrowOnError>({ url: '/boundaries/municipalities', ...options });
-
-/**
- * Region Indicators
- */
-export const regionIndicatorsRegionsRegionCodeIndicatorsGet = <ThrowOnError extends boolean = false>(options: Options<RegionIndicatorsRegionsRegionCodeIndicatorsGetData, ThrowOnError>): RequestResult<RegionIndicatorsRegionsRegionCodeIndicatorsGetResponses, RegionIndicatorsRegionsRegionCodeIndicatorsGetErrors, ThrowOnError> => (options.client ?? client).get<RegionIndicatorsRegionsRegionCodeIndicatorsGetResponses, RegionIndicatorsRegionsRegionCodeIndicatorsGetErrors, ThrowOnError>({ url: '/regions/{region_code}/indicators', ...options });
-
-/**
- * Choropleth
- */
-export const choroplethStatsChoroplethGet = <ThrowOnError extends boolean = false>(options: Options<ChoroplethStatsChoroplethGetData, ThrowOnError>): RequestResult<ChoroplethStatsChoroplethGetResponses, ChoroplethStatsChoroplethGetErrors, ThrowOnError> => (options.client ?? client).get<ChoroplethStatsChoroplethGetResponses, ChoroplethStatsChoroplethGetErrors, ThrowOnError>({ url: '/stats/choropleth', ...options });
-
-/**
- * Indicator Catalog
- *
- * Choropleth-capable (periphery-varying) indicators for the map overlay picker.
- */
-export const indicatorCatalogStatsIndicatorsGet = <ThrowOnError extends boolean = false>(options?: Options<IndicatorCatalogStatsIndicatorsGetData, ThrowOnError>): RequestResult<IndicatorCatalogStatsIndicatorsGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<IndicatorCatalogStatsIndicatorsGetResponses, unknown, ThrowOnError>({ url: '/stats/indicators', ...options });

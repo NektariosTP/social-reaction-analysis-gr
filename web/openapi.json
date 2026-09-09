@@ -100,38 +100,6 @@
             }
           },
           {
-            "name": "region_code",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Region Code"
-            }
-          },
-          {
-            "name": "municipality",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Municipality"
-            }
-          },
-          {
             "name": "date_from",
             "in": "query",
             "required": false,
@@ -410,240 +378,6 @@
           }
         }
       }
-    },
-    "/events/{event_id}/context": {
-      "get": {
-        "tags": [
-          "events"
-        ],
-        "summary": "Event Context",
-        "operationId": "event_context_events__event_id__context_get",
-        "parameters": [
-          {
-            "name": "event_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Event Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EventContextResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/stats": {
-      "get": {
-        "tags": [
-          "stats"
-        ],
-        "summary": "Get Stats",
-        "operationId": "get_stats_stats_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StatsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/boundaries/peripheries": {
-      "get": {
-        "tags": [
-          "boundaries"
-        ],
-        "summary": "List Peripheries",
-        "operationId": "list_peripheries_boundaries_peripheries_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BoundaryFeatureCollection"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/boundaries/municipalities": {
-      "get": {
-        "tags": [
-          "boundaries"
-        ],
-        "summary": "List Municipalities",
-        "operationId": "list_municipalities_boundaries_municipalities_get",
-        "parameters": [
-          {
-            "name": "periphery",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "region_code of the parent periphery",
-              "title": "Periphery"
-            },
-            "description": "region_code of the parent periphery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BoundaryFeatureCollection"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/regions/{region_code}/indicators": {
-      "get": {
-        "tags": [
-          "regions"
-        ],
-        "summary": "Region Indicators",
-        "operationId": "region_indicators_regions__region_code__indicators_get",
-        "parameters": [
-          {
-            "name": "region_code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Region Code"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegionIndicatorsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/stats/choropleth": {
-      "get": {
-        "tags": [
-          "regions"
-        ],
-        "summary": "Choropleth",
-        "operationId": "choropleth_stats_choropleth_get",
-        "parameters": [
-          {
-            "name": "indicator",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Indicator"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChoroplethResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/stats/indicators": {
-      "get": {
-        "tags": [
-          "regions"
-        ],
-        "summary": "Indicator Catalog",
-        "description": "Choropleth-capable (periphery-varying) indicators for the map overlay picker.",
-        "operationId": "indicator_catalog_stats_indicators_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndicatorCatalogResponse"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -716,177 +450,6 @@
           "id"
         ],
         "title": "ArticleSummary"
-      },
-      "BoundaryFeature": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "title": "Type",
-            "default": "Feature"
-          },
-          "geometry": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Geometry"
-          },
-          "properties": {
-            "$ref": "#/components/schemas/BoundaryProperties"
-          }
-        },
-        "type": "object",
-        "required": [
-          "geometry",
-          "properties"
-        ],
-        "title": "BoundaryFeature"
-      },
-      "BoundaryFeatureCollection": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "title": "Type",
-            "default": "FeatureCollection"
-          },
-          "features": {
-            "items": {
-              "$ref": "#/components/schemas/BoundaryFeature"
-            },
-            "type": "array",
-            "title": "Features"
-          }
-        },
-        "type": "object",
-        "required": [
-          "features"
-        ],
-        "title": "BoundaryFeatureCollection"
-      },
-      "BoundaryProperties": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "region_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Region Code"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "BoundaryProperties"
-      },
-      "ChoroplethResponse": {
-        "properties": {
-          "indicator": {
-            "type": "string",
-            "title": "Indicator"
-          },
-          "values": {
-            "items": {
-              "$ref": "#/components/schemas/ChoroplethValue"
-            },
-            "type": "array",
-            "title": "Values",
-            "default": []
-          }
-        },
-        "type": "object",
-        "required": [
-          "indicator"
-        ],
-        "title": "ChoroplethResponse"
-      },
-      "ChoroplethValue": {
-        "properties": {
-          "region_code": {
-            "type": "string",
-            "title": "Region Code"
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "period": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period"
-          }
-        },
-        "type": "object",
-        "required": [
-          "region_code"
-        ],
-        "title": "ChoroplethValue"
-      },
-      "DistributionItem": {
-        "properties": {
-          "label": {
-            "type": "string",
-            "title": "Label"
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count"
-          }
-        },
-        "type": "object",
-        "required": [
-          "label",
-          "count"
-        ],
-        "title": "DistributionItem"
-      },
-      "EventContextResponse": {
-        "properties": {
-          "region_code": {
-            "type": "string",
-            "title": "Region Code"
-          },
-          "always_on": {
-            "items": {
-              "$ref": "#/components/schemas/IndicatorValue"
-            },
-            "type": "array",
-            "title": "Always On",
-            "default": []
-          },
-          "thematic": {
-            "items": {
-              "$ref": "#/components/schemas/IndicatorValue"
-            },
-            "type": "array",
-            "title": "Thematic",
-            "default": []
-          }
-        },
-        "type": "object",
-        "required": [
-          "region_code"
-        ],
-        "title": "EventContextResponse"
       },
       "EventDetail": {
         "properties": {
@@ -974,28 +537,6 @@
             ],
             "title": "Lon"
           },
-          "region_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Region Code"
-          },
-          "municipality": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Municipality"
-          },
           "article_count": {
             "type": "integer",
             "title": "Article Count"
@@ -1059,6 +600,25 @@
             "type": "boolean",
             "title": "Is National",
             "default": false
+          },
+          "announced_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Announced By"
+          },
+          "participating_unions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Participating Unions",
+            "default": []
           },
           "classification_confidence": {
             "anyOf": [
@@ -1178,28 +738,6 @@
             ],
             "title": "Lon"
           },
-          "region_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Region Code"
-          },
-          "municipality": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Municipality"
-          },
           "article_count": {
             "type": "integer",
             "title": "Article Count"
@@ -1263,6 +801,25 @@
             "type": "boolean",
             "title": "Is National",
             "default": false
+          },
+          "announced_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Announced By"
+          },
+          "participating_unions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Participating Unions",
+            "default": []
           }
         },
         "type": "object",
@@ -1344,28 +901,6 @@
           "id": {
             "type": "string",
             "title": "Id"
-          },
-          "region_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Region Code"
-          },
-          "municipality": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Municipality"
           },
           "action_forms": {
             "items": {
@@ -1479,132 +1014,6 @@
         ],
         "title": "HealthResponse"
       },
-      "IndicatorCatalogEntry": {
-        "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key"
-          },
-          "label_el": {
-            "type": "string",
-            "title": "Label El"
-          },
-          "label_en": {
-            "type": "string",
-            "title": "Label En"
-          },
-          "unit": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "key",
-          "label_el",
-          "label_en"
-        ],
-        "title": "IndicatorCatalogEntry"
-      },
-      "IndicatorCatalogResponse": {
-        "properties": {
-          "indicators": {
-            "items": {
-              "$ref": "#/components/schemas/IndicatorCatalogEntry"
-            },
-            "type": "array",
-            "title": "Indicators",
-            "default": []
-          }
-        },
-        "type": "object",
-        "title": "IndicatorCatalogResponse"
-      },
-      "IndicatorValue": {
-        "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key"
-          },
-          "label_el": {
-            "type": "string",
-            "title": "Label El"
-          },
-          "label_en": {
-            "type": "string",
-            "title": "Label En"
-          },
-          "unit": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unit"
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "period": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period"
-          },
-          "source": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source"
-          },
-          "source_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "key",
-          "label_el",
-          "label_en"
-        ],
-        "title": "IndicatorValue"
-      },
       "LocationPoint": {
         "properties": {
           "lat": {
@@ -1638,101 +1047,6 @@
           "is_primary"
         ],
         "title": "LocationPoint"
-      },
-      "RegionIndicatorsResponse": {
-        "properties": {
-          "region_code": {
-            "type": "string",
-            "title": "Region Code"
-          },
-          "always_on": {
-            "items": {
-              "$ref": "#/components/schemas/IndicatorValue"
-            },
-            "type": "array",
-            "title": "Always On",
-            "default": []
-          },
-          "thematic": {
-            "items": {
-              "$ref": "#/components/schemas/IndicatorValue"
-            },
-            "type": "array",
-            "title": "Thematic",
-            "default": []
-          }
-        },
-        "type": "object",
-        "required": [
-          "region_code"
-        ],
-        "title": "RegionIndicatorsResponse"
-      },
-      "StatsResponse": {
-        "properties": {
-          "total_events": {
-            "type": "integer",
-            "title": "Total Events"
-          },
-          "total_articles": {
-            "type": "integer",
-            "title": "Total Articles"
-          },
-          "by_action_form": {
-            "items": {
-              "$ref": "#/components/schemas/DistributionItem"
-            },
-            "type": "array",
-            "title": "By Action Form"
-          },
-          "by_thematic_field": {
-            "items": {
-              "$ref": "#/components/schemas/DistributionItem"
-            },
-            "type": "array",
-            "title": "By Thematic Field"
-          },
-          "by_channel": {
-            "items": {
-              "$ref": "#/components/schemas/DistributionItem"
-            },
-            "type": "array",
-            "title": "By Channel"
-          },
-          "by_intensity": {
-            "items": {
-              "$ref": "#/components/schemas/DistributionItem"
-            },
-            "type": "array",
-            "title": "By Intensity"
-          },
-          "by_region": {
-            "items": {
-              "$ref": "#/components/schemas/DistributionItem"
-            },
-            "type": "array",
-            "title": "By Region"
-          },
-          "by_date": {
-            "items": {
-              "$ref": "#/components/schemas/DistributionItem"
-            },
-            "type": "array",
-            "title": "By Date"
-          }
-        },
-        "type": "object",
-        "required": [
-          "total_events",
-          "total_articles",
-          "by_action_form",
-          "by_thematic_field",
-          "by_channel",
-          "by_intensity",
-          "by_region",
-          "by_date"
-        ],
-        "title": "StatsResponse"
       },
       "ValidationError": {
         "properties": {

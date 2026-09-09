@@ -35,115 +35,6 @@ export type ArticleSummary = {
 };
 
 /**
- * BoundaryFeature
- */
-export type BoundaryFeature = {
-    /**
-     * Type
-     */
-    type?: string;
-    /**
-     * Geometry
-     */
-    geometry: {
-        [key: string]: unknown;
-    };
-    properties: BoundaryProperties;
-};
-
-/**
- * BoundaryFeatureCollection
- */
-export type BoundaryFeatureCollection = {
-    /**
-     * Type
-     */
-    type?: string;
-    /**
-     * Features
-     */
-    features: Array<BoundaryFeature>;
-};
-
-/**
- * BoundaryProperties
- */
-export type BoundaryProperties = {
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Region Code
-     */
-    region_code?: string | null;
-};
-
-/**
- * ChoroplethResponse
- */
-export type ChoroplethResponse = {
-    /**
-     * Indicator
-     */
-    indicator: string;
-    /**
-     * Values
-     */
-    values?: Array<ChoroplethValue>;
-};
-
-/**
- * ChoroplethValue
- */
-export type ChoroplethValue = {
-    /**
-     * Region Code
-     */
-    region_code: string;
-    /**
-     * Value
-     */
-    value?: number | null;
-    /**
-     * Period
-     */
-    period?: string | null;
-};
-
-/**
- * DistributionItem
- */
-export type DistributionItem = {
-    /**
-     * Label
-     */
-    label: string;
-    /**
-     * Count
-     */
-    count: number;
-};
-
-/**
- * EventContextResponse
- */
-export type EventContextResponse = {
-    /**
-     * Region Code
-     */
-    region_code: string;
-    /**
-     * Always On
-     */
-    always_on?: Array<IndicatorValue>;
-    /**
-     * Thematic
-     */
-    thematic?: Array<IndicatorValue>;
-};
-
-/**
  * EventDetail
  */
 export type EventDetail = {
@@ -183,14 +74,6 @@ export type EventDetail = {
      * Lon
      */
     lon?: number | null;
-    /**
-     * Region Code
-     */
-    region_code?: string | null;
-    /**
-     * Municipality
-     */
-    municipality?: string | null;
     /**
      * Article Count
      */
@@ -284,14 +167,6 @@ export type EventSummary = {
      */
     lon?: number | null;
     /**
-     * Region Code
-     */
-    region_code?: string | null;
-    /**
-     * Municipality
-     */
-    municipality?: string | null;
-    /**
      * Article Count
      */
     article_count: number;
@@ -382,14 +257,6 @@ export type GeoJsonProperties = {
      */
     id: string;
     /**
-     * Region Code
-     */
-    region_code?: string | null;
-    /**
-     * Municipality
-     */
-    municipality?: string | null;
-    /**
      * Action Forms
      */
     action_forms: Array<string>;
@@ -448,76 +315,6 @@ export type HealthResponse = {
 };
 
 /**
- * IndicatorCatalogEntry
- */
-export type IndicatorCatalogEntry = {
-    /**
-     * Key
-     */
-    key: string;
-    /**
-     * Label El
-     */
-    label_el: string;
-    /**
-     * Label En
-     */
-    label_en: string;
-    /**
-     * Unit
-     */
-    unit?: string | null;
-};
-
-/**
- * IndicatorCatalogResponse
- */
-export type IndicatorCatalogResponse = {
-    /**
-     * Indicators
-     */
-    indicators?: Array<IndicatorCatalogEntry>;
-};
-
-/**
- * IndicatorValue
- */
-export type IndicatorValue = {
-    /**
-     * Key
-     */
-    key: string;
-    /**
-     * Label El
-     */
-    label_el: string;
-    /**
-     * Label En
-     */
-    label_en: string;
-    /**
-     * Unit
-     */
-    unit?: string | null;
-    /**
-     * Value
-     */
-    value?: number | null;
-    /**
-     * Period
-     */
-    period?: string | null;
-    /**
-     * Source
-     */
-    source?: string | null;
-    /**
-     * Source Url
-     */
-    source_url?: string | null;
-};
-
-/**
  * LocationPoint
  */
 export type LocationPoint = {
@@ -537,62 +334,6 @@ export type LocationPoint = {
      * Is Primary
      */
     is_primary: boolean;
-};
-
-/**
- * RegionIndicatorsResponse
- */
-export type RegionIndicatorsResponse = {
-    /**
-     * Region Code
-     */
-    region_code: string;
-    /**
-     * Always On
-     */
-    always_on?: Array<IndicatorValue>;
-    /**
-     * Thematic
-     */
-    thematic?: Array<IndicatorValue>;
-};
-
-/**
- * StatsResponse
- */
-export type StatsResponse = {
-    /**
-     * Total Events
-     */
-    total_events: number;
-    /**
-     * Total Articles
-     */
-    total_articles: number;
-    /**
-     * By Action Form
-     */
-    by_action_form: Array<DistributionItem>;
-    /**
-     * By Thematic Field
-     */
-    by_thematic_field: Array<DistributionItem>;
-    /**
-     * By Channel
-     */
-    by_channel: Array<DistributionItem>;
-    /**
-     * By Intensity
-     */
-    by_intensity: Array<DistributionItem>;
-    /**
-     * By Region
-     */
-    by_region: Array<DistributionItem>;
-    /**
-     * By Date
-     */
-    by_date: Array<DistributionItem>;
 };
 
 /**
@@ -659,14 +400,6 @@ export type ListEventsEventsGetData = {
          * Intensity
          */
         intensity?: string | null;
-        /**
-         * Region Code
-         */
-        region_code?: string | null;
-        /**
-         * Municipality
-         */
-        municipality?: string | null;
         /**
          * Date From
          *
@@ -796,173 +529,3 @@ export type GetEventEventsEventIdGetResponses = {
 };
 
 export type GetEventEventsEventIdGetResponse = GetEventEventsEventIdGetResponses[keyof GetEventEventsEventIdGetResponses];
-
-export type EventContextEventsEventIdContextGetData = {
-    body?: never;
-    path: {
-        /**
-         * Event Id
-         */
-        event_id: string;
-    };
-    query?: never;
-    url: '/events/{event_id}/context';
-};
-
-export type EventContextEventsEventIdContextGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type EventContextEventsEventIdContextGetError = EventContextEventsEventIdContextGetErrors[keyof EventContextEventsEventIdContextGetErrors];
-
-export type EventContextEventsEventIdContextGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: EventContextResponse;
-};
-
-export type EventContextEventsEventIdContextGetResponse = EventContextEventsEventIdContextGetResponses[keyof EventContextEventsEventIdContextGetResponses];
-
-export type GetStatsStatsGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/stats';
-};
-
-export type GetStatsStatsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: StatsResponse;
-};
-
-export type GetStatsStatsGetResponse = GetStatsStatsGetResponses[keyof GetStatsStatsGetResponses];
-
-export type ListPeripheriesBoundariesPeripheriesGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/boundaries/peripheries';
-};
-
-export type ListPeripheriesBoundariesPeripheriesGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: BoundaryFeatureCollection;
-};
-
-export type ListPeripheriesBoundariesPeripheriesGetResponse = ListPeripheriesBoundariesPeripheriesGetResponses[keyof ListPeripheriesBoundariesPeripheriesGetResponses];
-
-export type ListMunicipalitiesBoundariesMunicipalitiesGetData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * Periphery
-         *
-         * region_code of the parent periphery
-         */
-        periphery: string;
-    };
-    url: '/boundaries/municipalities';
-};
-
-export type ListMunicipalitiesBoundariesMunicipalitiesGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListMunicipalitiesBoundariesMunicipalitiesGetError = ListMunicipalitiesBoundariesMunicipalitiesGetErrors[keyof ListMunicipalitiesBoundariesMunicipalitiesGetErrors];
-
-export type ListMunicipalitiesBoundariesMunicipalitiesGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: BoundaryFeatureCollection;
-};
-
-export type ListMunicipalitiesBoundariesMunicipalitiesGetResponse = ListMunicipalitiesBoundariesMunicipalitiesGetResponses[keyof ListMunicipalitiesBoundariesMunicipalitiesGetResponses];
-
-export type RegionIndicatorsRegionsRegionCodeIndicatorsGetData = {
-    body?: never;
-    path: {
-        /**
-         * Region Code
-         */
-        region_code: string;
-    };
-    query?: never;
-    url: '/regions/{region_code}/indicators';
-};
-
-export type RegionIndicatorsRegionsRegionCodeIndicatorsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RegionIndicatorsRegionsRegionCodeIndicatorsGetError = RegionIndicatorsRegionsRegionCodeIndicatorsGetErrors[keyof RegionIndicatorsRegionsRegionCodeIndicatorsGetErrors];
-
-export type RegionIndicatorsRegionsRegionCodeIndicatorsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: RegionIndicatorsResponse;
-};
-
-export type RegionIndicatorsRegionsRegionCodeIndicatorsGetResponse = RegionIndicatorsRegionsRegionCodeIndicatorsGetResponses[keyof RegionIndicatorsRegionsRegionCodeIndicatorsGetResponses];
-
-export type ChoroplethStatsChoroplethGetData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * Indicator
-         */
-        indicator: string;
-    };
-    url: '/stats/choropleth';
-};
-
-export type ChoroplethStatsChoroplethGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ChoroplethStatsChoroplethGetError = ChoroplethStatsChoroplethGetErrors[keyof ChoroplethStatsChoroplethGetErrors];
-
-export type ChoroplethStatsChoroplethGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ChoroplethResponse;
-};
-
-export type ChoroplethStatsChoroplethGetResponse = ChoroplethStatsChoroplethGetResponses[keyof ChoroplethStatsChoroplethGetResponses];
-
-export type IndicatorCatalogStatsIndicatorsGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/stats/indicators';
-};
-
-export type IndicatorCatalogStatsIndicatorsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: IndicatorCatalogResponse;
-};
-
-export type IndicatorCatalogStatsIndicatorsGetResponse = IndicatorCatalogStatsIndicatorsGetResponses[keyof IndicatorCatalogStatsIndicatorsGetResponses];
