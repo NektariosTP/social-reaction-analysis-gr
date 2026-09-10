@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score
 from nlp.clustering import find_merges, single_pass_cluster_from_db
 from nlp.config import settings
 from nlp.deduplication import find_duplicates_in_cluster, mark_duplicates
@@ -27,6 +28,33 @@ from nlp.embeddings import embed_articles
 from nlp.event_registry import apply_merges, assign_event_id, load_existing_events
 
 logger = logging.getLogger(__name__)
+
+
+async def _gate_detected_events(session: AsyncSession) -> int:
+    """Auto-reject non-event 'detected' clusters before the human triage queue (0 tokens)."""
+    detected = (await session.execute(
+        text("SELECT id::text FROM events WHERE status = 'detected'")
+    )).all()
+    n_rejected = 0
+    for (event_id,) in detected:
+        arts = (await session.execute(
+            text(
+                "SELECT title, body_text FROM articles "
+                "WHERE event_id = :eid AND is_duplicate = FALSE "
+                "ORDER BY published_at DESC LIMIT 10"
+            ),
+            {"eid": event_id},
+        )).all()
+        if not arts:
+            continue
+        blob = " ".join((r[0] or "") for r in arts) + " " + " ".join((r[1] or "")[:500] for r in arts)
+        if noise_gate_score(blob.strip()) < NOISE_GATE_THRESHOLD:
+            await session.execute(
+                text("UPDATE events SET status = 'rejected' WHERE id = :id"),
+                {"id": event_id},
+            )
+            n_rejected += 1
+    return n_rejected
 
 
 async def _record_pipeline_run(
@@ -144,6 +172,8 @@ async def run_nlp_pipeline(engine: AsyncEngine | None = None) -> dict[str, objec
         existing = await load_existing_events(session)
         merges = find_merges(existing, merge_threshold=settings.event_merge_threshold)
         metrics["n_merges"] = await apply_merges(session, merges)
+
+        metrics["n_gated_out"] = await _gate_detected_events(session)
         await session.commit()
 
         # Compute silhouette if we have ≥2 clusters (quality signal for thesis)
