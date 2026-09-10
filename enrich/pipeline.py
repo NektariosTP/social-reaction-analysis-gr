@@ -23,6 +23,9 @@ from sqlalchemy.ext.asyncio import (
 from enrich.config import settings
 from enrich.enrich_llm import enrich_event_llm, parse_event_date
 from enrich.geocode import detect_national_scope, resolve_locations
+from reactions.config import settings as reaction_settings
+from reactions.db import load_announced_events, merge_news_into_announced
+from reactions.seed import find_announced_duplicate
 
 logger = logging.getLogger(__name__)
 _ATHENS = ZoneInfo("Europe/Athens")
@@ -110,9 +113,29 @@ async def _enrich_event(session: AsyncSession, event: Any) -> None:
     )
 
 
-async def _link_to_announcement(session: AsyncSession, **kwargs) -> str | None:
-    """Placeholder — implemented in Task 8."""
-    return None
+async def _link_to_announcement(
+    session: AsyncSession, *, event_id: str, centroid: np.ndarray | None,
+    action_forms: list[str], event_time: datetime | None,
+    lat: float | None, lon: float | None, is_national: bool,
+) -> str | None:
+    """After enrichment, merge this news event into a matching 'announced' union event."""
+    if centroid is None:
+        return None
+    existing = await load_announced_events(session)
+    if not existing:
+        return None
+    event_day = event_time.astimezone(_ATHENS).date() if event_time is not None else None
+    match = find_announced_duplicate(
+        centroid=centroid, action_forms=action_forms,
+        place_lat=lat, place_lon=lon, is_national=is_national,
+        existing=existing, sim_threshold=reaction_settings.seed_dedup_sim,
+        event_day=event_day,
+    )
+    if match is None or match == event_id:
+        return None
+    await merge_news_into_announced(session, announced_id=match, news_id=event_id)
+    logger.info("[enrich] Linked news event %s → announcement %s.", event_id[:8], match[:8])
+    return match
 
 
 async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, Any]:

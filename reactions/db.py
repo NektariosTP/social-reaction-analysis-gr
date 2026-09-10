@@ -104,6 +104,62 @@ async def load_announced_events(session: AsyncSession):
     return out
 
 
+async def merge_news_into_announced(
+    session: AsyncSession, *, announced_id: str, news_id: str
+) -> None:
+    """Fold an enriched news event into a matching announced event (announced is the anchor)."""
+    now = datetime.now(_tz.utc)
+    news = (await session.execute(sa_text("""
+        SELECT centroid::text, article_count, action_forms, thematic_fields,
+               channel, intensity, summary_el, summary_en, event_time, is_national,
+               ST_Y(primary_location::geometry), ST_X(primary_location::geometry)
+        FROM events WHERE id = :id
+    """), {"id": news_id})).first()
+    ann = (await session.execute(sa_text(
+        "SELECT centroid::text, article_count, action_forms FROM events WHERE id = :id"
+    ), {"id": announced_id})).first()
+    if news is None or ann is None:
+        return
+
+    news_cen = np.array([float(v) for v in news[0].strip("[]").split(",")], dtype=np.float32)
+    ann_cen = np.array([float(v) for v in ann[0].strip("[]").split(",")], dtype=np.float32)
+    news_count = int(news[1]) or 1
+    merged = running_mean(ann_cen, int(ann[1]) or 1, news_cen, news_count)
+    action_union = sorted(set(list(ann[2] or [])) | set(list(news[2] or [])))
+    lat, lon = news[10], news[11]
+
+    await session.execute(sa_text(
+        "UPDATE articles SET event_id = :a WHERE event_id = :n"),
+        {"a": announced_id, "n": news_id})
+    await session.execute(sa_text(
+        "UPDATE event_locations SET event_id = :a WHERE event_id = :n"),
+        {"a": announced_id, "n": news_id})
+    await session.execute(sa_text("""
+        UPDATE events SET
+            centroid = CAST(:c AS vector),
+            action_forms = :af, thematic_fields = :tf,
+            channel = :chan, intensity = :inten,
+            summary_el = :sel, summary_en = :sen,
+            event_time = COALESCE(event_time, :et),
+            is_national = COALESCE(is_national, FALSE) OR :nat,
+            article_count = article_count + :cnt, source_count = source_count + 1,
+            primary_location = CASE WHEN CAST(:lat AS double precision) IS NOT NULL
+                THEN ST_SetSRID(ST_MakePoint(CAST(:lon AS double precision),
+                     CAST(:lat AS double precision)), 4326)::geography
+                ELSE primary_location END,
+            status = 'enriched', last_seen = :now
+        WHERE id = :a
+    """), {
+        "c": _vec_str(merged), "af": action_union, "tf": list(news[3] or []),
+        "chan": news[4], "inten": news[5], "sel": news[6], "sen": news[7],
+        "et": news[8], "nat": bool(news[9]), "cnt": news_count,
+        "lat": lat, "lon": lon, "now": now, "a": announced_id,
+    })
+    await session.execute(sa_text(
+        "UPDATE events SET status = 'merged', last_seen = :now WHERE id = :id"),
+        {"id": news_id, "now": now})
+
+
 async def attach_reaction_to_event(
     session: AsyncSession, event_id: str, centroid: np.ndarray, batch_count: int = 1
 ) -> None:
