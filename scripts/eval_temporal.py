@@ -2,7 +2,7 @@
   - has-date precision/recall/F1 (did we emit a date iff gold has one)
   - date-exact accuracy (day match among records where both have a date)
   - median day-offset error (|predicted - gold| in days, over agreed-date records)
-Runs the real summarize_event() with each record's published_at as reference_date
+Runs the real enrich_event_llm() with each record's published_at as reference_date
 (needs an LLM available)."""
 from __future__ import annotations
 
@@ -13,12 +13,12 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from enrich.summarize import parse_event_date, summarize_event  # noqa: E402
+from enrich.enrich_llm import enrich_event_llm, parse_event_date  # noqa: E402
 from scripts.gold_common import binary_prf, load_jsonl  # noqa: E402
 
-# Groq on_demand free tier caps at 12k tokens/min; each summarize_event call
+# Groq on_demand free tier caps at 12k tokens/min; each enrich_event_llm call
 # burns ~1.5k tokens, so a burst of records trips the TPM limit and drops a
-# summary (counted as a false negative). Space calls out to keep the run clean.
+# result (counted as a false negative). Space calls out to keep the run clean.
 _THROTTLE_SECONDS = float(os.getenv("EVAL_THROTTLE_SECONDS", "5"))
 
 
@@ -36,7 +36,7 @@ def main() -> None:
         gold_raw = r.get("true_event_date")
         gold = parse_event_date(gold_raw) if gold_raw else None
 
-        result = summarize_event(
+        result = enrich_event_llm(
             article_titles=r["article_titles"],
             article_bodies=r["article_bodies"],
             n_sources=len(r["article_titles"]),

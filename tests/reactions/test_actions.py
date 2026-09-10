@@ -1,6 +1,6 @@
 # tests/reactions/test_actions.py
 from reactions.actions import map_action_forms
-from enrich.classify import AXIS_ACTION_FORMS
+from enrich.axes import AXIS_ACTION_FORMS
 
 
 def test_strike_maps_to_apergia():

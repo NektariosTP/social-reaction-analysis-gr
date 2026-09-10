@@ -1,10 +1,10 @@
 # reactions/actions.py
-"""Map filter keywords → Axis-1 action-form labels (verbatim from enrich.classify)."""
+"""Map filter keywords → Axis-1 action-form labels (verbatim from enrich.axes)."""
 from __future__ import annotations
 
 import unicodedata
 
-from enrich.classify import AXIS_ACTION_FORMS
+from enrich.axes import AXIS_ACTION_FORMS
 
 # keyword-root (folded) → exact AXIS_ACTION_FORMS label
 _MAP: list[tuple[str, str]] = [

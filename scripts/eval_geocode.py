@@ -2,7 +2,7 @@
   - foreign-detection precision/recall (is_foreign)
   - median distance error (km)
   - event-precision: % of detected 'events' that are real social reactions
-Runs the real geocode_event() (needs Nominatim + LLM available)."""
+Runs the real enrich_event_llm() + resolve_locations() (needs Nominatim + LLM available)."""
 from __future__ import annotations
 
 import asyncio
@@ -14,7 +14,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from enrich.config import settings  # noqa: E402
-from enrich.geocode import geocode_event  # noqa: E402
+from enrich.enrich_llm import enrich_event_llm  # noqa: E402
+from enrich.geocode import resolve_locations  # noqa: E402
 from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score  # noqa: E402
 from scripts.gold_common import (  # noqa: E402
     binary_prf,
@@ -61,10 +62,16 @@ async def main() -> None:
     dist_errors: list[float] = []
     async with session_factory() as session:
         for r in events:
-            results = await geocode_event(
-                summary_el=" ".join(r["article_bodies"])[:800],
+            enr = enrich_event_llm(
                 article_titles=r["article_titles"],
-                session=session,
+                article_bodies=r["article_bodies"],
+                n_sources=len(r["article_titles"]),
+                reference_date=r.get("published_at"),
+            )
+            if enr is None:
+                continue
+            results = await resolve_locations(
+                enr.locations, national=enr.is_national, session=session
             )
             primary = results[0] if results else None
             pred_foreign = primary is not None and getattr(primary, "is_foreign", False)

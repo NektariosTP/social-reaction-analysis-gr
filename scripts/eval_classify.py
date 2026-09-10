@@ -1,11 +1,11 @@
-"""Per-axis multi-label P/R/F1 of the NLI classifier vs events.jsonl."""
+"""Per-axis multi-label P/R/F1 of the consolidated LLM enrichment call vs events.jsonl."""
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from enrich.classify import classify_nli  # noqa: E402
+from enrich.enrich_llm import enrich_event_llm  # noqa: E402
 from scripts.gold_common import load_jsonl, multilabel_prf, normalize_label  # noqa: E402
 
 AXES = ["action_forms", "thematic_fields", "channel", "intensity"]
@@ -23,8 +23,14 @@ def main() -> None:
     per_axis_pred: dict[str, list[set]] = {a: [] for a in AXES}
     per_axis_gold: dict[str, list[set]] = {a: [] for a in AXES}
     for r in recs:
-        text = " ".join(r["article_titles"]) + " " + " ".join(r["article_bodies"])
-        result = classify_nli(text)
+        result = enrich_event_llm(
+            article_titles=r["article_titles"],
+            article_bodies=r["article_bodies"],
+            n_sources=len(r["article_titles"]),
+            reference_date=r.get("published_at"),
+        )
+        if result is None:
+            continue
         preds = {
             "action_forms": {normalize_label(x) for x in result.action_forms},
             "thematic_fields": {normalize_label(x) for x in result.thematic_fields},

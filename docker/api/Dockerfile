@@ -13,6 +13,7 @@ COPY api/ ./api/
 COPY ingestion/ ./ingestion/
 COPY nlp/ ./nlp/
 COPY enrich/ ./enrich/
+COPY stats/ ./stats/
 
 EXPOSE 8000
 CMD ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

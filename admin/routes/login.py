@@ -20,7 +20,7 @@ async def login_form(request: Request) -> Response:
 async def login_submit(request: Request, password: str = Form(...)) -> Response:
     if verify_password(password):
         request.session["authenticated"] = True
-        return RedirectResponse(url="/events?status=pending_review", status_code=303)
+        return RedirectResponse(url="/events?status=detected", status_code=303)
     return templates.TemplateResponse(
         request, "login.html", {"error": "Wrong password."}, status_code=401
     )
