@@ -22,7 +22,7 @@ async def test_scrape_only_mode_skips_nlp_and_enrich() -> None:
         patch(
             "worker.run.run_archival_sweep",
             new_callable=AsyncMock,
-            return_value={"n_archived": 0, "n_closed": 0},
+            return_value={"n_archived": 0},
         ),
         patch("worker.run._make_session_factory") as mock_sf,
         patch("worker.run.settings") as mock_settings,
@@ -70,7 +70,7 @@ async def test_ingestion_failure_does_not_block_nlp_or_archival() -> None:
         patch(
             "worker.run.run_archival_sweep",
             new_callable=AsyncMock,
-            return_value={"n_archived": 0, "n_closed": 0},
+            return_value={"n_archived": 0},
         ) as mock_sweep,
         patch("worker.run._make_session_factory") as mock_sf,
         patch("worker.run.settings") as mock_settings,
@@ -91,7 +91,7 @@ async def test_archival_sweep_always_runs_even_in_scrape_only_mode() -> None:
         patch(
             "worker.run.run_archival_sweep",
             new_callable=AsyncMock,
-            return_value={"n_archived": 1, "n_closed": 0},
+            return_value={"n_archived": 1},
         ) as mock_sweep,
         patch("worker.run._make_session_factory") as mock_sf,
         patch("worker.run.settings") as mock_settings,
@@ -102,4 +102,4 @@ async def test_archival_sweep_always_runs_even_in_scrape_only_mode() -> None:
         metrics = await run_worker_cycle(engine=MagicMock())
 
     mock_sweep.assert_awaited_once()
-    assert metrics["archival"] == {"n_archived": 1, "n_closed": 0}
+    assert metrics["archival"] == {"n_archived": 1}
