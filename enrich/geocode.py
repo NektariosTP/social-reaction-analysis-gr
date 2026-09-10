@@ -1,9 +1,9 @@
-"""Geocoding pipeline: LLM multi-location extraction → Nominatim → gazetteer fallback.
+"""Geocoding: deterministic resolution of LLM-extracted place mentions → Nominatim.
 
-Primary path: LLM extracts all venues+cities → Nominatim geocodes each (parallel).
-  - Returns list[GeocodeResult] ordered by prominence (primary first).
-  - Enables both precise-location (zoom-in) and city-level (zoom-out) map views.
-Fallback (no LLM or LLM fails): gazetteer → spaCy NER → raw-text Nominatim.
+The LLM never emits coordinates — it names places (see enrich.enrich_llm); this
+module resolves those names to coordinates via Nominatim/embassy gazetteer and
+stamps the in-Greece geofence. Unresolved domestic names are kept with NULL
+coordinates rather than dropped.
 """
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ import asyncio
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
 
 import httpx
 import yaml
@@ -46,11 +45,7 @@ class LocationMention(BaseModel):
     venue: str | None = None  # specific place (e.g. "Πλατεία Συντάγματος")
     city: str               # city (e.g. "Αθήνα") — always required
     region: str | None = None
-    is_foreign: bool = False
     embassy_of: str | None = None  # country name if this is a foreign embassy on Greek soil
-
-class _LlmLocations(BaseModel):
-    locations: list[LocationMention]
 
 
 # Trailing Greek-letter run so a nominative key still matches its inflected forms
@@ -138,165 +133,46 @@ async def geocode_text(
         return None
 
 
-def _extract_locations_llm(text: str) -> list[LocationMention]:
-    """Extract all event locations via LLM structured output. Returns [] on failure."""
-    try:
-        from enrich.llm_client import get_llm_client_and_model
-        client, _model = get_llm_client_and_model()
-        result: _LlmLocations = client.chat.completions.create(
-            response_model=_LlmLocations,
-            max_retries=2,
-            messages=[{"role": "user", "content": (
-                "Extract all distinct locations where this Greek social reaction event "
-                "is taking place. Include specific venues (squares, streets, buildings) "
-                "and their city. For each location set is_foreign=true if it is outside "
-                "Greece, and set embassy_of to the country name if the location is a "
-                "foreign embassy/consulate on Greek soil. Return up to 5 locations "
-                "ordered by prominence.\n\n"
-                f"Text: {text[:800]}"
-            )}],
-        )
-        return result.locations[:5]
-    except Exception as exc:
-        raw = _extract_failed_generation(exc)
-        if raw:
-            salvaged = parse_locations_json(raw)
-            if salvaged:
-                logger.info("[geocode] Salvaged %d location(s) from a failed tool call.", len(salvaged))
-                return salvaged
-        logger.debug("[geocode] LLM location extraction failed: %s", exc)
-        return []
-
-
-
-def parse_locations_json(raw: str) -> list[LocationMention]:
-    """Best-effort recover LocationMentions from a raw/malformed model string.
-
-    Handles Groq's `<function=…>{…}<function/…>` wrapper and ```json fences by
-    slicing from the first `{` to the last `}` and validating via _LlmLocations.
-    Returns [] on any failure.
-    """
-    if not raw:
-        return []
-    start, end = raw.find("{"), raw.rfind("}")
-    if start == -1 or end <= start:
-        return []
-    try:
-        data = json.loads(raw[start : end + 1])
-        return _LlmLocations(**data).locations[:5]
-    except Exception:  # noqa: BLE001 — any malformed payload → give up cleanly
-        return []
-
-
-def _extract_failed_generation(exc: Exception) -> str | None:
-    """Recover `error.failed_generation` from a litellm/Groq BadRequestError string."""
-    match = re.search(r"\{.*\}", str(exc), re.DOTALL)
-    if not match:
-        return None
-    try:
-        body = json.loads(match.group(0))
-    except Exception:  # noqa: BLE001
-        return None
-    fg = body.get("error", {}).get("failed_generation")
-    return fg if isinstance(fg, str) else None
-
-
-async def geocode_event(
-    summary_el: str,
-    article_titles: list[str],
+async def resolve_locations(
+    mentions: list[LocationMention],
+    *,
+    national: bool,
     nominatim_url: str | None = None,
     session: AsyncSession | None = None,
 ) -> list[GeocodeResult]:
-    """
-    Geocode all locations for an event. Returns list ordered by prominence (primary first).
+    """Resolve pre-extracted place mentions → coordinates (LLM never emits coords).
 
-    Primary path: LLM extracts venue+city for each location → Nominatim geocodes in parallel.
-    Fallback: gazetteer (instant) → spaCy NER → Nominatim with raw text.
+    National scope with no specific venue → unlocated. Embassies and foreign places
+    resolve as before. A domestic name Nominatim cannot resolve is KEPT with NULL
+    coordinates (fixable later in the admin editor), never dropped.
     """
-    all_text = summary_el + " " + " ".join(article_titles[:5])
-
-    # 1. LLM extraction → Nominatim (primary path, parallel requests)
-    national = detect_national_scope(all_text)
-    mentions = _extract_locations_llm(all_text)
     has_venue = any(getattr(m, "venue", None) for m in mentions) or len(mentions) > 1
-
-    # National scope + no specific venue → leave unlocated (don't pin a stray/hallucinated city)
     if national and not has_venue:
         logger.debug("[geocode] National scope, no venue → leaving event unlocated.")
         return []
+    if not mentions:
+        return []
 
-    if mentions:
-        results: list[GeocodeResult] = []
-        for i, m in enumerate(mentions):
-            if m.embassy_of:
-                emb = lookup_embassy(m.embassy_of)
-                if emb:
-                    emb.is_primary = i == 0
-                    results.append(emb)
-                    continue
-            if m.is_foreign:
-                # Our Nominatim instance is Greece-only: it can't resolve foreign
-                # places, and searching anyway either finds nothing or spuriously
-                # matches an unrelated same-named Greek entity. Trust the LLM's
-                # verdict directly instead of pinning a bogus/absent coordinate.
-                results.append(
-                    GeocodeResult(
-                        lat=None,
-                        lon=None,
-                        location_name=m.venue or m.city,
-                        city=m.city,
-                        is_foreign=True,
-                        is_primary=i == 0,
-                    )
-                )
+    results: list[GeocodeResult] = []
+    for i, m in enumerate(mentions):
+        is_primary = i == 0
+        if m.embassy_of:
+            emb = lookup_embassy(m.embassy_of)
+            if emb:
+                emb.is_primary = is_primary
+                results.append(emb)
                 continue
-            query = f"{m.venue}, {m.city}" if m.venue else m.city
-            r = await geocode_text(query, city=m.city, nominatim_url=nominatim_url)
-            if r is not None:
-                r.is_primary = i == 0
-                results.append(r)
-        if results:
-            logger.debug("[geocode] LLM+Nominatim resolved %d location(s).", len(results))
-            return await _finalize(results, session)
-
-    # 2. Gazetteer fallback (no LLM or LLM found nothing)
-    result = lookup_gazetteer(all_text)
-    if result:
-        logger.debug("[geocode] Gazetteer fallback hit: %s", result.location_name)
-        return await _finalize([result], session)
-
-    # 3. spaCy NER fallback (no LLM key available)
-    candidate = _extract_location_spacy(all_text)
-    if candidate:
-        result = await geocode_text(candidate, nominatim_url=nominatim_url)
-        if result:
-            return await _finalize([result], session)
-
-    # 4. Raw text Nominatim as last resort
-    result = await geocode_text(all_text[:200], nominatim_url=nominatim_url)
-    return await _finalize([result], session) if result else []
-
-
-@lru_cache(maxsize=1)
-def _load_spacy() -> Any:
-    import spacy
-    try:
-        return spacy.load("el_core_news_md", exclude=["parser", "senter"])
-    except OSError:
-        return spacy.load("el_core_news_sm", exclude=["parser", "senter"])
-
-
-def _extract_location_spacy(text: str) -> str | None:
-    """Return the first LOC/GPE entity from the text, or None."""
-    try:
-        nlp = _load_spacy()
-        doc = nlp(text[:500])
-        for ent in doc.ents:
-            if ent.label_ in {"LOC", "GPE"}:
-                return str(ent.text)
-    except Exception as exc:
-        logger.debug("[geocode] spaCy NER failed: %s", exc)
-    return None
+        query = f"{m.venue}, {m.city}" if m.venue else m.city
+        r = await geocode_text(query, city=m.city, nominatim_url=nominatim_url)
+        if r is not None:
+            r.is_primary = is_primary
+            results.append(r)
+        else:  # keep the unresolved name with NULL coords (spec decision b)
+            results.append(GeocodeResult(
+                lat=None, lon=None, location_name=m.venue or m.city,
+                city=m.city, is_primary=is_primary,
+            ))
+    return await _finalize(results, session)
 
 
 @lru_cache(maxsize=1)

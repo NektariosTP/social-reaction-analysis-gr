@@ -8,9 +8,9 @@ from httpx import Response
 
 from enrich.geocode import (
     LocationMention,
-    geocode_event,
     lookup_embassy,
     point_in_greece,
+    resolve_locations,
 )
 
 
@@ -24,57 +24,26 @@ def test_point_in_greece_false_for_tehran() -> None:
 
 @respx.mock
 async def test_tehran_marked_foreign() -> None:
-    # country lock removed → Nominatim now resolves real Tehran coords (outside Greece)
+    # Resolved Nominatim coords outside Greece → geofence flags is_foreign.
     respx.get("http://test-nominatim/search").mock(
         return_value=Response(
             200, json=[{"lat": "35.6892", "lon": "51.3890", "display_name": "Tehran, Iran"}]
         )
     )
-    with patch(
-        "enrich.geocode._extract_locations_llm",
-        return_value=[LocationMention(city="Τεχεράνη")],
-    ):
-        results = await geocode_event(
-            summary_el="Διαδήλωση στην Τεχεράνη",
-            article_titles=["Ένταση στο Ιράν"],
-            nominatim_url="http://test-nominatim",
-        )
-    assert results and results[0].is_foreign is True
-
-
-@respx.mock
-async def test_llm_flagged_foreign_skips_nominatim() -> None:
-    # Greece-only Nominatim can't resolve foreign places: it either finds
-    # nothing or spuriously matches an unrelated same-named Greek entity.
-    # An LLM-confirmed-foreign mention must never reach it.
-    route = respx.get("http://test-nominatim/search").mock(
-        return_value=Response(200, json=[])
+    results = await resolve_locations(
+        [LocationMention(city="Τεχεράνη")],
+        national=False,
+        nominatim_url="http://test-nominatim",
     )
-    with patch(
-        "enrich.geocode._extract_locations_llm",
-        return_value=[LocationMention(city="Μπολόνια", is_foreign=True)],
-    ):
-        results = await geocode_event(
-            summary_el="Βίαια επεισόδια στη Μπολόνια",
-            article_titles=["Επεισόδια στη Μπολόνια"],
-            nominatim_url="http://test-nominatim",
-        )
-    assert not route.called
     assert results and results[0].is_foreign is True
-    assert results[0].lat is None
-    assert results[0].lon is None
 
 
 async def test_embassy_maps_to_athens_and_is_domestic() -> None:
-    with patch(
-        "enrich.geocode._extract_locations_llm",
-        return_value=[LocationMention(city="Αθήνα", embassy_of="Ιράν")],
-    ):
-        results = await geocode_event(
-            summary_el="Συγκέντρωση έξω από την Πρεσβεία του Ιράν",
-            article_titles=["Διαμαρτυρία στην Αθήνα"],
-            nominatim_url="http://test-nominatim",
-        )
+    results = await resolve_locations(
+        [LocationMention(city="Αθήνα", embassy_of="Ιράν")],
+        national=False,
+        nominatim_url="http://test-nominatim",
+    )
     assert results
     assert results[0].is_foreign is False
 

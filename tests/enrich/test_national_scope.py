@@ -4,9 +4,7 @@ from __future__ import annotations
 import respx
 from httpx import Response
 
-from unittest.mock import patch
-
-from enrich.geocode import LocationMention, detect_national_scope, geocode_event
+from enrich.geocode import LocationMention, detect_national_scope, resolve_locations
 
 
 def test_detects_panhellenic_keywords() -> None:
@@ -26,14 +24,10 @@ async def test_national_with_named_venue_keeps_venue() -> None:
             200, json=[{"lat": "37.9756", "lon": "23.7348", "display_name": "Προπύλαια, Αθήνα"}]
         )
     )
-    with patch(
-        "enrich.geocode._extract_locations_llm",
-        return_value=[LocationMention(venue="Προπύλαια", city="Αθήνα")],
-    ):
-        results = await geocode_event(
-            summary_el="Πανελλαδική απεργία, συγκέντρωση στα Προπύλαια",
-            article_titles=["Συγκέντρωση στα Προπύλαια"],
-            nominatim_url="http://test-nominatim",
-        )
+    results = await resolve_locations(
+        [LocationMention(venue="Προπύλαια", city="Αθήνα")],
+        national=True,
+        nominatim_url="http://test-nominatim",
+    )
     assert results  # venue pin wins, national scope doesn't suppress a real venue
     assert results[0].location_name == "Προπύλαια"
