@@ -67,7 +67,7 @@ def test_match_returns_best_match() -> None:
     assert result == id_close
 
 
-async def test_load_existing_events_excludes_closed_rejected_and_merged() -> None:
+async def test_load_existing_events_excludes_rejected_merged_and_archived() -> None:
     mock_session = AsyncMock()
     mock_result = MagicMock()
     mock_result.all.return_value = []
@@ -76,36 +76,7 @@ async def test_load_existing_events_excludes_closed_rejected_and_merged() -> Non
     await load_existing_events(mock_session)
 
     executed_sql = str(mock_session.execute.call_args[0][0])
-    assert "status NOT IN ('closed', 'rejected', 'merged')" in executed_sql
-
-
-async def test_assign_event_id_revives_archived_event_on_match() -> None:
-    centroid = _centroid(0)
-    existing_id = str(uuid.uuid4())
-    centroid_str = "[" + ",".join(str(v) for v in centroid.tolist()) + "]"
-
-    mock_session = AsyncMock()
-    # A3: assign_event_id matches via a single SQL nearest-neighbour SELECT whose
-    # .first() returns (id, centroid, article_count, distance). distance 0.0 is
-    # well within 1 - threshold, so this is a match.
-    select_result = MagicMock()
-    select_result.first.return_value = (existing_id, centroid_str, 3, 0.0)
-    mock_session.execute = AsyncMock(return_value=select_result)
-
-    event_id = await assign_event_id(
-        mock_session, centroid=centroid, article_ids=["a1"], threshold=0.85
-    )
-
-    assert event_id == existing_id
-    # execute order is now SELECT, then UPDATE events, then article UPDATEs — find the UPDATE.
-    update_calls = [
-        c for c in mock_session.execute.await_args_list if "UPDATE events" in str(c.args[0])
-    ]
-    assert update_calls, "expected an UPDATE events call"
-    assert (
-        "status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END"
-        in str(update_calls[0].args[0])
-    )
+    assert "status NOT IN ('rejected', 'merged', 'archived')" in executed_sql
 
 
 def test_running_mean_is_weighted_and_normalized() -> None:

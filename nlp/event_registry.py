@@ -37,7 +37,7 @@ async def load_existing_events(session: AsyncSession) -> list[tuple[str, np.ndar
     result = await session.execute(
         text(
             "SELECT id::text, centroid::text FROM events "
-            "WHERE centroid IS NOT NULL AND status NOT IN ('closed', 'rejected', 'merged')"
+            "WHERE centroid IS NOT NULL AND status NOT IN ('rejected', 'merged', 'archived')"
         )
     )
     rows = result.all()
@@ -74,7 +74,7 @@ async def assign_event_id(
                 "SELECT id::text, centroid::text, article_count, "
                 "centroid <=> CAST(:vec AS vector) AS distance "
                 "FROM events "
-                "WHERE centroid IS NOT NULL AND status NOT IN ('closed', 'rejected', 'merged') "
+                "WHERE centroid IS NOT NULL AND status NOT IN ('rejected', 'merged', 'archived') "
                 "ORDER BY centroid <=> CAST(:vec AS vector) "
                 "LIMIT 1"
             ),
@@ -106,8 +106,7 @@ async def assign_event_id(
                 UPDATE events
                 SET centroid = CAST(:centroid AS vector),
                     article_count = article_count + :count,
-                    last_seen = :now,
-                    status = CASE WHEN status = 'archived' THEN 'enriched' ELSE status END
+                    last_seen = :now
                 WHERE id = :id
             """),
             {"id": event_id, "centroid": merged_str, "count": len(article_ids), "now": now},
