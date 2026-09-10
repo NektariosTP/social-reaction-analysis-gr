@@ -14,12 +14,12 @@ from starlette.responses import RedirectResponse, Response
 
 from admin.auth import require_admin
 from admin.db import get_db
-from enrich.classify import AXIS_ACTION_FORMS, AXIS_CHANNEL, AXIS_INTENSITY, AXIS_THEMATIC_FIELDS
+from enrich.axes import AXIS_ACTION_FORMS, AXIS_CHANNEL, AXIS_INTENSITY, AXIS_THEMATIC_FIELDS
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="admin/templates")
 
-ALL_STATUSES = ["detected", "pending_review", "enriched", "announced", "archived", "closed", "rejected"]
+ALL_STATUSES = ["detected", "approved", "pending_review", "enriched", "announced", "archived", "rejected"]
 _ATHENS = ZoneInfo("Europe/Athens")
 
 
@@ -51,7 +51,12 @@ async def _fetch_admin_events(
     result = await session.execute(
         text(f"""
             SELECT id, action_forms, thematic_fields, channel, intensity,
-                   summary_el, article_count, first_seen, last_seen, status
+                   summary_el, article_count, first_seen, last_seen, status,
+                   (SELECT array_agg(t.title) FROM (
+                       SELECT title FROM articles
+                       WHERE event_id = events.id AND is_duplicate = FALSE
+                       ORDER BY published_at DESC LIMIT 3
+                   ) t) AS titles
             FROM events
             {where_clause}
             ORDER BY first_seen DESC NULLS LAST
@@ -64,14 +69,14 @@ async def _fetch_admin_events(
 
 @router.get("/")
 async def root() -> RedirectResponse:
-    return RedirectResponse(url="/events?status=pending_review", status_code=303)
+    return RedirectResponse(url="/events?status=detected", status_code=303)
 
 
 @router.get("/events", response_class=Response)
 async def list_events(
     request: Request,
     session: AsyncSession = Depends(get_db),
-    status: str = "pending_review",
+    status: str = "detected",
 ) -> Response:
     status_filter = status if status in ALL_STATUSES else None
     rows = await _fetch_admin_events(session, status=status_filter)
@@ -91,11 +96,11 @@ async def approve_event(
     event_id: str, session: AsyncSession = Depends(get_db)
 ) -> RedirectResponse:
     await session.execute(
-        text("UPDATE events SET status = 'enriched' WHERE id = :id AND status = 'pending_review'"),
+        text("UPDATE events SET status = 'approved' WHERE id = :id AND status = 'detected'"),
         {"id": event_id},
     )
     await session.commit()
-    return RedirectResponse(url="/events?status=pending_review", status_code=303)
+    return RedirectResponse(url="/events?status=detected", status_code=303)
 
 
 @router.post("/events/{event_id}/reject")
@@ -103,11 +108,11 @@ async def reject_event(
     event_id: str, session: AsyncSession = Depends(get_db)
 ) -> RedirectResponse:
     await session.execute(
-        text("UPDATE events SET status = 'rejected' WHERE id = :id AND status = 'pending_review'"),
+        text("UPDATE events SET status = 'rejected' WHERE id = :id AND status = 'detected'"),
         {"id": event_id},
     )
     await session.commit()
-    return RedirectResponse(url="/events?status=pending_review", status_code=303)
+    return RedirectResponse(url="/events?status=detected", status_code=303)
 
 
 async def _fetch_event_detail(session: AsyncSession, event_id: str) -> Any | None:

@@ -28,14 +28,14 @@ async def client():
     app.dependency_overrides.clear()
 
 
-async def test_root_redirects_to_pending_review_queue(client) -> None:
+async def test_root_redirects_to_detected_queue(client) -> None:
     c, _ = client
     resp = await c.get("/", follow_redirects=False)
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/events?status=pending_review"
+    assert resp.headers["location"] == "/events?status=detected"
 
 
-async def test_list_events_defaults_to_pending_review_filter(client) -> None:
+async def test_list_events_defaults_to_detected_filter(client) -> None:
     c, mock_session = client
     result = MagicMock()
     result.all.return_value = []
@@ -61,7 +61,7 @@ async def test_list_events_empty_status_shows_all(client) -> None:
     assert "status = :status" not in executed_sql
 
 
-async def test_approve_event_sets_enriched_and_redirects(client) -> None:
+async def test_approve_event_sets_approved_and_redirects(client) -> None:
     c, mock_session = client
     mock_session.execute = AsyncMock()
     mock_session.commit = AsyncMock()
@@ -69,8 +69,10 @@ async def test_approve_event_sets_enriched_and_redirects(client) -> None:
     resp = await c.post("/events/evt-1/approve", follow_redirects=False)
 
     assert resp.status_code == 303
+    assert resp.headers["location"] == "/events?status=detected"
     executed_sql = str(mock_session.execute.call_args[0][0])
-    assert "status = 'enriched'" in executed_sql
+    assert "status = 'approved'" in executed_sql
+    assert "status = 'detected'" in executed_sql  # guard clause
     mock_session.commit.assert_awaited_once()
 
 
@@ -82,5 +84,13 @@ async def test_reject_event_sets_rejected_and_redirects(client) -> None:
     resp = await c.post("/events/evt-1/reject", follow_redirects=False)
 
     assert resp.status_code == 303
+    assert resp.headers["location"] == "/events?status=detected"
     executed_sql = str(mock_session.execute.call_args[0][0])
     assert "status = 'rejected'" in executed_sql
+    assert "status = 'detected'" in executed_sql  # guard clause
+
+
+def test_all_statuses_has_approved_and_no_closed() -> None:
+    from admin.routes.events import ALL_STATUSES
+    assert "approved" in ALL_STATUSES
+    assert "closed" not in ALL_STATUSES

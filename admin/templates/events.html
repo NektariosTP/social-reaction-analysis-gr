@@ -21,14 +21,21 @@
   </tr>
   {% for e in events %}
   <tr>
-    <td><a href="/events/{{ e.id }}">{{ e.summary_el or "(no summary)" }}</a></td>
+    <td>
+      <a href="/events/{{ e.id }}">{{ e.summary_el or "(no summary)" }}</a>
+      {% if e.titles %}
+      <ul class="titles">
+        {% for t in e.titles %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </td>
     <td>{{ e.action_forms | join(", ") }}</td>
     <td>{{ e.thematic_fields | join(", ") }}</td>
     <td>{{ e.article_count }}</td>
     <td>{{ e.first_seen }}</td>
     <td>{{ e.status }}</td>
     <td>
-      {% if e.status == "pending_review" %}
+      {% if e.status == "detected" %}
       <form class="inline" method="post" action="/events/{{ e.id }}/approve">
         <button type="submit">Approve</button>
       </form>
