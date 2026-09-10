@@ -124,7 +124,7 @@ async def merge_news_into_announced(
     news_cen = np.array([float(v) for v in news[0].strip("[]").split(",")], dtype=np.float32)
     ann_cen = np.array([float(v) for v in ann[0].strip("[]").split(",")], dtype=np.float32)
     news_count = int(news[1]) or 1
-    merged = running_mean(ann_cen, int(ann[1]) or 1, news_cen, news_count)
+    merged = running_mean(ann_cen, int(ann[1]), news_cen, news_count)
     action_union = sorted(set(list(ann[2] or [])) | set(list(news[2] or [])))
     lat, lon = news[10], news[11]
 

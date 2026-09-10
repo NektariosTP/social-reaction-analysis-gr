@@ -45,6 +45,7 @@ class LocationMention(BaseModel):
     venue: str | None = None  # specific place (e.g. "Πλατεία Συντάγματος")
     city: str               # city (e.g. "Αθήνα") — always required
     region: str | None = None
+    is_foreign: bool = False  # LLM-reported: place is outside Greece
     embassy_of: str | None = None  # country name if this is a foreign embassy on Greek soil
 
 
@@ -142,9 +143,13 @@ async def resolve_locations(
 ) -> list[GeocodeResult]:
     """Resolve pre-extracted place mentions → coordinates (LLM never emits coords).
 
-    National scope with no specific venue → unlocated. Embassies and foreign places
-    resolve as before. A domestic name Nominatim cannot resolve is KEPT with NULL
-    coordinates (fixable later in the admin editor), never dropped.
+    National scope with no specific venue → unlocated. Embassies resolve to their
+    Greek-soil coords. LLM-flagged-foreign mentions skip Nominatim entirely (our
+    self-hosted instance is Greece-scoped: for a genuinely foreign name it either
+    finds nothing or spuriously matches an unrelated same-named Greek place — the
+    LLM's verdict is trusted directly instead of risking a bogus domestic pin). A
+    domestic name Nominatim cannot resolve is KEPT with NULL coordinates (fixable
+    later in the admin editor), never dropped.
     """
     has_venue = any(getattr(m, "venue", None) for m in mentions) or len(mentions) > 1
     if national and not has_venue:
@@ -162,6 +167,12 @@ async def resolve_locations(
                 emb.is_primary = is_primary
                 results.append(emb)
                 continue
+        if m.is_foreign:
+            results.append(GeocodeResult(
+                lat=None, lon=None, location_name=m.venue or m.city,
+                city=m.city, is_foreign=True, is_primary=is_primary,
+            ))
+            continue
         query = f"{m.venue}, {m.city}" if m.venue else m.city
         r = await geocode_text(query, city=m.city, nominatim_url=nominatim_url)
         if r is not None:

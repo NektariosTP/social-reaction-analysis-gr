@@ -50,7 +50,7 @@ def _coerce(result: EventEnrichment) -> EventEnrichment:
     if not result.action_forms:
         result.action_forms = [AXIS_ACTION_FORMS[0]]
     if not result.thematic_fields:
-        result.thematic_fields = ["Άλλο"]
+        result.thematic_fields = [AXIS_THEMATIC_FIELDS[-1]]
     if result.channel not in AXIS_CHANNEL:
         result.channel = AXIS_CHANNEL[0]
     if result.intensity not in AXIS_INTENSITY:
@@ -79,8 +79,9 @@ def enrich_event_llm(
         f"  intensity (one of): {', '.join(AXIS_INTENSITY)}\n"
         "  summary_el: 2-3 factual sentences in Greek\n"
         "  summary_en: 2-3 factual sentences in English\n"
-        "  locations: all distinct places (venue + city; set embassy_of to the country name "
-        "when the place is a foreign embassy/consulate in Greece)\n"
+        "  locations: all distinct places (venue + city; set is_foreign=true if the place "
+        "is outside Greece; set embassy_of to the country name when the place is a foreign "
+        "embassy/consulate physically located in Greece)\n"
         "  is_national: true if this is a panhellenic/nationwide action\n"
         f"  event_date: the ISO 8601 date the event takes place; resolve relative cues "
         f"(αύριο, χθες, την Πέμπτη…) against the reference date {reference_date}; "
@@ -93,7 +94,15 @@ def enrich_event_llm(
             max_retries=2,
             messages=[{"role": "user", "content": prompt}],
         )
-        return _coerce(result)
+        coerced = _coerce(result)
+        # summary_el/summary_en default to "" (not None) on a schema-valid-but-empty
+        # response — treat that the same as a failed call so the event stays
+        # 'approved' and is retried, instead of being written as 'enriched' with
+        # permanently blank content that no later selection query would catch.
+        if not coerced.summary_el.strip() or not coerced.summary_en.strip():
+            logger.warning("[enrich_llm] LLM returned an empty summary — treating as failure.")
+            return None
+        return coerced
     except Exception as exc:  # noqa: BLE001
         logger.warning("[enrich_llm] consolidated call failed: %s", exc)
         return None

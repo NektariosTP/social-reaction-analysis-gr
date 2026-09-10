@@ -143,7 +143,13 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
 
     Picks up:
       - status='approved' (human-approved, never enriched)
-      - status='enriched' with NULL summary_el, channel, or primary_location (partial failure)
+      - status='enriched' with NULL summary_el or channel (partial failure)
+
+    `primary_location` is deliberately NOT part of the retry check: resolve_locations()
+    legitimately leaves it NULL forever for a national-scope event with no named venue,
+    and treating that as "needs retry" would re-run the full LLM call on every cycle
+    indefinitely. `channel`/`summary_el` are always written together with location in
+    the same UPDATE, so either is a reliable "never finished enriching" signal on its own.
     """
     _engine = engine or create_async_engine(settings.database_url)
     session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
@@ -155,8 +161,7 @@ async def run_enrich_pipeline(engine: AsyncEngine | None = None) -> dict[str, An
             text("""
                 SELECT id, centroid FROM events
                 WHERE status = 'approved'
-                   OR (status = 'enriched'
-                       AND (summary_el IS NULL OR channel IS NULL OR primary_location IS NULL))
+                   OR (status = 'enriched' AND (summary_el IS NULL OR channel IS NULL))
             """)
         )
         events = result.all()

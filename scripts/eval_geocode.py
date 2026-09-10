@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from enrich.config import settings  # noqa: E402
 from enrich.enrich_llm import enrich_event_llm  # noqa: E402
-from enrich.geocode import resolve_locations  # noqa: E402
+from enrich.geocode import detect_national_scope, resolve_locations  # noqa: E402
 from enrich.nli import NOISE_GATE_THRESHOLD, noise_gate_score  # noqa: E402
 from scripts.gold_common import (  # noqa: E402
     binary_prf,
@@ -70,8 +70,10 @@ async def main() -> None:
             )
             if enr is None:
                 continue
+            full_text = " ".join(r["article_titles"]) + " " + " ".join(r["article_bodies"])
+            national = bool(enr.is_national or detect_national_scope(full_text))
             results = await resolve_locations(
-                enr.locations, national=enr.is_national, session=session
+                enr.locations, national=national, session=session
             )
             primary = results[0] if results else None
             pred_foreign = primary is not None and getattr(primary, "is_foreign", False)
