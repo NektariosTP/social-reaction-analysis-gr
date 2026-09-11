@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import IntegrityError
 
 from admin.auth import require_admin
 from admin.db import get_db
@@ -112,7 +113,9 @@ async def test_edit_event_form_renders_new_fields(client):
     locations.all.return_value = []
     articles = MagicMock()
     articles.all.return_value = []
-    mock_session.execute = AsyncMock(side_effect=[detail, locations, articles])
+    reactions = MagicMock()
+    reactions.all.return_value = []
+    mock_session.execute = AsyncMock(side_effect=[detail, locations, articles, reactions])
 
     resp = await c.get("/events/evt-1")
 
@@ -120,6 +123,7 @@ async def test_edit_event_form_renders_new_fields(client):
     body = resp.text
     assert 'name="event_time"' in body
     assert 'name="is_national"' in body
+    assert 'name="actor_name"' in body  # reactions add form present
 
 
 async def test_edit_event_submit_saves_valid_data(client) -> None:
@@ -186,3 +190,86 @@ async def test_submit_persists_new_location(client):
         if "insert into event_locations" in str(call.args[0]).lower()
     ]
     assert inserted and inserted[0]["city"] == "Θεσσαλονίκη"
+
+
+async def test_add_reaction_inserts_and_redirects(client) -> None:
+    c, mock_session = client
+    mock_session.execute = AsyncMock()
+    mock_session.commit = AsyncMock()
+
+    resp = await c.post(
+        "/events/evt-1/reactions",
+        data={"actor_name": "ΑΔΕΔΥ", "source_org": "adedy",
+              "url": "http://adedy/1", "text": "Απεργία", "observed_at": ""},
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/events/evt-1"
+    inserted = [
+        call.args[1] for call in mock_session.execute.await_args_list
+        if "insert into event_reactions" in str(call.args[0]).lower()
+    ]
+    assert inserted and inserted[0]["actor"] == "ΑΔΕΔΥ"
+    mock_session.commit.assert_awaited_once()
+
+
+async def test_add_reaction_conflict_rerenders_422(client) -> None:
+    c, mock_session = client
+    detail = MagicMock()
+    detail.first.return_value = MagicMock(
+        id="evt-1", action_forms=[], thematic_fields=[], channel="Φυσικό (offline)",
+        intensity="Ειρηνική", summary_el="", summary_en="", classification_confidence=None,
+        lat=None, lon=None, article_count=0, source_count=1,
+        first_seen=None, last_seen=None, status="detected",
+        event_time=None, is_national=False,
+    )
+    empty = MagicMock(); empty.all.return_value = []
+    mock_session.execute = AsyncMock(
+        side_effect=[IntegrityError("x", {}, Exception()), detail, empty, empty, empty]
+    )
+    mock_session.rollback = AsyncMock()
+
+    resp = await c.post(
+        "/events/evt-1/reactions",
+        data={"actor_name": "ΑΔΕΔΥ", "source_org": "adedy",
+              "url": "http://dup/1", "text": "x", "observed_at": ""},
+    )
+
+    assert resp.status_code == 422
+    mock_session.rollback.assert_awaited_once()
+
+
+async def test_edit_reaction_updates_and_redirects(client) -> None:
+    c, mock_session = client
+    mock_session.execute = AsyncMock()
+    mock_session.commit = AsyncMock()
+
+    resp = await c.post(
+        "/events/evt-1/reactions/r-9",
+        data={"actor_name": "ΠΑΜΕ", "source_org": "pame",
+              "url": "http://pame/1", "text": "y", "observed_at": ""},
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 303
+    updated = [
+        call.args[1] for call in mock_session.execute.await_args_list
+        if "update event_reactions" in str(call.args[0]).lower()
+    ]
+    assert updated and updated[0]["rid"] == "r-9" and updated[0]["eid"] == "evt-1"
+
+
+async def test_delete_reaction_deletes_and_redirects(client) -> None:
+    c, mock_session = client
+    mock_session.execute = AsyncMock()
+    mock_session.commit = AsyncMock()
+
+    resp = await c.post("/events/evt-1/reactions/r-9/delete", follow_redirects=False)
+
+    assert resp.status_code == 303
+    deleted = [
+        call.args[1] for call in mock_session.execute.await_args_list
+        if "delete from event_reactions" in str(call.args[0]).lower()
+    ]
+    assert deleted and deleted[0]["rid"] == "r-9" and deleted[0]["eid"] == "evt-1"

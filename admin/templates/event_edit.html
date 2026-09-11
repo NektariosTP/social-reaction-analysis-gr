@@ -99,4 +99,32 @@
   <li><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a> — {{ a.source_type }} — {{ a.published_at }}</li>
   {% endfor %}
 </ul>
+
+<h2>Union reactions</h2>
+{% for r in reactions %}
+<form method="post" action="/events/{{ event.id }}/reactions/{{ r.id }}" class="reaction">
+  <input type="text" name="actor_name" value="{{ r.actor_name }}" placeholder="Actor">
+  <input type="text" name="source_org" value="{{ r.source_org }}" placeholder="Org">
+  <input type="text" name="url" value="{{ r.url }}" placeholder="URL" size="40">
+  <input type="datetime-local" name="observed_at" value="{{ r.observed_at_local }}">
+  <br>
+  <textarea name="text" rows="2" cols="60">{{ r.text or "" }}</textarea>
+  <button type="submit">Save reaction</button>
+</form>
+<form method="post" action="/events/{{ event.id }}/reactions/{{ r.id }}/delete"
+      onsubmit="return confirm('Delete this reaction?');">
+  <button type="submit">Delete reaction</button>
+</form>
+{% endfor %}
+
+<h3>Add union reaction</h3>
+<form method="post" action="/events/{{ event.id }}/reactions">
+  <input type="text" name="actor_name" placeholder="Actor" required>
+  <input type="text" name="source_org" placeholder="Org" required>
+  <input type="text" name="url" placeholder="URL" size="40" required>
+  <input type="datetime-local" name="observed_at">
+  <br>
+  <textarea name="text" rows="2" cols="60" placeholder="Statement text"></textarea>
+  <button type="submit">Add reaction</button>
+</form>
 {% endblock %}

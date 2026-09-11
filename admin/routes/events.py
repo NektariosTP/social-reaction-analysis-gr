@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import RedirectResponse, Response
 
@@ -161,11 +162,34 @@ async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list[An
     return result.all()
 
 
+async def _fetch_event_reactions_admin(session: AsyncSession, event_id: str) -> list[Any]:
+    result = await session.execute(
+        text("""
+            SELECT id, actor_name, source_org, url, text, observed_at
+            FROM event_reactions WHERE event_id = :id
+            ORDER BY observed_at ASC NULLS LAST, created_at ASC
+        """),
+        {"id": event_id},
+    )
+    return result.all()
+
+
+def _reaction_view(r: Any) -> dict[str, Any]:
+    obs_local = ""
+    if getattr(r, "observed_at", None) is not None:
+        obs_local = r.observed_at.astimezone(_ATHENS).strftime("%Y-%m-%dT%H:%M")
+    return {
+        "id": str(r.id), "actor_name": r.actor_name, "source_org": r.source_org,
+        "url": r.url, "text": r.text, "observed_at_local": obs_local,
+    }
+
+
 def _edit_form_context(
     event: Any,
     locations: list[Any],
     articles: list[Any],
     error: str | None,
+    reactions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     event_time_local = ""
     if event is not None and getattr(event, "event_time", None) is not None:
@@ -174,6 +198,7 @@ def _edit_form_context(
         "event": event,
         "locations": locations,
         "articles": articles,
+        "reactions": reactions or [],
         "statuses": ALL_STATUSES,
         "axis_action_forms": AXIS_ACTION_FORMS,
         "axis_thematic_fields": AXIS_THEMATIC_FIELDS,
@@ -193,9 +218,10 @@ async def edit_event_form(
         return HTMLResponse("Event not found", status_code=404)
     locations = await _fetch_event_locations(session, event_id)
     articles = await _fetch_event_articles(session, event_id)
+    reactions = [_reaction_view(r) for r in await _fetch_event_reactions_admin(session, event_id)]
     return templates.TemplateResponse(
         request, "event_edit.html",
-        _edit_form_context(event, locations, articles, None),
+        _edit_form_context(event, locations, articles, None, reactions=reactions),
     )
 
 
@@ -348,3 +374,93 @@ async def delete_event(
     await session.execute(text("DELETE FROM events WHERE id = :id"), {"id": event_id})
     await session.commit()
     return RedirectResponse(url="/events", status_code=303)
+
+
+async def _reaction_conflict_response(
+    request: Request, session: AsyncSession, event_id: str, message: str
+) -> Response:
+    await session.rollback()
+    event = await _fetch_event_detail(session, event_id)
+    locations = await _fetch_event_locations(session, event_id)
+    articles = await _fetch_event_articles(session, event_id)
+    reactions = [_reaction_view(r) for r in await _fetch_event_reactions_admin(session, event_id)]
+    return templates.TemplateResponse(
+        request, "event_edit.html",
+        _edit_form_context(event, locations, articles, message, reactions=reactions),
+        status_code=422,
+    )
+
+
+@router.post("/events/{event_id}/reactions", response_class=Response)
+async def add_reaction(
+    request: Request, event_id: str, session: AsyncSession = Depends(get_db)
+) -> Response:
+    form = await request.form()
+    params = {
+        "eid": event_id,
+        "org": (form.get("source_org") or "").strip(),
+        "actor": (form.get("actor_name") or "").strip(),
+        "text": (form.get("text") or "").strip(),
+        "url": (form.get("url") or "").strip(),
+        "obs": _parse_event_time(form.get("observed_at") or ""),
+    }
+    try:
+        await session.execute(
+            text("""
+                INSERT INTO event_reactions
+                    (event_id, source_org, actor_name, actor_role, text, url, observed_at)
+                VALUES (:eid, :org, :actor, 'union', :text, :url, :obs)
+            """),
+            params,
+        )
+        await session.commit()
+    except IntegrityError:
+        return await _reaction_conflict_response(
+            request, session, event_id, "A reaction with this source_org + url already exists."
+        )
+    return RedirectResponse(url=f"/events/{event_id}", status_code=303)
+
+
+@router.post("/events/{event_id}/reactions/{reaction_id}", response_class=Response)
+async def edit_reaction(
+    request: Request, event_id: str, reaction_id: str,
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    form = await request.form()
+    params = {
+        "rid": reaction_id,
+        "eid": event_id,
+        "org": (form.get("source_org") or "").strip(),
+        "actor": (form.get("actor_name") or "").strip(),
+        "text": (form.get("text") or "").strip(),
+        "url": (form.get("url") or "").strip(),
+        "obs": _parse_event_time(form.get("observed_at") or ""),
+    }
+    try:
+        await session.execute(
+            text("""
+                UPDATE event_reactions
+                SET actor_name = :actor, source_org = :org, url = :url,
+                    text = :text, observed_at = :obs
+                WHERE id = :rid AND event_id = :eid
+            """),
+            params,
+        )
+        await session.commit()
+    except IntegrityError:
+        return await _reaction_conflict_response(
+            request, session, event_id, "A reaction with this source_org + url already exists."
+        )
+    return RedirectResponse(url=f"/events/{event_id}", status_code=303)
+
+
+@router.post("/events/{event_id}/reactions/{reaction_id}/delete", response_class=Response)
+async def delete_reaction(
+    event_id: str, reaction_id: str, session: AsyncSession = Depends(get_db)
+) -> Response:
+    await session.execute(
+        text("DELETE FROM event_reactions WHERE id = :rid AND event_id = :eid"),
+        {"rid": reaction_id, "eid": event_id},
+    )
+    await session.commit()
+    return RedirectResponse(url=f"/events/{event_id}", status_code=303)
