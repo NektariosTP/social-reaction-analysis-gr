@@ -6,15 +6,8 @@ import { ClusterDetailContent } from "../cluster";
 import { Spinner, ErrorState, EmptyState } from "../common";
 import styles from "./EditorialBlock.module.css";
 
-interface KpiValues {
-  active: number | string;
-  locations: number;
-  newLastHour: number | string;
-}
-
 export interface EditorialBlockListProps {
   mode: "list";
-  kpi: KpiValues;
   events: EventSummary[];
   eventsLoading: boolean;
   eventsError: boolean;
@@ -55,28 +48,17 @@ export function EditorialBlock(props: EditorialBlockProps) {
     );
   }
 
-  const { kpi, events, eventsLoading, eventsError, highlightedEventId, onSelectEvent } = props;
+  const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent } = props;
+  const articles = events.reduce((sum, e) => sum + (e.article_count ?? 0), 0);
+  const sources = events.reduce((sum, e) => sum + (e.source_count ?? 0), 0);
 
   return (
     <div className={styles.block}>
-      <div className={styles.kpiStrip}>
-        <div className={styles.kpiCell}>
-          <div className={styles.kpiValue}>{kpi.active}</div>
-          <div className={styles.kpiLabel}>{t("kpi.active")}</div>
-        </div>
-        <div className={styles.kpiCell}>
-          <div className={styles.kpiValue}>{kpi.locations}</div>
-          <div className={styles.kpiLabel}>{t("kpi.locations")}</div>
-        </div>
-        <div className={styles.kpiCell}>
-          <div className={styles.kpiValue}>+{kpi.newLastHour}</div>
-          <div className={styles.kpiLabel}>{t("kpi.newLastHour")}</div>
-        </div>
-      </div>
       <div className={styles.feedHeader}>
         <span>{t("feed.title")}</span>
         <span className={styles.feedCount}>{events.length}</span>
       </div>
+      <div className={styles.feedSummary}>{t("feed.summary", { articles, sources })}</div>
       <div className={styles.feedList} ref={listRef}>
         {eventsLoading && <Spinner />}
         {eventsError && <ErrorState />}

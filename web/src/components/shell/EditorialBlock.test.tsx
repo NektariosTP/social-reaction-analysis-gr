@@ -18,7 +18,6 @@ const events: EventSummary[] = [
 function renderList(overrides: Partial<EditorialBlockListProps> = {}) {
   const props = {
     mode: "list" as const,
-    kpi: { active: 2, locations: 1, newLastHour: 0 },
     events,
     eventsLoading: false,
     eventsError: false,
@@ -36,10 +35,22 @@ function renderList(overrides: Partial<EditorialBlockListProps> = {}) {
 }
 
 describe("EditorialBlock", () => {
-  it("renders the KPI strip and feed list in list mode", () => {
+  it("renders the Events header, single count, and articles/sources summary", () => {
     renderList();
+    expect(screen.getByText("Events")).toBeInTheDocument();
+    // count shown once (2 events)
+    expect(screen.getByText("2")).toBeInTheDocument();
+    // Σ article_count = 6, Σ source_count = 2
+    expect(screen.getByText("6 articles · 2 sources")).toBeInTheDocument();
     expect(screen.getByText("First event")).toBeInTheDocument();
     expect(screen.getByText("Second event")).toBeInTheDocument();
+  });
+
+  it("no longer renders the old KPI labels", () => {
+    renderList();
+    expect(screen.queryByText("active events")).not.toBeInTheDocument();
+    expect(screen.queryByText(/last hour/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Today's Events")).not.toBeInTheDocument();
   });
 
   it("calls onSelectEvent when a story card is opened", () => {

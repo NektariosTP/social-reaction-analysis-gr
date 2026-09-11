@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useEvents, useEventsGeoJSON, useRecentEventsCount, useOngoingEvents, useUpcomingEvents, applyClientFilters } from "../api/queries";
+import { useEvents, useEventsGeoJSON, useOngoingEvents, useUpcomingEvents, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
 import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
@@ -75,7 +75,6 @@ export function MainView() {
     limit: 100,
   });
   const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined });
-  const recentCountQuery = useRecentEventsCount();
   const ongoingQuery = useOngoingEvents();
   const upcomingQuery = useUpcomingEvents();
 
@@ -89,12 +88,6 @@ export function MainView() {
     (geojsonQuery.data?.features ?? []).map((f) => ({ ...f.properties, feature: f })),
     filters,
   ).map((p) => p.feature);
-
-  // Count distinct plotted points, keyed on coordinates rounded to ~110m so
-  // identical geocodes (e.g. venueless national events) still merge.
-  const locationKey = (e: (typeof events)[number]) =>
-    e.lat != null && e.lon != null ? `${e.lat.toFixed(3)},${e.lon.toFixed(3)}` : null;
-  const locationsCount = new Set(filteredEvents.map(locationKey).filter(Boolean)).size;
 
   return (
     <div className={styles.page}>
@@ -141,11 +134,6 @@ export function MainView() {
           <div className={styles.editorialBlock}>
             <EditorialBlock
               mode={mode}
-              kpi={{
-                active: eventsQuery.isLoading ? "—" : filteredEvents.length,
-                locations: locationsCount,
-                newLastHour: recentCountQuery.data ?? "—",
-              }}
               events={filteredEvents}
               eventsLoading={eventsQuery.isLoading}
               eventsError={eventsQuery.isError}

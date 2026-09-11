@@ -23,7 +23,6 @@ vi.mock("../hooks/useOnboardingSeen", () => ({
 vi.mock("../api/queries", () => ({
   useEvents: () => ({ data: [], isLoading: false, isError: false }),
   useEventsGeoJSON: () => ({ data: { features: [] }, isLoading: false, isError: false }),
-  useRecentEventsCount: () => ({ data: 0 }),
   useOngoingEvents: () => ({ data: [], isLoading: false, isError: false }),
   useUpcomingEvents: () => ({ data: [], isLoading: false, isError: false }),
   useEvent: () => ({ data: undefined, isLoading: true, isError: false }),

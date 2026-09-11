@@ -100,21 +100,6 @@ export function useEventsGeoJSON(filters: Pick<EventFilters, "channel"> = {}) {
   });
 }
 
-/** Count of events first-seen in the last hour — backs the "+N new · last hour" KPI. */
-export function useRecentEventsCount() {
-  return useQuery({
-    queryKey: ["events-recent-count"],
-    queryFn: async () => {
-      const sinceIso = new Date(Date.now() - 3_600_000).toISOString();
-      const events = await unwrap(
-        listEventsEventsGet({ query: { date_from: sinceIso, limit: 200 } }),
-      );
-      return events.length;
-    },
-    refetchInterval: 60_000,
-  });
-}
-
 /** Splits ongoing events into panhellenic (is_national) vs the rest, preserving order. */
 export function partitionByNational(events: EventSummary[]): {
   panhellenic: EventSummary[];
