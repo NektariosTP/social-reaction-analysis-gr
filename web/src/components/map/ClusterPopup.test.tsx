@@ -11,7 +11,7 @@ vi.mock("../../api/queries", () => ({
       action_forms: [],
       thematic_fields: [],
       channel: null,
-      intensity: null,
+      intensity: "Ειρηνική",
       summary_el: null,
       summary_en: "Preview headline",
       source_count: 2,
@@ -49,6 +49,12 @@ describe("ClusterPopup", () => {
   it("omits the Read More button when onReadMore is not provided", () => {
     render(<ClusterPopup map={fakeMap} eventId="evt-1" coordinates={[23.7, 38.0]} onClose={vi.fn()} />);
     expect(screen.queryByText("Read More →")).not.toBeInTheDocument();
+  });
+
+  it("renders the intensity as a pill, not dots", () => {
+    render(<ClusterPopup map={fakeMap} eventId="evt-1" coordinates={[23.7, 38.0]} onClose={vi.fn()} />);
+    // AxisTag renders the translated intensity label as text; IntensityDots does not.
+    expect(screen.getByText("Peaceful")).toBeInTheDocument();
   });
 
   it("calls onClose when the close button is clicked", () => {

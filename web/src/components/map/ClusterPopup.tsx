@@ -4,7 +4,7 @@ import maplibregl from "maplibre-gl";
 import { useTranslation } from "react-i18next";
 import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
-import { AxisTag, IntensityDots, Spinner } from "../common";
+import { AxisTag, Spinner } from "../common";
 import styles from "./ClusterPopup.module.css";
 
 interface ClusterPopupProps {
@@ -60,7 +60,7 @@ export function ClusterPopup({ map, eventId, coordinates, onReadMore, onClose }:
               <AxisTag key={v} value={v} variant="theme" />
             ))}
             {event.channel && <AxisTag value={event.channel} variant="channel" />}
-            <IntensityDots value={event.intensity} />
+            {event.intensity && <AxisTag value={event.intensity} variant="intensity" />}
           </div>
           <div className={styles.headline}>
             {(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}
