@@ -25,6 +25,12 @@ function setup(overrides: Partial<React.ComponentProps<typeof HeaderBlock>> = {}
 }
 
 describe("HeaderBlock", () => {
+  it("renders the SVG brand mark, not a letter mark", () => {
+    setup();
+    expect(screen.getByTestId("brand-mark")).toBeInTheDocument();
+    expect(screen.queryByText("p")).not.toBeInTheDocument();
+  });
+
   it("expands the filter panel and closes the search panel if it was open", () => {
     setup();
     fireEvent.focus(screen.getByPlaceholderText(/search/i));

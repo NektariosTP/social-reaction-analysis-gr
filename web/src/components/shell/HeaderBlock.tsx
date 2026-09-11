@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FilterState } from "../../hooks/useFilterState";
 import { FilterPanel } from "../filters";
+import { BrandMark } from "../common";
 import styles from "./HeaderBlock.module.css";
 
 type Expanded = "none" | "search" | "filter";
@@ -54,7 +55,7 @@ export function HeaderBlock({
   return (
     <div ref={rootRef}>
       <div className={styles.brandRow}>
-        <span className={styles.mark}>p</span>
+        <BrandMark size={24} className={styles.mark} />
         <span className={styles.brandName}>{t("brand")}</span>
       </div>
       <div className={styles.searchRow}>

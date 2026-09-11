@@ -1,4 +1,5 @@
 export { AxisTag } from "./AxisTag";
+export { BrandMark } from "./BrandMark";
 export type { AxisTagVariant } from "./AxisTag";
 export { IntensityDots } from "./IntensityDots";
 export { AxisReferenceBlock } from "./AxisReferenceBlock";

@@ -6,16 +6,8 @@
 }
 
 .mark {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 12px;
+  color: var(--color-accent);
+  flex-shrink: 0;
 }
 
 .brandName {

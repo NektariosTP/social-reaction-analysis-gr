@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY } from "../../i18n/taxonomy";
 import { AxisValueChip, type ChipAxis } from "../common/AxisValueChip";
 import { AxisReferenceBlock } from "../common/AxisReferenceBlock";
+import { BrandMark } from "../common";
 import styles from "./OnboardingOverlay.module.css";
 
 const AXES: { titleKey: string; axis: ChipAxis; values: string[]; color?: string }[] = [
@@ -24,7 +25,7 @@ export function OnboardingOverlay({
     <div className={styles.scrim} role="dialog" aria-modal="true">
       <div className={styles.modal}>
         <div className={styles.brandRow}>
-          <span className={styles.mark}>p</span>
+          <BrandMark size={36} className={styles.mark} />
           <div>
             <div className={styles.brandName}>{t("brand")}</div>
             <div className={styles.subtitle}>{t("onboarding.subtitle")}</div>
