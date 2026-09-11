@@ -5,6 +5,7 @@ import { formatRelativeTime } from "../../utils/time";
 import { AxisTag, Spinner, ErrorState } from "../common";
 import { ClassificationTable } from "./ClassificationTable";
 import { SourceEvidenceList } from "./SourceEvidenceList";
+import { UnionSourceList } from "./UnionSourceList";
 import styles from "./ClusterDetailContent.module.css";
 
 interface ClusterDetailContentProps {
@@ -48,6 +49,15 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
         <div className={styles.sectionLabel}>{t("cluster.classification")}</div>
         <ClassificationTable event={event} />
       </div>
+
+      {event.reactions && event.reactions.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>
+            {t("cluster.unions")} ({event.reactions.length})
+          </div>
+          <UnionSourceList reactions={event.reactions} />
+        </div>
+      )}
 
       <div className={styles.section}>
         <div className={styles.sectionLabel}>
