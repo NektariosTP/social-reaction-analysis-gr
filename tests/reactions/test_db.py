@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 import numpy as np
 import pytest
-from reactions.db import upsert_reaction, insert_announced_event
+from reactions.db import upsert_reaction, insert_announced_event, load_announced_events
 
 @pytest.mark.asyncio
 async def test_upsert_reaction_uses_on_conflict_and_has_no_stance():
@@ -25,9 +25,8 @@ async def test_upsert_reaction_uses_on_conflict_and_has_no_stance():
     assert ok is True
 
 @pytest.mark.asyncio
-async def test_insert_announced_event_sets_status_announced():
+async def test_insert_announced_event_sets_status_detected():
     session = AsyncMock()
-    # Result.first() is sync in SQLAlchemy; use MagicMock so the call doesn't return a coroutine.
     row = MagicMock(); row.first.return_value = ("evt-1",)
     session.execute.return_value = row
     eid = await insert_announced_event(
@@ -37,5 +36,19 @@ async def test_insert_announced_event_sets_status_announced():
         summary_el="Απεργία 5 Σεπτέμβρη",
     )
     sql = session.execute.call_args.args[0].text
-    assert "INSERT INTO events" in sql and "'announced'" in sql
+    assert "INSERT INTO events" in sql and "'detected'" in sql
+    assert "'announced'" not in sql
     assert eid == "evt-1"
+
+@pytest.mark.asyncio
+async def test_load_announced_events_includes_pending_detected_seeds():
+    session = AsyncMock()
+    result = MagicMock(); result.all.return_value = []
+    session.execute = AsyncMock(return_value=result)
+
+    await load_announced_events(session)
+
+    sql = session.execute.call_args.args[0].text
+    assert "status = 'announced'" in sql
+    assert "status = 'detected'" in sql
+    assert "article_count = 0" in sql

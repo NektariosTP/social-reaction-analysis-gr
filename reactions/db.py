@@ -63,7 +63,7 @@ async def insert_announced_event(
             ) VALUES (
                 CAST(:centroid AS vector), :action_forms, :channel,
                 CAST(:loc AS geography), :event_time, :is_national, :summary_el,
-                0, 1, :now, :now, 'announced'
+                0, 1, :now, :now, 'detected'
             )
             RETURNING id::text
         """),
@@ -90,7 +90,9 @@ async def load_announced_events(session: AsyncSession):
                ST_X(e.primary_location::geometry),
                COALESCE(e.is_national, FALSE)
         FROM events e
-        WHERE e.status = 'announced' AND e.centroid IS NOT NULL
+        WHERE e.centroid IS NOT NULL
+          AND ( e.status = 'announced'
+                OR (e.status = 'detected' AND e.article_count = 0) )
     """))
     out = []
     for eid, cen, org, day, forms, lat, lon, nat in result.all():
