@@ -14,11 +14,11 @@ void i18n
     },
     ns: ["common"],
     defaultNS: "common",
-    fallbackLng: "en",
+    fallbackLng: "el",
     supportedLngs: ["en", "el"],
     interpolation: { escapeValue: false },
     detection: {
-      order: ["localStorage", "navigator"],
+      order: ["localStorage"],
       caches: ["localStorage"],
     },
   });
