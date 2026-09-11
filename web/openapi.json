@@ -639,6 +639,14 @@
             "type": "array",
             "title": "Articles",
             "default": []
+          },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/ReactionSummary"
+            },
+            "type": "array",
+            "title": "Reactions",
+            "default": []
           }
         },
         "type": "object",
@@ -1047,6 +1055,69 @@
           "is_primary"
         ],
         "title": "LocationPoint"
+      },
+      "ReactionSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "actor_name": {
+            "type": "string",
+            "title": "Actor Name"
+          },
+          "source_org": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Org"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "actor_name"
+        ],
+        "title": "ReactionSummary"
       },
       "ValidationError": {
         "properties": {

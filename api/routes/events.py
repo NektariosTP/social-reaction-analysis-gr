@@ -21,6 +21,7 @@ from api.models import (
     GeoJSONGeometry,
     GeoJSONProperties,
     LocationPoint,
+    ReactionSummary,
 )
 from api.temporal import derive_temporal_status
 
@@ -163,6 +164,18 @@ async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list[Ro
     return list(result.all())
 
 
+async def _fetch_event_reactions(session: AsyncSession, event_id: str) -> list[Row[Any]]:
+    result = await session.execute(
+        text(
+            "SELECT id::text, actor_name, source_org, url, observed_at, text "
+            "FROM event_reactions WHERE event_id = :eid "
+            "ORDER BY observed_at ASC NULLS LAST, created_at ASC"
+        ),
+        {"eid": event_id},
+    )
+    return list(result.all())
+
+
 async def _fetch_event_locations(
     session: AsyncSession, event_ids: list[str]
 ) -> dict[str, list[LocationPoint]]:
@@ -294,6 +307,14 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         )
         for a in articles_rows
     ]
+    reactions_rows = await _fetch_event_reactions(db, event_id)
+    reactions = [
+        ReactionSummary(
+            id=str(x.id), actor_name=x.actor_name, source_org=x.source_org,
+            url=x.url, observed_at=x.observed_at, text=x.text,
+        )
+        for x in reactions_rows
+    ]
     now = datetime.now(ZoneInfo("Europe/Athens"))
     return EventDetail(
         id=str(row.id),
@@ -317,4 +338,5 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)) -> EventD
         announced_by=(list(getattr(row, "participating_unions", None) or []) or [None])[0],
         classification_confidence=dict(row.classification_confidence) if row.classification_confidence else None,
         articles=articles,
+        reactions=reactions,
     )

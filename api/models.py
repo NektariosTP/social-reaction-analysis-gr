@@ -51,9 +51,19 @@ class EventSummary(BaseModel):
     participating_unions: list[str] = []
 
 
+class ReactionSummary(BaseModel):
+    id: str
+    actor_name: str
+    source_org: str | None = None
+    url: str | None = None
+    observed_at: datetime | None = None
+    text: str | None = None
+
+
 class EventDetail(EventSummary):
     classification_confidence: dict[str, Any] | None = None
     articles: list[ArticleSummary] = []
+    reactions: list[ReactionSummary] = []
 
 
 class LocationPoint(BaseModel):

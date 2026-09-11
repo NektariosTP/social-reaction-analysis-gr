@@ -77,7 +77,8 @@ async def test_get_event_detail_returns_404_for_unknown(client: AsyncClient) -> 
 async def test_get_event_detail_returns_200(client: AsyncClient) -> None:
     with patch("api.routes.events._fetch_event_by_id", new_callable=AsyncMock, return_value=_FAKE_EVENT_ROW):
         with patch("api.routes.events._fetch_event_articles", new_callable=AsyncMock, return_value=[]):
-            resp = await client.get("/events/evt-uuid-1")
+            with patch("api.routes.events._fetch_event_reactions", new_callable=AsyncMock, return_value=[]):
+                resp = await client.get("/events/evt-uuid-1")
     assert resp.status_code == 200
     assert resp.json()["id"] == "evt-uuid-1"
 
@@ -198,3 +199,18 @@ async def test_geojson_locations_empty_when_none(client: AsyncClient) -> None:
          patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
         resp = await client.get("/events/geojson")
     assert resp.json()["features"][0]["properties"]["locations"] == []
+
+
+async def test_get_event_detail_includes_reactions_in_observed_order(client: AsyncClient) -> None:
+    r0 = MagicMock(id="r-1", actor_name="ΑΔΕΔΥ", source_org="adedy",
+                   url="http://adedy/1", observed_at=None, text="Ανακοίνωση")
+    r1 = MagicMock(id="r-2", actor_name="ΠΑΜΕ", source_org="pame",
+                   url="http://pame/1", observed_at=None, text="Στήριξη")
+    with patch("api.routes.events._fetch_event_by_id", new_callable=AsyncMock, return_value=_FAKE_EVENT_ROW):
+        with patch("api.routes.events._fetch_event_articles", new_callable=AsyncMock, return_value=[]):
+            with patch("api.routes.events._fetch_event_reactions", new_callable=AsyncMock, return_value=[r0, r1]):
+                resp = await client.get("/events/evt-uuid-1")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert [x["actor_name"] for x in data["reactions"]] == ["ΑΔΕΔΥ", "ΠΑΜΕ"]
+    assert data["reactions"][0]["url"] == "http://adedy/1"

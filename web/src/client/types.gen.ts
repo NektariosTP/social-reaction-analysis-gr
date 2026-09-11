@@ -124,6 +124,10 @@ export type EventDetail = {
      * Articles
      */
     articles?: Array<ArticleSummary>;
+    /**
+     * Reactions
+     */
+    reactions?: Array<ReactionSummary>;
 };
 
 /**
@@ -334,6 +338,36 @@ export type LocationPoint = {
      * Is Primary
      */
     is_primary: boolean;
+};
+
+/**
+ * ReactionSummary
+ */
+export type ReactionSummary = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Actor Name
+     */
+    actor_name: string;
+    /**
+     * Source Org
+     */
+    source_org?: string | null;
+    /**
+     * Url
+     */
+    url?: string | null;
+    /**
+     * Observed At
+     */
+    observed_at?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
 };
 
 /**
