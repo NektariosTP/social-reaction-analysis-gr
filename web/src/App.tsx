@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MainView } from "./pages/MainView";
-import { AboutPage } from "./pages/AboutPage";
 import { MobileNotice } from "./components/layout";
 
 const queryClient = new QueryClient({
@@ -16,7 +15,6 @@ export function App() {
         <Routes>
           <Route path="/" element={<MainView />} />
           <Route path="/cluster/:id" element={<MainView />} />
-          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

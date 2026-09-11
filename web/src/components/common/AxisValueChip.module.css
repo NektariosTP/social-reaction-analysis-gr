@@ -2,33 +2,33 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+  padding: 4px 11px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-}
-
-.action {
-  background: var(--color-axis1);
-  color: var(--color-accent-contrast);
 }
 
 .icon {
   font-size: 13px;
 }
 
+.action {
+  background: var(--axis-action-bg);
+  color: var(--axis-action-fg);
+}
+
 .theme {
-  border: 1px solid var(--color-axis2);
-  color: var(--color-text);
+  background: var(--axis-theme-bg);
+  color: var(--axis-theme-fg);
 }
 
 .channel {
-  border-width: 1px;
-  border-color: var(--color-axis3);
-  color: var(--color-axis3);
+  background: var(--axis-channel-bg);
+  color: var(--axis-channel-fg);
 }
 
 .intensity {
-  color: #fff;
+  background: var(--axis-intensity-bg);
+  color: var(--axis-intensity-fg);
 }

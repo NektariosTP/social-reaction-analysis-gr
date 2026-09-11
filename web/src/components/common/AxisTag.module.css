@@ -1,8 +1,8 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  padding: 2px 9px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
   line-height: 1.6;
@@ -10,18 +10,21 @@
 }
 
 .action {
-  background: var(--color-axis1);
-  color: var(--color-accent-contrast);
+  background: var(--axis-action-bg);
+  color: var(--axis-action-fg);
 }
 
 .theme {
-  border: 1px solid var(--color-axis2);
-  color: var(--color-text);
+  background: var(--axis-theme-bg);
+  color: var(--axis-theme-fg);
 }
 
 .channel {
-  border-width: 1px;
-  border-color: var(--color-axis3);
-  border-style: dashed; /* default; overridden inline per channel value */
-  color: var(--color-axis3);
+  background: var(--axis-channel-bg);
+  color: var(--axis-channel-fg);
+}
+
+.intensity {
+  background: var(--axis-intensity-bg);
+  color: var(--axis-intensity-fg);
 }

@@ -20,13 +20,8 @@
 
 .brandName {
   font-weight: 700;
-  font-size: 13px;
-}
-
-.live {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--color-text-muted);
+  font-size: 14px;
+  letter-spacing: -0.01em;
 }
 
 .searchRow {

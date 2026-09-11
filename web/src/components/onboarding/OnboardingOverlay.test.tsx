@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { OnboardingOverlay } from "./OnboardingOverlay";
 
@@ -23,12 +23,14 @@ describe("OnboardingOverlay", () => {
     expect(screen.getByTestId("axis-action-values").textContent).not.toContain("·");
   });
 
-  it("renders the channel chips with their real border style", () => {
+  it("calls onMethodology when the methodology button is clicked", () => {
+    const onMethodology = vi.fn();
     render(
       <MemoryRouter>
-        <OnboardingOverlay onDismiss={() => {}} />
+        <OnboardingOverlay onDismiss={() => {}} onMethodology={onMethodology} />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Digital (online)")).toHaveStyle({ borderStyle: "dotted" });
+    fireEvent.click(screen.getByText(/methodology/i));
+    expect(onMethodology).toHaveBeenCalled();
   });
 });

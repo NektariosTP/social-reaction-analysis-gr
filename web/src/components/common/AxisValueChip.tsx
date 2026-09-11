@@ -1,8 +1,6 @@
 import { useLang } from "../../hooks/useLang";
-import { axisLabel, intensityLevel } from "../../i18n";
-import { CHANNEL_BORDER_STYLE } from "../../i18n/taxonomy";
+import { axisLabel } from "../../i18n";
 import { ACTION_FORM_ICONS } from "../../i18n/actionFormIcons";
-import { INTENSITY_COLORS } from "../map/bubbleColors";
 import styles from "./AxisValueChip.module.css";
 
 export type ChipAxis = "action" | "theme" | "channel" | "intensity";
@@ -12,32 +10,12 @@ interface AxisValueChipProps {
   value: string;
 }
 
+/** Reference-display chip (About / onboarding / legend). Shares the uniform
+ * qualitative pill palette with AxisTag; action chips keep a leading glyph
+ * because it doubles as a legend key. */
 export function AxisValueChip({ axis, value }: AxisValueChipProps) {
   const [lang] = useLang();
   const label = axisLabel(value, lang);
-
-  if (axis === "intensity") {
-    const level = intensityLevel(value);
-    return (
-      <span
-        className={`${styles.chip} ${styles.intensity}`}
-        style={{ background: level ? INTENSITY_COLORS[level] : undefined }}
-      >
-        {label}
-      </span>
-    );
-  }
-
-  if (axis === "channel") {
-    return (
-      <span
-        className={`${styles.chip} ${styles.channel}`}
-        style={{ borderStyle: CHANNEL_BORDER_STYLE[value] ?? "dashed" }}
-      >
-        {label}
-      </span>
-    );
-  }
 
   if (axis === "action") {
     return (
@@ -48,5 +26,5 @@ export function AxisValueChip({ axis, value }: AxisValueChipProps) {
     );
   }
 
-  return <span className={`${styles.chip} ${styles.theme}`}>{label}</span>;
+  return <span className={`${styles.chip} ${styles[axis]}`}>{label}</span>;
 }

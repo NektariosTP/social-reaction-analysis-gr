@@ -9,17 +9,17 @@ describe("AxisValueChip", () => {
     expect(screen.getByText("🏛")).toBeInTheDocument();
   });
 
-  it("renders the channel border style matching the map marker encoding", () => {
+  it("renders channel values as uniform pills (channel variant class)", () => {
     render(<AxisValueChip axis="channel" value="Ψηφιακό (online)" />);
-    expect(screen.getByText("Digital (online)")).toHaveStyle({ borderStyle: "dotted" });
+    expect(screen.getByText("Digital (online)").className).toMatch(/channel/);
   });
 
-  it("renders the intensity background color matching the map marker encoding", () => {
+  it("renders intensity values as uniform pills (intensity variant class)", () => {
     render(<AxisValueChip axis="intensity" value="Βίαιη/Συγκρουσιακή" />);
-    expect(screen.getByText("Violent / Confrontational")).toHaveStyle({ background: "#c23b3b" });
+    expect(screen.getByText("Violent / Confrontational").className).toMatch(/intensity/);
   });
 
-  it("renders a plain outline chip for thematic field values", () => {
+  it("renders a plain pill for thematic field values", () => {
     render(<AxisValueChip axis="theme" value="Εκπαίδευση" />);
     expect(screen.getByText("Education")).toBeInTheDocument();
   });

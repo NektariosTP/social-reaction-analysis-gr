@@ -2,19 +2,18 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AxisTag } from "./AxisTag";
 
-describe("AxisTag channel variant", () => {
-  it("renders a solid border for the physical (offline) channel", () => {
-    render(<AxisTag value="Φυσικό (offline)" variant="channel" />);
-    expect(screen.getByText("Physical (offline)")).toHaveStyle({ borderStyle: "solid" });
-  });
+describe("AxisTag", () => {
+  it("renders each axis as a uniform pill differentiated by its variant class", () => {
+    const { rerender } = render(<AxisTag value="Κατάληψη" variant="action" />);
+    expect(screen.getByText("Occupation").className).toMatch(/action/);
 
-  it("renders a dashed border for the hybrid channel", () => {
-    render(<AxisTag value="Υβριδικό" variant="channel" />);
-    expect(screen.getByText("Hybrid")).toHaveStyle({ borderStyle: "dashed" });
-  });
+    rerender(<AxisTag value="Εκπαίδευση" variant="theme" />);
+    expect(screen.getByText("Education").className).toMatch(/theme/);
 
-  it("renders a dotted border for the digital (online) channel", () => {
-    render(<AxisTag value="Ψηφιακό (online)" variant="channel" />);
-    expect(screen.getByText("Digital (online)")).toHaveStyle({ borderStyle: "dotted" });
+    rerender(<AxisTag value="Ψηφιακό (online)" variant="channel" />);
+    expect(screen.getByText("Digital (online)").className).toMatch(/channel/);
+
+    rerender(<AxisTag value="Βίαιη/Συγκρουσιακή" variant="intensity" />);
+    expect(screen.getByText("Violent / Confrontational").className).toMatch(/intensity/);
   });
 });

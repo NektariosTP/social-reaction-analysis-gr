@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { EventDetail } from "../../client/types.gen";
-import { AxisTag, IntensityDots } from "../common";
+import { AxisTag } from "../common";
 import styles from "./ClassificationTable.module.css";
 
 function fmt(value: unknown): string {
@@ -46,7 +46,7 @@ export function ClassificationTable({ event }: { event: EventDetail }) {
       <div className={styles.row}>
         <span className={styles.axisName}>{t("filters.axis4")}</span>
         <span className={styles.tags}>
-          <IntensityDots value={event.intensity} showLabel />
+          {event.intensity && <AxisTag value={event.intensity} variant="intensity" />}
         </span>
         <span className={styles.confidence}>{fmt(conf["intensity"])}</span>
       </div>

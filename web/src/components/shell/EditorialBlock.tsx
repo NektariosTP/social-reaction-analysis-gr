@@ -75,9 +75,7 @@ export function EditorialBlock(props: EditorialBlockProps) {
       </div>
       <div className={styles.feedHeader}>
         <span>{t("feed.title")}</span>
-        <span>
-          {t("feed.nlpClustered")} · {events.length}
-        </span>
+        <span className={styles.feedCount}>{events.length}</span>
       </div>
       <div className={styles.feedList} ref={listRef}>
         {eventsLoading && <Spinner />}

@@ -4,22 +4,38 @@
  * components consume tokens, not raw values, so restyling stays localized.
  */
 :root {
-  --color-bg: #f7f7f8;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f0f1f3;
-  --color-border: #d7d9de;
+  /* Surfaces are intentionally off-white (never pure #fff) so blocks, the
+     footer, the legend and buttons read as soft paper rather than glare. */
+  --color-bg: #e9ebef;
+  --color-surface: #f8f9fb;
+  --color-surface-alt: #eceef2;
+  --color-border: #d5d8de;
   --color-text: #1b1d21;
   --color-text-muted: #63666e;
   --color-accent: #2451c9;
   --color-accent-contrast: #ffffff;
   --color-danger: #b3261e;
 
+  /* Legend / map swatch hues — kept in step with the qualitative axis palette. */
   --color-axis1: #2451c9;
-  --color-axis2: #63666e;
-  --color-axis3: #8a5cf6;
+  --color-axis2: #1c6b47;
+  --color-axis3: #7c3aed;
   --color-axis4-low: #4f9d5c;
   --color-axis4-mid: #d99a2b;
   --color-axis4-high: #c23b3b;
+
+  /* Qualitative classification palette — one hue per axis, applied uniformly
+     as soft-tinted pills (background + saturated foreground). The point is a
+     single, consistent pill treatment differentiated only by colour, not by
+     shape/border-style/dots per axis. */
+  --axis-action-bg: #e6ecfb;
+  --axis-action-fg: #23408f;
+  --axis-theme-bg: #dbefe5;
+  --axis-theme-fg: #1c6b47;
+  --axis-channel-bg: #efe6fb;
+  --axis-channel-fg: #6127c0;
+  --axis-intensity-bg: #fbecd6;
+  --axis-intensity-fg: #99560f;
 
   --font-ui:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;

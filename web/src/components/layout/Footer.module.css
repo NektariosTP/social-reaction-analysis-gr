@@ -16,11 +16,21 @@
   justify-content: center;
 }
 
-.links a {
+.links a,
+.linkButton {
   color: var(--color-text-muted);
   text-decoration: none;
 }
 
-.links a:hover {
+.links a:hover,
+.linkButton:hover {
   color: var(--color-text);
+}
+
+.linkButton {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 }

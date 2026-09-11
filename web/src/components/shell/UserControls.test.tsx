@@ -1,27 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import i18n from "../../i18n";
 import { UserControls } from "./UserControls";
 
 describe("UserControls", () => {
-  it("shows a coming-soon placeholder when Login is opened", () => {
+  it("renders the EL/EN language switch", () => {
     render(<UserControls />);
-    fireEvent.click(screen.getByRole("button", { name: /login/i }));
-    expect(screen.getByText("Coming soon")).toBeInTheDocument();
-  });
-
-  it("shows the language toggle when Settings is opened", () => {
-    render(<UserControls />);
-    fireEvent.click(screen.getByRole("button", { name: /settings/i }));
-    expect(screen.getByText("Language")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "EL" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "EN" })).toBeInTheDocument();
   });
 
-  it("only shows one panel at a time", () => {
+  it("switches the active language when a button is clicked", async () => {
+    await i18n.changeLanguage("en");
     render(<UserControls />);
-    fireEvent.click(screen.getByRole("button", { name: /login/i }));
-    fireEvent.click(screen.getByRole("button", { name: /settings/i }));
-    expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
-    expect(screen.getByText("Language")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "EL" }));
+    expect(screen.getByRole("button", { name: "EL" })).toHaveAttribute("aria-pressed", "true");
+    await i18n.changeLanguage("en");
   });
 });

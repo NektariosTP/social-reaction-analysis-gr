@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { EventSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
-import { AxisTag, IntensityDots } from "../common";
+import { AxisTag } from "../common";
 import styles from "./StoryCard.module.css";
 
 interface StoryCardProps {
@@ -37,7 +37,7 @@ export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps
           <AxisTag key={v} value={v} variant="theme" />
         ))}
         {event.channel && <AxisTag value={event.channel} variant="channel" />}
-        <IntensityDots value={event.intensity} />
+        {event.intensity && <AxisTag value={event.intensity} variant="intensity" />}
       </div>
 
       <div className={`${styles.headline} ${isFeatured ? "" : styles.headlineCompact}`}>

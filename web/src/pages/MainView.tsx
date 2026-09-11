@@ -9,6 +9,7 @@ import { MapView, MapLegend } from "../components/map";
 import { OnboardingOverlay } from "../components/onboarding";
 import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
+import { AboutModal } from "../components/about";
 import styles from "./MainView.module.css";
 
 export function MainView() {
@@ -18,6 +19,7 @@ export function MainView() {
   const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   // The floating sidebar (.blocks) sits on top of the map and its width is
   // responsive (clamp(360px, 28vw, 480px) — see MainView.module.css), so map
@@ -157,14 +159,24 @@ export function MainView() {
       </div>
 
       <div className={styles.footerBar}>
-        <Footer />
+        <Footer onAbout={() => setAboutOpen(true)} />
       </div>
 
       <div className={styles.topRightControls}>
         <UserControls />
       </div>
 
-      {!seen && <OnboardingOverlay onDismiss={dismiss} />}
+      {!seen && (
+        <OnboardingOverlay
+          onDismiss={dismiss}
+          onMethodology={() => {
+            dismiss();
+            setAboutOpen(true);
+          }}
+        />
+      )}
+
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   );
 }

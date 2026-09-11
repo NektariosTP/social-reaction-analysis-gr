@@ -1,29 +1,29 @@
 import { useTranslation } from "react-i18next";
-import { AppShell } from "../components/layout";
-import { AxisValueChip } from "../components/common/AxisValueChip";
-import { AxisReferenceBlock } from "../components/common";
-import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY } from "../i18n/taxonomy";
-import styles from "./AboutPage.module.css";
+import { AxisValueChip } from "../common/AxisValueChip";
+import { AxisReferenceBlock } from "../common";
+import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY } from "../../i18n/taxonomy";
+import styles from "./AboutContent.module.css";
 
 const PIPELINE_STEPS = [
   { title: "1 · Ingest", body: "Google News RSS + trafilatura article extraction. Idempotent via content-hash dedup." },
   { title: "2 · Embed", body: "sentence-transformers multilingual embeddings, stored in pgvector." },
-  { title: "3 · Cluster", body: "HDBSCAN over embeddings with quality gates (min articles, min intra-cluster similarity)." },
+  { title: "3 · Group", body: "HDBSCAN over embeddings with quality gates (min articles, min intra-group similarity)." },
   { title: "4 · Deduplicate", body: "Cosine + time-window matching against the stable event registry." },
   { title: "5 · Enrich", body: "Four-axis classification (zero-shot + LLM fallback), gazetteer/NER/LLM geocoding, bilingual summarisation." },
   { title: "6 · Serve", body: "Read-only FastAPI (/events, /stats) → this map and dashboard." },
 ];
 
-export function AboutPage() {
+/** The About / methodology content, rendered inside the About modal. */
+export function AboutContent() {
   const { t } = useTranslation();
 
   return (
-    <AppShell>
+    <div>
       <div className={styles.header}>
         <h1 className={styles.title}>{t("nav.about")} &amp; Methodology</h1>
         <p className={styles.lead}>
-          Reaction Map is a thesis research project (MSc, 2026) combining automated Greek news
-          ingestion with NLP clustering and four-axis classification to produce a real-time map
+          protest.map is a thesis research project (MSc, 2026) combining automated Greek news
+          ingestion with NLP grouping and four-axis classification to produce a real-time map
           of collective action in Greece.
         </p>
       </div>
@@ -32,20 +32,20 @@ export function AboutPage() {
         <div className={styles.col}>
           <div className={styles.colLabel}>About the project</div>
           <p className={styles.p}>
-            Reaction Map addresses a gap in Greek civil-society data: no unified, machine-readable
+            protest.map addresses a gap in Greek civil-society data: no unified, machine-readable
             record of collective action events exists. The platform ingests Greek-language news,
-            clusters related coverage via NLP, and renders the result as an interactive map and
+            groups related coverage automatically, and renders the result as an interactive map and
             dashboard.
           </p>
           <p className={styles.p}>
-            The four-axis classification system (A1–A4) — Action Form, Thematic Field, Channel,
+            The four-axis classification system (A1–A4) — Action, Theme, Channel,
             Intensity — is the original scholarly contribution of this thesis, enabling
             multi-label, multi-dimensional indexing that single-label systems miss.
           </p>
           <div className={styles.citation}>
             <div style={{ opacity: 0.55, fontSize: 8, marginBottom: 4 }}>ACADEMIC CITATION</div>
             <div>
-              [Author Name]. <i>Reaction Map: A Real-Time NLP System for Classifying Collective
+              [Author Name]. <i>protest.map: A Real-Time NLP System for Classifying Collective
               Action in Greece.</i> MSc Thesis, [University], 2026.
             </div>
           </div>
@@ -104,7 +104,7 @@ export function AboutPage() {
               ))}
             </div>
             <div className={styles.axisNote}>
-              Confidence is scored per-axis, not per-label — see a cluster's classification table.
+              Confidence is scored per-axis, not per-label — see an event's classification table.
             </div>
           </AxisReferenceBlock>
         </div>
@@ -163,6 +163,6 @@ export function AboutPage() {
           </p>
         </div>
       </div>
-    </AppShell>
+    </div>
   );
 }

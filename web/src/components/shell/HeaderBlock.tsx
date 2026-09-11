@@ -54,9 +54,8 @@ export function HeaderBlock({
   return (
     <div ref={rootRef}>
       <div className={styles.brandRow}>
-        <span className={styles.mark}>R</span>
+        <span className={styles.mark}>p</span>
         <span className={styles.brandName}>{t("brand")}</span>
-        <span className={styles.live}>● {t("live")}</span>
       </div>
       <div className={styles.searchRow}>
         <input

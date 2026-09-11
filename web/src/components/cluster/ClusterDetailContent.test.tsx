@@ -41,13 +41,15 @@ vi.mock("../../api/queries", () => ({
 vi.mock("../map", () => ({ MapView: () => <div className="maplibregl-map" data-testid="mini-map" /> }));
 
 describe("ClusterDetailContent", () => {
-  it("renders the cluster narrative and classification sections", () => {
+  it("renders the summary once (no duplicate narrative section) and a classification section", () => {
     render(
       <MemoryRouter>
         <ClusterDetailContent eventId="evt-1" />
       </MemoryRouter>,
     );
-    expect(screen.getAllByText("Test narrative").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Test narrative")).toHaveLength(1);
+    expect(screen.getByText("Classification")).toBeInTheDocument();
+    expect(screen.queryByText(/source breakdown/i)).not.toBeInTheDocument();
   });
 
   it("does not embed a map in the cluster detail column", () => {
