@@ -23,6 +23,17 @@ describe("OnboardingOverlay", () => {
     expect(screen.getByTestId("axis-action-values").textContent).not.toContain("·");
   });
 
+  it("uses plain copy without 'axes' or 'social media' jargon", () => {
+    render(
+      <MemoryRouter>
+        <OnboardingOverlay onDismiss={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("What we track for every event")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/axes|axis/i);
+    expect(document.body.textContent).not.toMatch(/social media/i);
+  });
+
   it("calls onMethodology when the methodology button is clicked", () => {
     const onMethodology = vi.fn();
     render(
