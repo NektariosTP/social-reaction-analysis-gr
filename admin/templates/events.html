@@ -22,11 +22,15 @@
   {% for e in events %}
   <tr>
     <td>
+      {% if e.article_count == 0 %}<strong>📣 Announcement</strong><br>{% endif %}
       <a href="/events/{{ e.id }}">{{ e.summary_el or "(no summary)" }}</a>
       {% if e.titles %}
       <ul class="titles">
         {% for t in e.titles %}<li>{{ t }}</li>{% endfor %}
       </ul>
+      {% endif %}
+      {% if e.unions %}
+      <div class="unions">Unions: {{ e.unions | join(", ") }}</div>
       {% endif %}
     </td>
     <td>{{ e.action_forms | join(", ") }}</td>

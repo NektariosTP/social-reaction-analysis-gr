@@ -56,7 +56,9 @@ async def _fetch_admin_events(
                        SELECT title FROM articles
                        WHERE event_id = events.id AND is_duplicate = FALSE
                        ORDER BY published_at DESC LIMIT 3
-                   ) t) AS titles
+                   ) t) AS titles,
+                   (SELECT array_agg(DISTINCT r.actor_name)
+                      FROM event_reactions r WHERE r.event_id = events.id) AS unions
             FROM events
             {where_clause}
             ORDER BY first_seen DESC NULLS LAST

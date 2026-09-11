@@ -96,3 +96,17 @@ def test_all_statuses_has_approved_and_no_closed() -> None:
     from admin.routes.events import ALL_STATUSES
     assert "approved" in ALL_STATUSES
     assert "closed" not in ALL_STATUSES
+
+
+async def test_admin_list_query_selects_union_roster(client) -> None:
+    c, mock_session = client
+    result = MagicMock()
+    result.all.return_value = []
+    mock_session.execute = AsyncMock(return_value=result)
+
+    resp = await c.get("/events?status=detected")
+
+    assert resp.status_code == 200
+    sql = str(mock_session.execute.call_args[0][0])
+    assert "event_reactions" in sql
+    assert "AS unions" in sql
