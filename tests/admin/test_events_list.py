@@ -61,7 +61,7 @@ async def test_list_events_empty_status_shows_all(client) -> None:
     assert "status = :status" not in executed_sql
 
 
-async def test_approve_event_sets_approved_and_redirects(client) -> None:
+async def test_approve_event_branches_on_article_count(client) -> None:
     c, mock_session = client
     mock_session.execute = AsyncMock()
     mock_session.commit = AsyncMock()
@@ -71,7 +71,9 @@ async def test_approve_event_sets_approved_and_redirects(client) -> None:
     assert resp.status_code == 303
     assert resp.headers["location"] == "/events?status=detected"
     executed_sql = str(mock_session.execute.call_args[0][0])
-    assert "status = 'approved'" in executed_sql
+    assert "article_count = 0" in executed_sql
+    assert "'announced'" in executed_sql
+    assert "'approved'" in executed_sql
     assert "status = 'detected'" in executed_sql  # guard clause
     mock_session.commit.assert_awaited_once()
 

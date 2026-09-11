@@ -96,7 +96,11 @@ async def approve_event(
     event_id: str, session: AsyncSession = Depends(get_db)
 ) -> RedirectResponse:
     await session.execute(
-        text("UPDATE events SET status = 'approved' WHERE id = :id AND status = 'detected'"),
+        text("""
+            UPDATE events
+            SET status = CASE WHEN article_count = 0 THEN 'announced' ELSE 'approved' END
+            WHERE id = :id AND status = 'detected'
+        """),
         {"id": event_id},
     )
     await session.commit()
