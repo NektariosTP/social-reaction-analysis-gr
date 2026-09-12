@@ -60,3 +60,14 @@
   color: var(--color-text);
   background: var(--color-surface-alt);
 }
+
+@media (max-width: 640px) {
+  .scrim {
+    padding: var(--space-3) var(--space-2);
+    align-items: stretch;
+  }
+
+  .modal {
+    max-height: calc(100vh - 2 * var(--space-3));
+  }
+}

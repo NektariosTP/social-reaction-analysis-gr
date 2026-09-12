@@ -134,3 +134,20 @@
 .clusterZooming [data-role="cluster-pulse"] {
   animation: clusterZoomPulse 900ms ease-in-out infinite;
 }
+
+@media (max-width: 640px) {
+  /* Hide zoom + fullscreen; pinch / double-tap zoom remains. */
+  .container :global(.maplibregl-ctrl-zoom-in),
+  .container :global(.maplibregl-ctrl-zoom-out),
+  .container :global(.maplibregl-ctrl-fullscreen) {
+    display: none;
+  }
+
+  /* Keep a minimal attribution (tile-provider ToS) pinned top-left, clear of
+     the bottom sheet and the right-edge legend button. */
+  .container :global(.maplibregl-ctrl-bottom-right) {
+    top: auto;
+    bottom: calc(42vh + var(--space-2));
+    transform: none;
+  }
+}

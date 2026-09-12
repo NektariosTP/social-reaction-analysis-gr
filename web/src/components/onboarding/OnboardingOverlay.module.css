@@ -114,3 +114,21 @@
   color: var(--color-text-muted);
   cursor: pointer;
 }
+
+@media (max-width: 640px) {
+  .scrim {
+    padding: var(--space-3);
+  }
+
+  .modal {
+    padding: var(--space-4);
+  }
+
+  .ctaRow {
+    flex-direction: column;
+  }
+
+  .secondaryBtn {
+    white-space: normal;
+  }
+}
