@@ -1,41 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import styles from "./BottomSheet.module.css";
 
 interface BottomSheetProps {
-  panels: React.ReactNode[];
-  activePanel: number;
-  onActivePanelChange: (index: number) => void;
-  footer?: React.ReactNode;
+  children: React.ReactNode;
+  /** BottomNav's measured height (px) — the sheet's bottom edge sits here,
+   * not at the true viewport edge, so it doesn't cover the nav bar. */
+  bottomOffset: number;
 }
 
-/** Mobile-only bottom sheet: draggable between a peek and an expanded height,
- * with horizontally scroll-snapped full-width panels and page dots. The parent
- * mounts this only on mobile and owns the active-panel index. */
-export function BottomSheet({ panels, activePanel, onActivePanelChange, footer }: BottomSheetProps) {
+/** Mobile-only draggable sheet: toggles between a peek and an expanded
+ * height. Which content it shows is entirely owned by the parent (via
+ * `children`, chosen by the active BottomNav tab) — this component only
+ * handles sizing/dragging. */
+export function BottomSheet({ children, bottomOffset }: BottomSheetProps) {
   const [expanded, setExpanded] = useState(false);
-  const stripRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ startY: number; moved: boolean } | null>(null);
   // A real drag also fires a trailing click event on release; suppress that
   // one click so it doesn't immediately re-toggle what the drag just set.
   const suppressNextClick = useRef(false);
-
-  // Scroll the strip to the controlled active panel when it changes externally
-  // (e.g. a map tap selects an event in the Feed panel).
-  useEffect(() => {
-    const strip = stripRef.current;
-    if (!strip) return;
-    const target = activePanel * strip.clientWidth;
-    if (Math.abs(strip.scrollLeft - target) > 1) {
-      strip.scrollTo({ left: target, behavior: "smooth" });
-    }
-  }, [activePanel]);
-
-  function handleScroll() {
-    const strip = stripRef.current;
-    if (!strip || strip.clientWidth === 0) return;
-    const index = Math.round(strip.scrollLeft / strip.clientWidth);
-    if (index !== activePanel) onActivePanelChange(index);
-  }
 
   function onHandlePointerDown(e: React.PointerEvent) {
     drag.current = { startY: e.clientY, moved: false };
@@ -62,7 +44,12 @@ export function BottomSheet({ panels, activePanel, onActivePanelChange, footer }
   }
 
   return (
-    <div className={styles.sheet} data-testid="bottom-sheet" data-expanded={expanded ? "true" : "false"}>
+    <div
+      className={styles.sheet}
+      data-testid="bottom-sheet"
+      data-expanded={expanded ? "true" : "false"}
+      style={{ bottom: bottomOffset }}
+    >
       <button
         type="button"
         className={styles.handle}
@@ -76,28 +63,9 @@ export function BottomSheet({ panels, activePanel, onActivePanelChange, footer }
         <span className={styles.grip} />
       </button>
 
-      <div className={styles.strip} ref={stripRef} onScroll={handleScroll}>
-        {panels.map((panel, i) => (
-          <div className={styles.panel} data-testid="sheet-panel" key={i}>
-            {panel}
-          </div>
-        ))}
+      <div className={styles.body} data-testid="sheet-body">
+        {children}
       </div>
-
-      {panels.length > 1 && (
-        <div className={styles.dots}>
-          {panels.map((_, i) => (
-            <span
-              key={i}
-              className={styles.dot}
-              data-testid="sheet-dot"
-              data-active={i === activePanel ? "true" : undefined}
-            />
-          ))}
-        </div>
-      )}
-
-      {footer && <div className={styles.footer}>{footer}</div>}
     </div>
   );
 }
