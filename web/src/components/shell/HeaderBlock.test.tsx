@@ -100,4 +100,9 @@ describe("HeaderBlock", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(props.onSearchChange).not.toHaveBeenCalled();
   });
+
+  it("renders the trailing slot in the brand row", () => {
+    setup({ trailing: <button>EL</button> });
+    expect(screen.getByRole("button", { name: "EL" })).toBeInTheDocument();
+  });
 });

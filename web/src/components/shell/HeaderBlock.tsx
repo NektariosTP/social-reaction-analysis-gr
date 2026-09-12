@@ -13,6 +13,7 @@ interface HeaderBlockProps {
   filters: FilterState;
   onToggleFilterValue: (key: "actionForms" | "thematicFields", value: string) => void;
   onSetFilters: (next: Partial<FilterState>) => void;
+  trailing?: React.ReactNode;
 }
 
 export function HeaderBlock({
@@ -21,6 +22,7 @@ export function HeaderBlock({
   filters,
   onToggleFilterValue,
   onSetFilters,
+  trailing,
 }: HeaderBlockProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState<Expanded>("none");
@@ -57,6 +59,7 @@ export function HeaderBlock({
       <div className={styles.brandRow}>
         <BrandMark size={24} className={styles.mark} />
         <span className={styles.brandName}>{t("brand")}</span>
+        {trailing && <div className={styles.trailing}>{trailing}</div>}
       </div>
       <div className={styles.searchRow}>
         <input
