@@ -30,6 +30,7 @@ interface MapViewProps {
   /** Rendered height (px) of MapLegend — used to keep the fullscreen/zoom/attribution
    * controls (vertically centred on the right edge) clear of it on short viewports. */
   legendHeight?: number;
+  showPopup?: boolean;
 }
 
 export function MapView({
@@ -41,6 +42,7 @@ export function MapView({
   onClosePopup,
   obstructedLeft = 0,
   legendHeight = 0,
+  showPopup = true,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -240,7 +242,7 @@ export function MapView({
       style={{ "--legend-height": `${legendHeight}px` } as CSSProperties}
     >
       <div ref={containerRef} className={styles.map} data-testid="map-canvas" />
-      {mapInstance && selectedId && selectedFeature && onClosePopup && (
+      {showPopup && mapInstance && selectedId && selectedFeature && onClosePopup && (
         <ClusterPopup
           map={mapInstance}
           eventId={selectedId}

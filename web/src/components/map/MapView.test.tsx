@@ -58,6 +58,19 @@ describe("MapView", () => {
     render(<MapView features={[feature]} onSelectEvent={vi.fn()} selectedId="evt-1" />);
     expect(screen.queryByText("Preview headline")).not.toBeInTheDocument();
   });
+
+  it("does not render the cluster popup when showPopup is false", () => {
+    render(
+      <MapView
+        features={[feature]}
+        onSelectEvent={vi.fn()}
+        selectedId="evt-1"
+        onClosePopup={vi.fn()}
+        showPopup={false}
+      />,
+    );
+    expect(screen.queryByText("Preview headline")).not.toBeInTheDocument();
+  });
 });
 
   it("constructs both event and cluster markers with an explicit center anchor", () => {
