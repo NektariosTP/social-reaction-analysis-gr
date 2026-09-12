@@ -1,0 +1,12 @@
+.panel {
+  padding: var(--space-3);
+}
+
+.heading {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
