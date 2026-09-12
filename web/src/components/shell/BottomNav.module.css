@@ -1,0 +1,38 @@
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: var(--space-2) 0;
+  color: var(--color-text-muted);
+}
+
+.item[data-active="true"] {
+  color: var(--color-accent);
+}
+
+.icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.label {
+  font-size: 9px;
+  font-weight: 600;
+}
