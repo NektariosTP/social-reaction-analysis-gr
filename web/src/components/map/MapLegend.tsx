@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../../hooks/useLang";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { axisLabel } from "../../i18n";
 import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY, CHANNEL_BORDER_STYLE } from "../../i18n/taxonomy";
 import { ACTION_FORM_ICONS } from "../../i18n/actionFormIcons";
@@ -23,7 +24,8 @@ interface MapLegendProps {
 export function MapLegend({ onHeightChange }: MapLegendProps = {}) {
   const { t } = useTranslation();
   const [lang] = useLang();
-  const [open, setOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(!isMobile);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function MapLegend({ onHeightChange }: MapLegendProps = {}) {
   }, [onHeightChange]);
 
   return (
-    <div className={styles.legend} ref={rootRef}>
+    <div className={styles.legend} data-mobile={isMobile ? "true" : undefined} ref={rootRef}>
       <button className={styles.toggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         {t("legend.title")} {open ? "▾" : "▸"}
       </button>
