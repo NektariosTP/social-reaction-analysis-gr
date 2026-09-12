@@ -50,15 +50,19 @@ export function EditorialBlock(props: EditorialBlockProps) {
 
   const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent } = props;
   const articles = events.reduce((sum, e) => sum + (e.article_count ?? 0), 0);
-  const sources = events.reduce((sum, e) => sum + (e.source_count ?? 0), 0);
 
   return (
     <div className={styles.block}>
-      <div className={styles.feedHeader}>
-        <span>{t("feed.title")}</span>
-        <span className={styles.feedCount}>{events.length}</span>
+      <div className={styles.kpiStrip}>
+        <div className={styles.kpiCell}>
+          <div className={styles.kpiValue}>{events.length}</div>
+          <div className={styles.kpiLabel}>{t("kpi.events")}</div>
+        </div>
+        <div className={styles.kpiCell}>
+          <div className={styles.kpiValue}>{articles}</div>
+          <div className={styles.kpiLabel}>{t("kpi.articles")}</div>
+        </div>
       </div>
-      <div className={styles.feedSummary}>{t("feed.summary", { articles, sources })}</div>
       <div className={styles.feedList} ref={listRef}>
         {eventsLoading && <Spinner />}
         {eventsError && <ErrorState />}

@@ -16,27 +16,33 @@
   color: var(--color-text-muted);
 }
 
-.feedHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px dashed var(--color-border);
-  font-size: 12px;
-  font-weight: 600;
+.kpiStrip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
-.feedCount {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--color-text-muted);
+.kpiCell {
+  padding: var(--space-3);
+  border-right: 1px solid var(--color-border);
 }
 
-.feedSummary {
-  font-size: 11px;
-  opacity: 0.6;
-  padding: 0 2px 8px;
+.kpiCell:last-child {
+  border-right: none;
+}
+
+.kpiValue {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.kpiLabel {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
 }
 
 .feedList {

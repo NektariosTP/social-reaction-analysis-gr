@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
@@ -27,6 +27,9 @@ interface MapViewProps {
   onClosePopup?: () => void;
   /** Width (px) of UI chrome overlaying the left edge of the map (e.g. the floating sidebar). */
   obstructedLeft?: number;
+  /** Rendered height (px) of MapLegend — used to keep the fullscreen/zoom/attribution
+   * controls (vertically centred on the right edge) clear of it on short viewports. */
+  legendHeight?: number;
 }
 
 export function MapView({
@@ -37,6 +40,7 @@ export function MapView({
   onReadMorePopup,
   onClosePopup,
   obstructedLeft = 0,
+  legendHeight = 0,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -60,6 +64,9 @@ export function MapView({
       center: GREECE_CENTER,
       zoom: GREECE_ZOOM,
       minZoom: GREECE_MIN_ZOOM,
+      // Attribution is added explicitly below, forced compact — the default (non-compact)
+      // control can render as a wide inline text strip that overlaps MapLegend.
+      attributionControl: false,
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     const fullscreenTarget = document.getElementById("root") ?? undefined;
@@ -67,10 +74,58 @@ export function MapView({
       new maplibregl.FullscreenControl({ container: fullscreenTarget }),
       "bottom-right",
     );
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    // MapLibre's compact AttributionControl opens itself on mount (and can reopen itself
+    // later, e.g. once real style/source data arrives) — trying to *detect* whether a
+    // given DOM mutation was "us" (a click) vs "the library" was unreliable (a single
+    // click produces two mutations: the library's own class change, then the native
+    // <details> toggle a tick later — easy to misread the second as an unwanted
+    // auto-reopen). Instead we own the open/closed state outright: `desiredOpen` is the
+    // single source of truth, applyState() makes the DOM match it, the click handler
+    // fully neutralizes the library's own toggle (capture-phase stopPropagation runs
+    // before its listener on the summary, preventDefault stops the native toggle), and
+    // the observer just resyncs the DOM to `desiredOpen` on any drift — idempotent, so
+    // no causation-guessing needed.
+    const attribCleanup = (() => {
+      const attribEl = containerRef.current?.querySelector<HTMLDetailsElement>(".maplibregl-ctrl-attrib");
+      if (!attribEl) return undefined;
+      let desiredOpen = false;
+      const applyState = () => {
+        attribEl.classList.toggle("maplibregl-compact-show", desiredOpen);
+        // A closed <details> force-hides its non-<summary> children via a
+        // browser UA `!important` rule that no author style can override, so
+        // the `open` attribute must track desiredOpen — the CSS class alone
+        // only affects the compact button's padding/shape, not visibility.
+        if (desiredOpen) {
+          attribEl.setAttribute("open", "");
+        } else {
+          attribEl.removeAttribute("open");
+        }
+      };
+      applyState();
+      const handleClick = (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        desiredOpen = !desiredOpen;
+        applyState();
+      };
+      attribEl.addEventListener("click", handleClick, { capture: true });
+      const observer = new MutationObserver(() => {
+        const domOpen = attribEl.classList.contains("maplibregl-compact-show");
+        const domHasOpenAttr = attribEl.hasAttribute("open");
+        if (domOpen !== desiredOpen || domHasOpenAttr !== desiredOpen) applyState();
+      });
+      observer.observe(attribEl, { attributes: true, attributeFilter: ["open", "class"] });
+      return () => {
+        observer.disconnect();
+        attribEl.removeEventListener("click", handleClick, { capture: true });
+      };
+    })();
     mapRef.current = map;
     setMapInstance(map);
     map.once("load", () => setStyleLoaded(true));
     return () => {
+      attribCleanup?.();
       map.remove();
       mapRef.current = null;
       setMapInstance(null);
@@ -180,7 +235,10 @@ export function MapView({
     : undefined;
 
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      style={{ "--legend-height": `${legendHeight}px` } as CSSProperties}
+    >
       <div ref={containerRef} className={styles.map} data-testid="map-canvas" />
       {mapInstance && selectedId && selectedFeature && onClosePopup && (
         <ClusterPopup

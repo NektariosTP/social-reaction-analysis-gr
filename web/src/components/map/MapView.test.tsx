@@ -16,7 +16,7 @@ vi.mock("../../api/queries", () => ({
       intensity: null,
       summary_el: null,
       summary_en: "Preview headline",
-      source_count: 2,
+      article_count: 2,
       articles: [],
     },
     isLoading: false,

@@ -4,15 +4,15 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { Footer } from "./Footer";
 
 describe("Footer", () => {
-  it("renders Docs, GitHub, Contact, and Privacy Policy links", () => {
+  it("renders GitHub and Contact links", () => {
     render(<Footer />);
-    expect(screen.getByText("Docs")).toBeInTheDocument();
     expect(screen.getByText("GitHub")).toHaveAttribute(
       "href",
       "https://github.com/NektariosTP/social-reaction-analysis-gr",
     );
     expect(screen.getByText("Contact")).toHaveAttribute("href", "mailto:nektarios.tp@gmail.com");
-    expect(screen.getByText("Privacy Policy")).toBeInTheDocument();
+    expect(screen.queryByText("Docs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Privacy Policy")).not.toBeInTheDocument();
   });
 
   it("renders an About button that opens the About modal via callback", () => {

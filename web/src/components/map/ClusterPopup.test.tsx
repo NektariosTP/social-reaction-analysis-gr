@@ -14,7 +14,7 @@ vi.mock("../../api/queries", () => ({
       intensity: "Ειρηνική",
       summary_el: null,
       summary_en: "Preview headline",
-      source_count: 2,
+      article_count: 2,
       articles: [],
     },
     isLoading: false,
@@ -25,7 +25,7 @@ vi.mock("../../api/queries", () => ({
 const fakeMap = {} as unknown as maplibregl.Map;
 
 describe("ClusterPopup", () => {
-  it("renders the headline and source count from the fetched event", () => {
+  it("renders the headline and article count from the fetched event", () => {
     render(<ClusterPopup map={fakeMap} eventId="evt-1" coordinates={[23.7, 38.0]} onClose={vi.fn()} />);
     expect(screen.getByText("Preview headline")).toBeInTheDocument();
     expect(screen.getByText(/2/)).toBeInTheDocument();

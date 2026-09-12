@@ -34,14 +34,14 @@ describe("OnboardingOverlay", () => {
     expect(document.body.textContent).not.toMatch(/social media/i);
   });
 
-  it("calls onMethodology when the methodology button is clicked", () => {
+  it("calls onMethodology when the how-it-works button is clicked", () => {
     const onMethodology = vi.fn();
     render(
       <MemoryRouter>
         <OnboardingOverlay onDismiss={() => {}} onMethodology={onMethodology} />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByText(/methodology/i));
+    fireEvent.click(screen.getByText(/how it works/i));
     expect(onMethodology).toHaveBeenCalled();
   });
 });

@@ -2,14 +2,6 @@
   padding: var(--space-3);
 }
 
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
-  margin-bottom: var(--space-3);
-}
-
 .headline {
   font-size: 18px;
   font-weight: 700;

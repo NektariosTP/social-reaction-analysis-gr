@@ -26,22 +26,22 @@ function renderList(overrides: Partial<EditorialBlockListProps> = {}) {
     onBack: vi.fn(),
     ...overrides,
   };
-  render(
+  const { container } = render(
     <MemoryRouter>
       <EditorialBlock {...props} />
     </MemoryRouter>,
   );
-  return props;
+  return { ...props, container };
 }
 
 describe("EditorialBlock", () => {
-  it("renders the Events header, single count, and articles/sources summary", () => {
-    renderList();
-    expect(screen.getByText("Events")).toBeInTheDocument();
-    // count shown once (2 events)
-    expect(screen.getByText("2")).toBeInTheDocument();
-    // Σ article_count = 6, Σ source_count = 2
-    expect(screen.getByText("6 articles · 2 sources")).toBeInTheDocument();
+  it("renders the events and total-articles KPI cells", () => {
+    const { container } = renderList();
+    const kpiStrip = container.querySelector('[class*="kpiStrip"]');
+    expect(kpiStrip).not.toBeNull();
+    // events count = 2, Σ article_count = 6
+    expect(kpiStrip).toHaveTextContent("2events");
+    expect(kpiStrip).toHaveTextContent("6articles");
     expect(screen.getByText("First event")).toBeInTheDocument();
     expect(screen.getByText("Second event")).toBeInTheDocument();
   });
@@ -51,6 +51,7 @@ describe("EditorialBlock", () => {
     expect(screen.queryByText("active events")).not.toBeInTheDocument();
     expect(screen.queryByText(/last hour/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Today's Events")).not.toBeInTheDocument();
+    expect(screen.queryByText(/sources/)).not.toBeInTheDocument();
   });
 
   it("calls onSelectEvent when a story card is opened", () => {

@@ -10,13 +10,43 @@
   inset: 0;
 }
 
-/* Sits directly above MapLegend's fully-open box (max-height: 320px,
-   bottom: var(--space-3) — see MapLegend.module.css) with a fixed gap,
-   so the controls never overlap the legend and never move when it
-   collapses/expands. */
+/* Vertically centred on the right edge instead of MapLibre's default bottom-right —
+   but centred within the space ABOVE MapLegend, not the whole viewport, so on short
+   viewports (e.g. 1080p) it can't dip down into the legend when centring on the full
+   height would land it too close to (or under) a tall/open legend. --legend-height is
+   reported by MapLegend via MainView (see legendHeight prop), so this tracks the
+   legend's open/collapsed state automatically. Controls are still added at
+   "bottom-right" in MapView.tsx; this repositions that anchor box. */
 .container :global(.maplibregl-ctrl-bottom-right) {
-  bottom: calc(406px + var(--footer-height) + var(--space-2));
+  top: calc((100% - var(--footer-height) - var(--space-3) - var(--legend-height, 320px)) / 2);
+  bottom: auto;
   right: var(--space-3);
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+/* Cancel MapLibre's own float layout (and its baked-in 10px margins) now that the
+   flex column above handles spacing and right-alignment. */
+.container :global(.maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
+  float: none;
+  margin: 0;
+}
+
+/* Force attribution to sit below zoom/fullscreen — flex order isn't guaranteed to
+   follow addControl() call order, and attribution rendered above them otherwise. */
+.container :global(.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib) {
+  order: 1;
+}
+
+/* Belt-and-suspenders: guarantee the attribution text is actually visible once open
+   (MapView.tsx toggles the "maplibregl-compact-show" class), independent of any
+   specificity interaction with the overrides above. */
+.container :global(.maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-inner) {
+  display: block !important;
+  visibility: visible !important;
 }
 
 .bubble {

@@ -19,12 +19,10 @@ export function Footer({ onAbout }: FooterProps) {
             {t("footer.about")}
           </button>
         )}
-        <a href="#">{t("footer.docs")}</a>
         <a href={GITHUB_URL} target="_blank" rel="noreferrer">
           {t("footer.github")}
         </a>
         <a href="mailto:nektarios.tp@gmail.com">{t("footer.contact")}</a>
-        <a href="#">{t("footer.privacy")}</a>
       </nav>
       <span aria-hidden="true" />
     </footer>

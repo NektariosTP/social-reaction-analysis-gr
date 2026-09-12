@@ -66,7 +66,7 @@ export function ClusterPopup({ map, eventId, coordinates, onReadMore, onClose }:
             {(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}
           </div>
           <div className={styles.meta}>
-            {event.source_count} {t("card.sources")}
+            {event.article_count} {t("card.articles")}
           </div>
           {onReadMore && (
             <button className={styles.ctaBtn} onClick={() => onReadMore(event.id)}>

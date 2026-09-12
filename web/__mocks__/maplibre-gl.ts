@@ -27,6 +27,7 @@ export class Marker {
 
 export class NavigationControl {}
 export class FullscreenControl {}
+export class AttributionControl {}
 
 export class LngLatBounds {
   private bounds: [number, number, number, number] | null = null;
@@ -157,6 +158,7 @@ export default {
   Popup,
   NavigationControl,
   FullscreenControl,
+  AttributionControl,
   LngLatBounds,
   mapConstructorCalls,
   markerConstructorCalls,

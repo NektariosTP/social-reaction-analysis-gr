@@ -35,6 +35,11 @@ export function MainView() {
     return () => observer.disconnect();
   }, []);
 
+  // Reported by MapLegend so the map's fullscreen/zoom/attribution controls (vertically
+  // centred on the right edge) stay clear of it on short viewports — see MapView's
+  // legendHeight prop, used as a safe-zone bound rather than a stacking anchor.
+  const [legendHeight, setLegendHeight] = useState(0);
+
   const { id: routeClusterId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -104,9 +109,10 @@ export function MainView() {
             onReadMorePopup={mode === "list" ? handleReadMore : undefined}
             onClosePopup={handleClosePopup}
             obstructedLeft={sidebarWidth}
+            legendHeight={legendHeight}
           />
         )}
-        <MapLegend />
+        <MapLegend onHeightChange={setLegendHeight} />
       </div>
 
       <div className={styles.blocks} ref={sidebarRef}>

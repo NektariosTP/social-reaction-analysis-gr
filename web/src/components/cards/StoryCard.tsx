@@ -45,7 +45,7 @@ export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps
       </div>
 
       <div className={styles.meta}>
-        {event.source_count} {t("card.sources")} · {formatRelativeTime(event.last_seen, lang)}
+        {event.article_count} {t("card.articles")} · {formatRelativeTime(event.last_seen, lang)}
       </div>
 
       {isFeatured && <div className={styles.cta}>{t("card.viewFullAnalysis")}</div>}

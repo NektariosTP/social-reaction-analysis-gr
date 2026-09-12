@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../../hooks/useLang";
 import { axisLabel } from "../../i18n";
@@ -13,13 +13,29 @@ const CHANNEL_VALUES = Object.keys(CHANNEL);
 const ACTION_FORM_VALUES = Object.keys(ACTION_FORM);
 const THEMATIC_FIELD_VALUES = Object.keys(THEMATIC_FIELD);
 
-export function MapLegend() {
+interface MapLegendProps {
+  /** Reports the legend's rendered height (px) on mount and whenever it changes
+   * (open/close toggle, content), so callers can keep other UI clear of it without
+   * hardcoding its height. */
+  onHeightChange?: (height: number) => void;
+}
+
+export function MapLegend({ onHeightChange }: MapLegendProps = {}) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const [open, setOpen] = useState(true);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || !onHeightChange || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => onHeightChange(entry.contentRect.height));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onHeightChange]);
 
   return (
-    <div className={styles.legend}>
+    <div className={styles.legend} ref={rootRef}>
       <button className={styles.toggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         {t("legend.title")} {open ? "▾" : "▸"}
       </button>
