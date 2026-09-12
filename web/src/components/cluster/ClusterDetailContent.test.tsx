@@ -65,4 +65,13 @@ describe("ClusterDetailContent", () => {
     );
     expect(container.querySelector(".maplibregl-map")).toBeNull();
   });
+
+  it("hides the headline when showHeadline is false", () => {
+    render(
+      <MemoryRouter>
+        <ClusterDetailContent eventId="evt-1" showHeadline={false} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("Test narrative")).not.toBeInTheDocument();
+  });
 });

@@ -57,7 +57,7 @@ function TemporalEventRow({
       </button>
       {expandedId === event.id && (
         <div className={styles.inlineDetail} data-inline-detail={event.id}>
-          <ClusterDetailContent eventId={event.id} />
+          <ClusterDetailContent eventId={event.id} showHeadline={false} />
         </div>
       )}
     </>

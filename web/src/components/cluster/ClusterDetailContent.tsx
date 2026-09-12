@@ -10,9 +10,10 @@ import styles from "./ClusterDetailContent.module.css";
 
 interface ClusterDetailContentProps {
   eventId: string;
+  showHeadline?: boolean;
 }
 
-export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
+export function ClusterDetailContent({ eventId, showHeadline = true }: ClusterDetailContentProps) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const { data: event, isLoading, isError } = useEvent(eventId);
@@ -23,7 +24,9 @@ export function ClusterDetailContent({ eventId }: ClusterDetailContentProps) {
 
   return (
     <div className={styles.content}>
-      <h2 className={styles.headline}>{(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}</h2>
+      {showHeadline && (
+        <h2 className={styles.headline}>{(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}</h2>
+      )}
 
       <div className={styles.metaChips}>
         <span className={styles.metaChip}>

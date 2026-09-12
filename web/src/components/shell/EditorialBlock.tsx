@@ -82,7 +82,7 @@ export function EditorialBlock(props: EditorialBlockProps) {
             />
             {expandedId === e.id && (
               <div className={styles.inlineDetail} data-inline-detail={e.id}>
-                <ClusterDetailContent eventId={e.id} />
+                <ClusterDetailContent eventId={e.id} showHeadline={false} />
               </div>
             )}
           </div>
