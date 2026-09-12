@@ -7,9 +7,10 @@ import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls } from "../components/shell";
+import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, BottomSheet } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import { AboutModal } from "../components/about";
+import { useIsMobile } from "../hooks/useIsMobile";
 import styles from "./MainView.module.css";
 
 export function MainView() {
@@ -39,6 +40,25 @@ export function MainView() {
   // centred on the right edge) stay clear of it on short viewports — see MapView's
   // legendHeight prop, used as a safe-zone bound rather than a stacking anchor.
   const [legendHeight, setLegendHeight] = useState(0);
+
+  const isMobile = useIsMobile();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState(0); // 0 = Temporal, 1 = Feed
+
+  // Mobile selection is inline (no /cluster/:id route): toggle the open event.
+  function handleMobileSelect(id: string) {
+    setExpandedId((cur) => (cur === id ? null : id));
+  }
+  // Map tap on mobile: open in the Feed panel and expand it.
+  function handleMobileSelectFromMap(id: string) {
+    setExpandedId(id);
+    setActivePanel(1);
+  }
+  // Switching panels collapses any open event.
+  function handleActivePanelChange(index: number) {
+    setActivePanel(index);
+    setExpandedId(null);
+  }
 
   const { id: routeClusterId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
@@ -104,61 +124,106 @@ export function MainView() {
         ) : (
           <MapView
             features={geoFeatures}
-            onSelectEvent={handleSelectEventFromMap}
-            selectedId={mapSelectedId}
+            onSelectEvent={isMobile ? handleMobileSelectFromMap : handleSelectEventFromMap}
+            selectedId={isMobile ? expandedId : mapSelectedId}
             onReadMorePopup={mode === "list" ? handleReadMore : undefined}
             onClosePopup={handleClosePopup}
-            obstructedLeft={sidebarWidth}
+            obstructedLeft={isMobile ? 0 : sidebarWidth}
             legendHeight={legendHeight}
+            showPopup={!isMobile}
           />
         )}
         <MapLegend onHeightChange={setLegendHeight} />
       </div>
 
-      <div className={styles.blocks} ref={sidebarRef}>
-        <div className={styles.headerBlock}>
-          <HeaderBlock
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            filters={filters}
-            onToggleFilterValue={toggleInList}
-            onSetFilters={setFilters}
-          />
-        </div>
-
-        <div className={styles.scrollColumn}>
-          {mode === "list" && (
-            <TemporalBlock
-              ongoing={ongoingQuery.data ?? []}
-              upcoming={upcomingQuery.data ?? []}
-              loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
-              error={ongoingQuery.isError || upcomingQuery.isError}
-              onSelectEvent={handleSelectEventFromList}
-            />
-          )}
-
-          <div className={styles.editorialBlock}>
-            <EditorialBlock
-              mode={mode}
-              events={filteredEvents}
-              eventsLoading={eventsQuery.isLoading}
-              eventsError={eventsQuery.isError}
-              highlightedEventId={previewId}
-              onSelectEvent={handleSelectEventFromList}
-              detailEventId={routeClusterId ?? ""}
-              onBack={handleBack}
+      {isMobile ? (
+        <>
+          <div className={styles.mobileHeader}>
+            <HeaderBlock
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              filters={filters}
+              onToggleFilterValue={toggleInList}
+              onSetFilters={setFilters}
+              trailing={<UserControls />}
             />
           </div>
-        </div>
-      </div>
 
-      <div className={styles.footerBar}>
-        <Footer onAbout={() => setAboutOpen(true)} />
-      </div>
+          <BottomSheet
+            activePanel={activePanel}
+            onActivePanelChange={handleActivePanelChange}
+            footer={<Footer onAbout={() => setAboutOpen(true)} />}
+            panels={[
+              <TemporalBlock
+                key="temporal"
+                ongoing={ongoingQuery.data ?? []}
+                upcoming={upcomingQuery.data ?? []}
+                loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
+                error={ongoingQuery.isError || upcomingQuery.isError}
+                expandedId={expandedId}
+                onSelectEvent={handleMobileSelect}
+              />,
+              <EditorialBlock
+                key="feed"
+                mode="list"
+                events={filteredEvents}
+                eventsLoading={eventsQuery.isLoading}
+                eventsError={eventsQuery.isError}
+                highlightedEventId={expandedId}
+                expandedId={expandedId}
+                onSelectEvent={handleMobileSelect}
+              />,
+            ]}
+          />
+        </>
+      ) : (
+        <>
+          <div className={styles.blocks} ref={sidebarRef}>
+            <div className={styles.headerBlock}>
+              <HeaderBlock
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filters={filters}
+                onToggleFilterValue={toggleInList}
+                onSetFilters={setFilters}
+              />
+            </div>
 
-      <div className={styles.topRightControls}>
-        <UserControls />
-      </div>
+            <div className={styles.scrollColumn}>
+              {mode === "list" && (
+                <TemporalBlock
+                  ongoing={ongoingQuery.data ?? []}
+                  upcoming={upcomingQuery.data ?? []}
+                  loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
+                  error={ongoingQuery.isError || upcomingQuery.isError}
+                  onSelectEvent={handleSelectEventFromList}
+                />
+              )}
+
+              <div className={styles.editorialBlock}>
+                <EditorialBlock
+                  mode={mode}
+                  events={filteredEvents}
+                  eventsLoading={eventsQuery.isLoading}
+                  eventsError={eventsQuery.isError}
+                  highlightedEventId={previewId}
+                  onSelectEvent={handleSelectEventFromList}
+                  detailEventId={routeClusterId ?? ""}
+                  onBack={handleBack}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.footerBar}>
+            <Footer onAbout={() => setAboutOpen(true)} />
+          </div>
+
+          <div className={styles.topRightControls}>
+            <UserControls />
+          </div>
+        </>
+      )}
 
       {!seen && (
         <OnboardingOverlay

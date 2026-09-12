@@ -127,3 +127,19 @@
   right: var(--space-3);
   z-index: 3;
 }
+
+@media (max-width: 640px) {
+  .mobileHeader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    padding: var(--space-3);
+    padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+  }
+}
