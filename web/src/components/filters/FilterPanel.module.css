@@ -14,3 +14,9 @@
 .col {
   min-width: 0;
 }
+
+@media (max-width: 640px) {
+  .panel {
+    grid-template-columns: 1fr;
+  }
+}
