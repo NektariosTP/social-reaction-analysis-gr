@@ -63,11 +63,16 @@ export function AboutContent() {
 
         <div className={styles.col}>
           <div className={styles.colLabel}>{t("about.contactLabel")}</div>
-          <a className={styles.linkRow} href="https://github.com/" target="_blank" rel="noreferrer">
+          <a
+            className={styles.linkRow}
+            href="https://github.com/NektariosTP/social-reaction-analysis-gr"
+            target="_blank"
+            rel="noreferrer"
+          >
             <span>{t("about.github")}</span>
             <span style={{ opacity: 0.5 }}>↗</span>
           </a>
-          <a className={styles.linkRow} href="mailto:">
+          <a className={styles.linkRow} href="mailto:nektarios.tp@gmail.com">
             <span>{t("about.contact")}</span>
             <span style={{ opacity: 0.5 }}>↗</span>
           </a>
