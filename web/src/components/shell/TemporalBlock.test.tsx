@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { EventSummary } from "../../client/types.gen";
 import { TemporalBlock } from "./TemporalBlock";
 
@@ -73,5 +74,22 @@ describe("TemporalBlock", () => {
   it("renders an empty state when a tab has no events", () => {
     renderBlock({ ongoing: [], upcoming: [] });
     expect(screen.getByText(/no upcoming events/i)).toBeInTheDocument();
+  });
+
+  it("renders inline detail under the expanded ongoing row", () => {
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TemporalBlock
+          ongoing={[ev("x")]}
+          upcoming={[]}
+          loading={false}
+          error={false}
+          expandedId="x"
+          onSelectEvent={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+    expect(document.querySelector('[data-inline-detail="x"]')).toBeInTheDocument();
   });
 });

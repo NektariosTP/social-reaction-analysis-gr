@@ -72,3 +72,9 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.inlineDetail {
+  border-top: 1px dashed var(--color-border);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  background: var(--color-surface-alt);
+}

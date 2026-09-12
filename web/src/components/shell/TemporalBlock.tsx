@@ -5,6 +5,7 @@ import { partitionByNational } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
 import { Spinner, ErrorState, EmptyState } from "../common";
+import { ClusterDetailContent } from "../cluster";
 import styles from "./TemporalBlock.module.css";
 
 type Tab = "ongoing" | "upcoming";
@@ -15,15 +16,18 @@ interface TemporalBlockProps {
   loading: boolean;
   error: boolean;
   onSelectEvent: (id: string) => void;
+  expandedId?: string | null;
 }
 
 function TemporalEventRow({
   event,
   kind,
+  expandedId,
   onSelect,
 }: {
   event: EventSummary;
   kind: Tab;
+  expandedId?: string | null;
   onSelect: (id: string) => void;
 }) {
   const { t } = useTranslation();
@@ -31,29 +35,36 @@ function TemporalEventRow({
   const summary = lang === "el" ? event.summary_el : event.summary_en;
   const chip = kind === "ongoing" ? t("temporal.today") : formatRelativeTime(event.event_time, lang);
   return (
-    <button
-      type="button"
-      className={styles.row}
-      data-event-id={event.id}
-      onClick={() => onSelect(event.id)}
-    >
-      <span className={styles.rowChip}>{chip}</span>
-      {event.announced_by && (
-        <span className={styles.rowChip} data-announced>
-          📣 {event.announced_by}
-          {event.participating_unions && event.participating_unions.length > 1 && (
-            <> · joined by {event.participating_unions.slice(1, 3).join(", ")}
-              {event.participating_unions.length > 3
-                ? ` +${event.participating_unions.length - 3}` : ""}</>
-          )}
-        </span>
+    <>
+      <button
+        type="button"
+        className={styles.row}
+        data-event-id={event.id}
+        onClick={() => onSelect(event.id)}
+      >
+        <span className={styles.rowChip}>{chip}</span>
+        {event.announced_by && (
+          <span className={styles.rowChip} data-announced>
+            📣 {event.announced_by}
+            {event.participating_unions && event.participating_unions.length > 1 && (
+              <> · joined by {event.participating_unions.slice(1, 3).join(", ")}
+                {event.participating_unions.length > 3
+                  ? ` +${event.participating_unions.length - 3}` : ""}</>
+            )}
+          </span>
+        )}
+        <span className={styles.rowSummary}>{summary}</span>
+      </button>
+      {expandedId === event.id && (
+        <div className={styles.inlineDetail} data-inline-detail={event.id}>
+          <ClusterDetailContent eventId={event.id} />
+        </div>
       )}
-      <span className={styles.rowSummary}>{summary}</span>
-    </button>
+    </>
   );
 }
 
-export function TemporalBlock({ ongoing, upcoming, loading, error, onSelectEvent }: TemporalBlockProps) {
+export function TemporalBlock({ ongoing, upcoming, loading, error, expandedId, onSelectEvent }: TemporalBlockProps) {
   const { t } = useTranslation();
   const [manualTab, setManualTab] = useState<Tab | null>(null);
   const activeTab: Tab = manualTab ?? (ongoing.length > 0 ? "ongoing" : "upcoming");
@@ -91,7 +102,13 @@ export function TemporalBlock({ ongoing, upcoming, loading, error, onSelectEvent
                 <section>
                   <h3 className={styles.subhead}>{t("temporal.panhellenic")}</h3>
                   {panhellenic.map((e) => (
-                    <TemporalEventRow key={e.id} event={e} kind="ongoing" onSelect={onSelectEvent} />
+                    <TemporalEventRow
+                      key={e.id}
+                      event={e}
+                      kind="ongoing"
+                      expandedId={expandedId}
+                      onSelect={onSelectEvent}
+                    />
                   ))}
                 </section>
               )}
@@ -99,7 +116,13 @@ export function TemporalBlock({ ongoing, upcoming, loading, error, onSelectEvent
                 <section>
                   <h3 className={styles.subhead}>{t("temporal.other")}</h3>
                   {other.map((e) => (
-                    <TemporalEventRow key={e.id} event={e} kind="ongoing" onSelect={onSelectEvent} />
+                    <TemporalEventRow
+                      key={e.id}
+                      event={e}
+                      kind="ongoing"
+                      expandedId={expandedId}
+                      onSelect={onSelectEvent}
+                    />
                   ))}
                 </section>
               )}
@@ -112,7 +135,13 @@ export function TemporalBlock({ ongoing, upcoming, loading, error, onSelectEvent
             <EmptyState message={t("temporal.emptyUpcoming")} />
           ) : (
             upcoming.map((e) => (
-              <TemporalEventRow key={e.id} event={e} kind="upcoming" onSelect={onSelectEvent} />
+              <TemporalEventRow
+                key={e.id}
+                event={e}
+                kind="upcoming"
+                expandedId={expandedId}
+                onSelect={onSelectEvent}
+              />
             ))
           )
         )}
