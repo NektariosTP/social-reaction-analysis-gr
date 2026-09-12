@@ -82,6 +82,13 @@ describe("EditorialBlock", () => {
     expect(props.onBack).toHaveBeenCalled();
   });
 
+  it("renders inline detail for the expanded event only", () => {
+    renderList({ highlightedEventId: "evt-2", expandedId: "evt-2" });
+    const detail = document.querySelector('[data-inline-detail="evt-2"]');
+    expect(detail).toBeInTheDocument();
+    expect(document.querySelector('[data-inline-detail="evt-1"]')).not.toBeInTheDocument();
+  });
+
   it("renders detail content below the back button in detail mode", () => {
     render(
       <MemoryRouter>

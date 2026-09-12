@@ -13,6 +13,7 @@ export interface EditorialBlockListProps {
   eventsError: boolean;
   highlightedEventId: string | null;
   onSelectEvent: (id: string) => void;
+  expandedId?: string | null;
 }
 
 interface EditorialBlockDetailProps {
@@ -48,7 +49,7 @@ export function EditorialBlock(props: EditorialBlockProps) {
     );
   }
 
-  const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent } = props;
+  const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent, expandedId } = props;
   const articles = events.reduce((sum, e) => sum + (e.article_count ?? 0), 0);
 
   return (
@@ -79,6 +80,11 @@ export function EditorialBlock(props: EditorialBlockProps) {
               variant={i === 0 ? "featured" : "compact"}
               onOpen={onSelectEvent}
             />
+            {expandedId === e.id && (
+              <div className={styles.inlineDetail} data-inline-detail={e.id}>
+                <ClusterDetailContent eventId={e.id} />
+              </div>
+            )}
           </div>
         ))}
       </div>
