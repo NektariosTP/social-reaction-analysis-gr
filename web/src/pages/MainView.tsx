@@ -7,9 +7,18 @@ import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
 import { OnboardingOverlay } from "../components/onboarding";
-import { HeaderBlock, EditorialBlock, TemporalBlock, UserControls, BottomSheet } from "../components/shell";
+import {
+  HeaderBlock,
+  EditorialBlock,
+  TemporalBlock,
+  UserControls,
+  BottomSheet,
+  BottomNav,
+  LegendPanel,
+  type SheetTab,
+} from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
-import { AboutModal } from "../components/about";
+import { AboutModal, AboutContent } from "../components/about";
 import { useIsMobile } from "../hooks/useIsMobile";
 import styles from "./MainView.module.css";
 
@@ -36,28 +45,61 @@ export function MainView() {
     return () => observer.disconnect();
   }, []);
 
-  // Reported by MapLegend so the map's fullscreen/zoom/attribution controls (vertically
-  // centred on the right edge) stay clear of it on short viewports — see MapView's
-  // legendHeight prop, used as a safe-zone bound rather than a stacking anchor.
+  // Reported by MapLegend (desktop only) so the map's fullscreen/zoom/attribution
+  // controls stay clear of it on short viewports.
   const [legendHeight, setLegendHeight] = useState(0);
 
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState<SheetTab>("temporal");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [activePanel, setActivePanel] = useState(0); // 0 = Temporal, 1 = Feed
+
+  // Measured so MapView can keep the initial view (and the mobile attribution
+  // control) clear of the pinned header — same ResizeObserver idiom as sidebarWidth.
+  const mobileHeaderRef = useRef<HTMLDivElement>(null);
+  const [mobileHeaderHeight, setMobileHeaderHeight] = useState(0);
+  useEffect(() => {
+    const el = mobileHeaderRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setMobileHeaderHeight(entry.contentRect.height));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const [bottomNavHeight, setBottomNavHeight] = useState(0);
+
+  // BottomSheet's peek height is 36vh (see BottomSheet.module.css .sheet) —
+  // kept in sync here so the map's mobile padding doesn't clip the country
+  // behind the sheet+nav on initial load.
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window === "undefined" ? 0 : window.innerHeight,
+  );
+  useEffect(() => {
+    function onResize() {
+      setViewportHeight(window.innerHeight);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const bottomInset = bottomNavHeight + Math.round(viewportHeight * 0.36);
 
   // Mobile selection is inline (no /cluster/:id route): toggle the open event.
   function handleMobileSelect(id: string) {
     setExpandedId((cur) => (cur === id ? null : id));
   }
-  // Map tap on mobile: open in the Feed panel and expand it.
+  // Map tap on mobile: open in the Feed tab and expand it.
   function handleMobileSelectFromMap(id: string) {
     setExpandedId(id);
-    setActivePanel(1);
+    setActiveTab("feed");
   }
-  // Switching panels collapses any open event.
-  function handleActivePanelChange(index: number) {
-    setActivePanel(index);
+  // Switching tabs collapses any open event.
+  function handleTabChange(tab: SheetTab) {
+    setActiveTab(tab);
     setExpandedId(null);
+  }
+  function handleMethodology() {
+    dismiss();
+    if (isMobile) setActiveTab("about");
+    else setAboutOpen(true);
   }
 
   const { id: routeClusterId } = useParams<{ id?: string }>();
@@ -131,14 +173,16 @@ export function MainView() {
             obstructedLeft={isMobile ? 0 : sidebarWidth}
             legendHeight={legendHeight}
             showPopup={!isMobile}
+            headerHeight={isMobile ? mobileHeaderHeight : 0}
+            bottomInset={isMobile ? bottomInset : 0}
           />
         )}
-        <MapLegend onHeightChange={setLegendHeight} />
+        {!isMobile && <MapLegend onHeightChange={setLegendHeight} />}
       </div>
 
       {isMobile ? (
         <>
-          <div className={styles.mobileHeader}>
+          <div className={styles.mobileHeader} ref={mobileHeaderRef}>
             <HeaderBlock
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -149,22 +193,19 @@ export function MainView() {
             />
           </div>
 
-          <BottomSheet
-            activePanel={activePanel}
-            onActivePanelChange={handleActivePanelChange}
-            footer={<Footer onAbout={() => setAboutOpen(true)} />}
-            panels={[
+          <BottomSheet bottomOffset={bottomNavHeight}>
+            {activeTab === "temporal" && (
               <TemporalBlock
-                key="temporal"
                 ongoing={ongoingQuery.data ?? []}
                 upcoming={upcomingQuery.data ?? []}
                 loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
                 error={ongoingQuery.isError || upcomingQuery.isError}
                 expandedId={expandedId}
                 onSelectEvent={handleMobileSelect}
-              />,
+              />
+            )}
+            {activeTab === "feed" && (
               <EditorialBlock
-                key="feed"
                 mode="list"
                 events={filteredEvents}
                 eventsLoading={eventsQuery.isLoading}
@@ -172,9 +213,13 @@ export function MainView() {
                 highlightedEventId={expandedId}
                 expandedId={expandedId}
                 onSelectEvent={handleMobileSelect}
-              />,
-            ]}
-          />
+              />
+            )}
+            {activeTab === "legend" && <LegendPanel />}
+            {activeTab === "about" && <AboutContent />}
+          </BottomSheet>
+
+          <BottomNav active={activeTab} onChange={handleTabChange} onHeightChange={setBottomNavHeight} />
         </>
       ) : (
         <>
@@ -222,20 +267,12 @@ export function MainView() {
           <div className={styles.topRightControls}>
             <UserControls />
           </div>
+
+          <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
         </>
       )}
 
-      {!seen && (
-        <OnboardingOverlay
-          onDismiss={dismiss}
-          onMethodology={() => {
-            dismiss();
-            setAboutOpen(true);
-          }}
-        />
-      )}
-
-      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      {!seen && <OnboardingOverlay onDismiss={dismiss} onMethodology={handleMethodology} />}
     </div>
   );
 }
