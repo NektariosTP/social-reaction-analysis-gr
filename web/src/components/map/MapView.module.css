@@ -143,11 +143,12 @@
     display: none;
   }
 
-  /* Keep a minimal attribution (tile-provider ToS) pinned top-left, clear of
-     the bottom sheet and the right-edge legend button. */
+  /* Keep a minimal attribution (tile-provider ToS) top-right, below the
+     pinned header, clear of both the bottom sheet and the bottom nav. */
   .container :global(.maplibregl-ctrl-bottom-right) {
-    top: auto;
-    bottom: calc(42vh + var(--space-2));
+    top: calc(var(--header-height, 64px) + var(--space-2));
+    bottom: auto;
+    right: var(--space-2);
     transform: none;
   }
 }

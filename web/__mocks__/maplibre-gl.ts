@@ -147,6 +147,7 @@ export class Map {
   setFeatureState() {}
   removeFeatureState() {}
   fitBounds() {}
+  setPadding() {}
   queryRenderedFeatures() {
     return [];
   }

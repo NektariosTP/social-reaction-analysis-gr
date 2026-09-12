@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { buildClusterIndex, getClusterPoints } from "./clustering";
 import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
 import { buildClusterPreview, LEAF_SAMPLE_SIZE } from "./clusterPreview";
@@ -16,6 +17,7 @@ const STYLE_URL = MAPTILER_KEY
 
 const GREECE_CENTER: [number, number] = [23.7, 38.5];
 const GREECE_ZOOM = 6.5;
+const GREECE_ZOOM_MOBILE = 5.6;
 const GREECE_MIN_ZOOM = 5.6;
 
 interface MapViewProps {
@@ -30,6 +32,12 @@ interface MapViewProps {
   /** Rendered height (px) of MapLegend — used to keep the fullscreen/zoom/attribution
    * controls (vertically centred on the right edge) clear of it on short viewports. */
   legendHeight?: number;
+  /** Rendered height (px) of the pinned mobile header — used both to keep the
+   * attribution control clear of it and to frame the initial map view. */
+  headerHeight?: number;
+  /** Mobile-only: combined height (px) of the bottom nav bar and the sheet's
+   * peek height — used to keep the initial map view framed above them. */
+  bottomInset?: number;
   showPopup?: boolean;
 }
 
@@ -42,6 +50,8 @@ export function MapView({
   onClosePopup,
   obstructedLeft = 0,
   legendHeight = 0,
+  headerHeight = 0,
+  bottomInset = 0,
   showPopup = true,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,6 +67,7 @@ export function MapView({
   useEffect(() => {
     featuresRef.current = features;
   }, [features]);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -64,7 +75,7 @@ export function MapView({
       container: containerRef.current,
       style: STYLE_URL,
       center: GREECE_CENTER,
-      zoom: GREECE_ZOOM,
+      zoom: isMobile ? GREECE_ZOOM_MOBILE : GREECE_ZOOM,
       minZoom: GREECE_MIN_ZOOM,
       // Attribution is added explicitly below, forced compact — the default (non-compact)
       // control can render as a wide inline text strip that overlaps MapLegend.
@@ -136,6 +147,12 @@ export function MapView({
   }, []);
 
   const overlay = useLocationOverlay(mapInstance, styleLoaded, onSelectEvent);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMobile || !styleLoaded) return;
+    map.setPadding({ top: headerHeight + 16, bottom: bottomInset + 16, left: 0, right: 0 });
+  }, [isMobile, styleLoaded, headerHeight, bottomInset]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -239,7 +256,12 @@ export function MapView({
   return (
     <div
       className={styles.container}
-      style={{ "--legend-height": `${legendHeight}px` } as CSSProperties}
+      style={
+        {
+          "--legend-height": `${legendHeight}px`,
+          "--header-height": `${headerHeight}px`,
+        } as CSSProperties
+      }
     >
       <div ref={containerRef} className={styles.map} data-testid="map-canvas" />
       {showPopup && mapInstance && selectedId && selectedFeature && onClosePopup && (

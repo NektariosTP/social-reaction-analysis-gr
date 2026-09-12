@@ -24,6 +24,9 @@ vi.mock("../../api/queries", () => ({
   }),
 }));
 
+vi.mock("../../hooks/useIsMobile", () => ({ useIsMobile: vi.fn(() => false) }));
+import { useIsMobile } from "../../hooks/useIsMobile";
+
 const feature: GeoJsonFeature = {
   type: "Feature",
   geometry: { type: "Point", coordinates: [23.7, 38.0] },
@@ -70,6 +73,29 @@ describe("MapView", () => {
       />,
     );
     expect(screen.queryByText("Preview headline")).not.toBeInTheDocument();
+  });
+
+  it("uses a lower initial zoom on mobile, leaving desktop's zoom untouched", () => {
+    (useIsMobile as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce(true);
+    render(<MapView features={[]} onSelectEvent={vi.fn()} />);
+    const calls = (maplibregl as unknown as { mapConstructorCalls: Record<string, unknown>[] })
+      .mapConstructorCalls;
+    expect(calls.at(-1)).toEqual(expect.objectContaining({ zoom: 5.6, minZoom: 5.6 }));
+  });
+
+  it("pads the map clear of the header and bottom sheet on mobile after load", () => {
+    (useIsMobile as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    const setPadding = vi.fn();
+    const mapProto = (maplibregl as unknown as { Map: { prototype: { setPadding: unknown } } }).Map
+      .prototype;
+    const original = mapProto.setPadding;
+    mapProto.setPadding = setPadding;
+    try {
+      render(<MapView features={[]} onSelectEvent={vi.fn()} headerHeight={80} bottomInset={200} />);
+      expect(setPadding).toHaveBeenCalledWith({ top: 96, bottom: 216, left: 0, right: 0 });
+    } finally {
+      mapProto.setPadding = original;
+    }
   });
 });
 
