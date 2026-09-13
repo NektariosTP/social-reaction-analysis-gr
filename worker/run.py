@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -30,10 +31,18 @@ def _make_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSessio
     return async_sessionmaker(engine, expire_on_commit=False)
 
 
+async def _has_undetriaged_events(session_factory: async_sessionmaker[AsyncSession]) -> bool:
+    """True if any event is still sitting in the human triage queue (status='detected')."""
+    async with session_factory() as session:
+        result = await session.execute(text("SELECT 1 FROM events WHERE status = 'detected' LIMIT 1"))
+        return result.first() is not None
+
+
 async def run_worker_cycle(engine: AsyncEngine) -> dict[str, object]:
     """Run one worker cycle. Each phase is isolated: a failing phase is logged
     and does not stop the others or the always-on archival sweep."""
     metrics: dict[str, object] = {}
+    session_factory = _make_session_factory(engine)
 
     try:
         metrics["ingestion"] = await run_ingestion(engine=engine)
@@ -47,10 +56,16 @@ async def run_worker_cycle(engine: AsyncEngine) -> dict[str, object]:
             logger.exception("[worker] nlp phase failed")
 
     if settings.pipeline_mode == "full":
-        try:
-            metrics["enrich"] = await run_enrich_pipeline(engine=engine)
-        except Exception:
-            logger.exception("[worker] enrich phase failed")
+        if await _has_undetriaged_events(session_factory):
+            logger.info(
+                "[worker] skipping enrich phase — events still pending manual "
+                "approve/reject in the triage queue (status='detected')"
+            )
+        else:
+            try:
+                metrics["enrich"] = await run_enrich_pipeline(engine=engine)
+            except Exception:
+                logger.exception("[worker] enrich phase failed")
 
     if settings.pipeline_mode in ("scrape_and_nlp", "full"):
         try:
@@ -58,7 +73,6 @@ async def run_worker_cycle(engine: AsyncEngine) -> dict[str, object]:
         except Exception:
             logger.exception("[worker] reactions phase failed")
 
-    session_factory = _make_session_factory(engine)
     try:
         async with session_factory() as session:
             metrics["archival"] = await run_archival_sweep(session)

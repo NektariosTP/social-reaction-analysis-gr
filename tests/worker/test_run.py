@@ -6,10 +6,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from worker.run import run_worker_cycle
 
 
-def _patched_session_factory(mock_sf: MagicMock) -> None:
+def _patched_session_factory(mock_sf: MagicMock, has_pending_review: bool = False) -> None:
+    """Wire the mock so `session_factory()` (i.e. mock_sf.return_value()) — not
+    mock_sf.return_value itself — yields the async context manager. Getting this
+    one level wrong silently no-ops instead of raising, since MagicMock supplies
+    its own default __aenter__/__aexit__."""
     mock_session = AsyncMock()
-    mock_sf.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-    mock_sf.return_value.__aexit__ = AsyncMock(return_value=None)
+    mock_result = MagicMock()
+    mock_result.first.return_value = object() if has_pending_review else None
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_sf.return_value.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_sf.return_value.return_value.__aexit__ = AsyncMock(return_value=None)
 
 
 async def test_scrape_only_mode_skips_nlp_and_enrich() -> None:
@@ -57,6 +64,26 @@ async def test_full_mode_runs_all_phases() -> None:
     mock_ing.assert_awaited_once()
     mock_nlp.assert_awaited_once()
     mock_enrich.assert_awaited_once()
+
+
+async def test_full_mode_skips_enrich_while_events_pending_review() -> None:
+    with (
+        patch("worker.run.run_ingestion", new_callable=AsyncMock, return_value={}),
+        patch("worker.run.run_nlp_pipeline", new_callable=AsyncMock, return_value={}),
+        patch(
+            "worker.run.run_enrich_pipeline", new_callable=AsyncMock, return_value={}
+        ) as mock_enrich,
+        patch("worker.run.run_archival_sweep", new_callable=AsyncMock, return_value={}),
+        patch("worker.run._make_session_factory") as mock_sf,
+        patch("worker.run.settings") as mock_settings,
+    ):
+        mock_settings.pipeline_mode = "full"
+        _patched_session_factory(mock_sf, has_pending_review=True)
+
+        metrics = await run_worker_cycle(engine=MagicMock())
+
+    mock_enrich.assert_not_called()
+    assert "enrich" not in metrics
 
 
 async def test_ingestion_failure_does_not_block_nlp_or_archival() -> None:

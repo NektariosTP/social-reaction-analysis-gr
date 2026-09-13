@@ -10,6 +10,7 @@ async def test_reactions_phase_runs_in_full_mode():
     with patch("worker.run.settings") as s, \
          patch("worker.run.run_ingestion", new=AsyncMock(return_value={})), \
          patch("worker.run.run_nlp_pipeline", new=AsyncMock(return_value={})), \
+         patch("worker.run._has_undetriaged_events", new=AsyncMock(return_value=False)), \
          patch("worker.run.run_enrich_pipeline", new=AsyncMock(return_value={})), \
          patch("worker.run.run_archival_sweep", new=AsyncMock(return_value={})), \
          patch("worker.run.run_reactions_pipeline", new=AsyncMock(return_value={"seeded": 1})) as react:
