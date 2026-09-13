@@ -30,7 +30,7 @@ async def test_login_with_correct_password_sets_session_and_redirects(
         )
 
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/events?status=detected"
+    assert resp.headers["location"] == "/admin/events?status=detected"
 
 
 async def test_login_with_wrong_password_shows_error(client: AsyncClient) -> None:
@@ -45,4 +45,4 @@ async def test_logout_clears_session_and_redirects(client: AsyncClient) -> None:
     resp = await client.post("/logout", follow_redirects=False)
 
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/login"
+    assert resp.headers["location"] == "/admin/login"

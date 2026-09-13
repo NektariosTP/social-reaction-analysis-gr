@@ -36,7 +36,7 @@ async def test_delete_event_issues_delete_and_redirects(client) -> None:
     resp = await c.post("/events/evt-1/delete", follow_redirects=False)
 
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/events"
+    assert resp.headers["location"] == "/admin/events"
     executed_sql = str(mock_session.execute.call_args[0][0])
     assert "DELETE FROM events" in executed_sql
     mock_session.commit.assert_awaited_once()

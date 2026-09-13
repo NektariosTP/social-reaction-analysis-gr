@@ -32,7 +32,7 @@ async def test_root_redirects_to_detected_queue(client) -> None:
     c, _ = client
     resp = await c.get("/", follow_redirects=False)
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/events?status=detected"
+    assert resp.headers["location"] == "/admin/events?status=detected"
 
 
 async def test_list_events_defaults_to_detected_filter(client) -> None:
@@ -69,7 +69,7 @@ async def test_approve_event_branches_on_article_count(client) -> None:
     resp = await c.post("/events/evt-1/approve", follow_redirects=False)
 
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/events?status=detected"
+    assert resp.headers["location"] == "/admin/events?status=detected"
     executed_sql = str(mock_session.execute.call_args[0][0])
     assert "article_count = 0" in executed_sql
     assert "'announced'" in executed_sql
@@ -86,7 +86,7 @@ async def test_reject_event_sets_rejected_and_redirects(client) -> None:
     resp = await c.post("/events/evt-1/reject", follow_redirects=False)
 
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/events?status=detected"
+    assert resp.headers["location"] == "/admin/events?status=detected"
     executed_sql = str(mock_session.execute.call_args[0][0])
     assert "status = 'rejected'" in executed_sql
     assert "status = 'detected'" in executed_sql  # guard clause
