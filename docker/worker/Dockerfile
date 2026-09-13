@@ -16,6 +16,7 @@ COPY alembic/ ./alembic/
 COPY ingestion/ ./ingestion/
 COPY nlp/ ./nlp/
 COPY enrich/ ./enrich/
+COPY reactions/ ./reactions/
 COPY worker/ ./worker/
 
 CMD ["uv", "run", "python", "-m", "worker.run"]
