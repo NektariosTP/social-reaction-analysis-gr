@@ -1,7 +1,13 @@
 :80 {
+    redir /admin /admin/events?status=detected
+
     @api path /health /events* /docs /openapi.json /redoc
     handle @api {
         reverse_proxy api:8000
+    }
+
+    handle_path /admin/* {
+        reverse_proxy admin:8001
     }
 
     handle {

@@ -72,7 +72,7 @@ async def _fetch_admin_events(
 
 @router.get("/")
 async def root() -> RedirectResponse:
-    return RedirectResponse(url="/events?status=detected", status_code=303)
+    return RedirectResponse(url="/admin/events?status=detected", status_code=303)
 
 
 @router.get("/events", response_class=Response)
@@ -107,7 +107,7 @@ async def approve_event(
         {"id": event_id},
     )
     await session.commit()
-    return RedirectResponse(url="/events?status=detected", status_code=303)
+    return RedirectResponse(url="/admin/events?status=detected", status_code=303)
 
 
 @router.post("/events/{event_id}/reject")
@@ -119,7 +119,7 @@ async def reject_event(
         {"id": event_id},
     )
     await session.commit()
-    return RedirectResponse(url="/events?status=detected", status_code=303)
+    return RedirectResponse(url="/admin/events?status=detected", status_code=303)
 
 
 async def _fetch_event_detail(session: AsyncSession, event_id: str) -> Any | None:
@@ -373,7 +373,7 @@ async def delete_event(
 ) -> RedirectResponse:
     await session.execute(text("DELETE FROM events WHERE id = :id"), {"id": event_id})
     await session.commit()
-    return RedirectResponse(url="/events", status_code=303)
+    return RedirectResponse(url="/admin/events", status_code=303)
 
 
 async def _reaction_conflict_response(

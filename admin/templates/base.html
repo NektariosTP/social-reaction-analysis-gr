@@ -14,9 +14,9 @@
 </head>
 <body>
   <nav>
-    <a href="/events?status=detected">Queue</a>
-    <a href="/events?status=">Browse all</a>
-    <form class="inline" method="post" action="/logout"><button type="submit">Logout</button></form>
+    <a href="/admin/events?status=detected">Queue</a>
+    <a href="/admin/events?status=">Browse all</a>
+    <form class="inline" method="post" action="/admin/logout"><button type="submit">Logout</button></form>
   </nav>
   <hr>
   {% block content %}{% endblock %}

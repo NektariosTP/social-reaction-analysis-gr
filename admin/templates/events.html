@@ -2,7 +2,7 @@
 {% block title %}Events{% endblock %}
 {% block content %}
 <h1>Events</h1>
-<form method="get" action="/events">
+<form method="get" action="/admin/events">
   <label>Status:
     <select name="status">
       <option value="" {% if not selected_status %}selected{% endif %}>All</option>
@@ -23,7 +23,7 @@
   <tr>
     <td>
       {% if e.article_count == 0 %}<strong>📣 Announcement</strong><br>{% endif %}
-      <a href="/events/{{ e.id }}">{{ e.summary_el or "(no summary)" }}</a>
+      <a href="/admin/events/{{ e.id }}">{{ e.summary_el or "(no summary)" }}</a>
       {% if e.titles %}
       <ul class="titles">
         {% for t in e.titles %}<li>{{ t }}</li>{% endfor %}
@@ -40,10 +40,10 @@
     <td>{{ e.status }}</td>
     <td>
       {% if e.status == "detected" %}
-      <form class="inline" method="post" action="/events/{{ e.id }}/approve">
+      <form class="inline" method="post" action="/admin/events/{{ e.id }}/approve">
         <button type="submit">Approve</button>
       </form>
-      <form class="inline" method="post" action="/events/{{ e.id }}/reject">
+      <form class="inline" method="post" action="/admin/events/{{ e.id }}/reject">
         <button type="submit">Reject</button>
       </form>
       {% endif %}

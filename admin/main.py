@@ -16,7 +16,7 @@ app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
 
 @app.exception_handler(NotAuthenticated)
 async def not_authenticated_handler(request: Request, exc: NotAuthenticated) -> RedirectResponse:
-    return RedirectResponse(url="/login", status_code=303)
+    return RedirectResponse(url="/admin/login", status_code=303)
 
 
 app.include_router(login.router)

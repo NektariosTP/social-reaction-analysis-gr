@@ -4,7 +4,7 @@
 <h1>Edit event {{ event.id }}</h1>
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
-<form method="post" action="/events/{{ event.id }}">
+<form method="post" action="/admin/events/{{ event.id }}">
   <fieldset>
     <legend>Action forms</legend>
     {% for label in axis_action_forms %}
@@ -89,7 +89,7 @@
   <button type="submit">Save</button>
 </form>
 
-<form method="post" action="/events/{{ event.id }}/delete" onsubmit="return confirm('Delete this event permanently?');">
+<form method="post" action="/admin/events/{{ event.id }}/delete" onsubmit="return confirm('Delete this event permanently?');">
   <button type="submit">Delete event</button>
 </form>
 
@@ -102,7 +102,7 @@
 
 <h2>Union reactions</h2>
 {% for r in reactions %}
-<form method="post" action="/events/{{ event.id }}/reactions/{{ r.id }}" class="reaction">
+<form method="post" action="/admin/events/{{ event.id }}/reactions/{{ r.id }}" class="reaction">
   <input type="text" name="actor_name" value="{{ r.actor_name }}" placeholder="Actor">
   <input type="text" name="source_org" value="{{ r.source_org }}" placeholder="Org">
   <input type="text" name="url" value="{{ r.url }}" placeholder="URL" size="40">
@@ -111,14 +111,14 @@
   <textarea name="text" rows="2" cols="60">{{ r.text or "" }}</textarea>
   <button type="submit">Save reaction</button>
 </form>
-<form method="post" action="/events/{{ event.id }}/reactions/{{ r.id }}/delete"
+<form method="post" action="/admin/events/{{ event.id }}/reactions/{{ r.id }}/delete"
       onsubmit="return confirm('Delete this reaction?');">
   <button type="submit">Delete reaction</button>
 </form>
 {% endfor %}
 
 <h3>Add union reaction</h3>
-<form method="post" action="/events/{{ event.id }}/reactions">
+<form method="post" action="/admin/events/{{ event.id }}/reactions">
   <input type="text" name="actor_name" placeholder="Actor" required>
   <input type="text" name="source_org" placeholder="Org" required>
   <input type="text" name="url" placeholder="URL" size="40" required>
