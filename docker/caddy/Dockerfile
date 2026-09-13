@@ -6,6 +6,8 @@ COPY web/ ./
 # Same-origin deployment: Caddy reverse-proxies API routes on this same host,
 # so the SPA should call relative paths rather than a baked-in localhost URL.
 ENV VITE_API_BASE_URL=
+ARG VITE_MAPTILER_KEY=
+ENV VITE_MAPTILER_KEY=$VITE_MAPTILER_KEY
 RUN npm run build
 
 FROM caddy:2-alpine

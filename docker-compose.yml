@@ -75,6 +75,8 @@ services:
     build:
       context: .
       dockerfile: docker/caddy/Dockerfile
+      args:
+        VITE_MAPTILER_KEY: ${VITE_MAPTILER_KEY:-}
     ports:
       - "80:80"
       - "443:443"
