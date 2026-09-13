@@ -12,7 +12,7 @@ import instructor
 logger = logging.getLogger(__name__)
 
 _AUTO_CHAIN = [
-    ("groq_api_key", "groq/meta-llama/llama-4-scout-17b-16e-instruct"),
+    ("groq_api_key", "groq/openai/gpt-oss-120b"),
     ("gemini_api_key", "gemini/gemini-2.0-flash"),
 ]
 _OLLAMA_FALLBACK = "ollama/gemma3:4b"
@@ -23,7 +23,7 @@ def get_llm_client_and_model(mode: object | None = None) -> tuple[instructor.Ins
 
     Resolution order (matches .env.example):
       1. Explicit LLM_MODEL env var (any provider the caller sets up manually)
-      2. GROQ_API_KEY  → groq/llama-4-scout
+      2. GROQ_API_KEY  → groq/gpt-oss-120b
       3. GEMINI_API_KEY → gemini/gemini-2.0-flash
       4. Ollama fallback (no key needed; must be running locally)
     """
