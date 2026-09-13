@@ -37,14 +37,23 @@ services:
       context: .
       dockerfile: docker/worker/Dockerfile
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/social_reaction
-      PIPELINE_MODE: ${PIPELINE_MODE:-scrape_only}
-      PIPELINE_INTERVAL_SECONDS: ${PIPELINE_INTERVAL_SECONDS:-1800}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-}
-      OLLAMA_API_BASE: http://host.docker.internal:11434
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/social_reaction
+      - PIPELINE_MODE=${PIPELINE_MODE:-scrape_only}
+      - PIPELINE_INTERVAL_SECONDS=${PIPELINE_INTERVAL_SECONDS:-1800}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - OLLAMA_API_BASE=http://host.docker.internal:11434
+      # Bare-name form: passed through only if actually set in .env, so
+      # unset numeric fields don't get coerced to an empty string and
+      # crash pydantic-settings validation on container start.
+      - LLM_MAX_TOKENS
+      - LLM_TEMPERATURE
+      - CLUSTER_MIN_ARTICLES
+      - CLUSTER_MIN_INTRA_SIM
+      - EMBEDDING_MODEL
+      - NOMINATIM_DELAY_SECONDS
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
