@@ -1,9 +1,13 @@
 :80 {
     @api path /health /events* /docs /openapi.json /redoc
-    reverse_proxy @api api:8000
+    handle @api {
+        reverse_proxy api:8000
+    }
 
-    root * /srv
-    encode gzip
-    try_files {path} /index.html
-    file_server
+    handle {
+        root * /srv
+        encode gzip
+        try_files {path} /index.html
+        file_server
+    }
 }
