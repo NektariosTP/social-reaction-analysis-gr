@@ -10,12 +10,14 @@
   border-top-left-radius: var(--radius-md);
   border-top-right-radius: var(--radius-md);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.18);
-  height: 36vh;
+  height: 30vh;
   transition: height 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* Expanded height is intentionally tall, but maxHeight (set inline from
+   topInset) caps it so the sheet never reaches the floating header. */
 .sheet[data-expanded="true"] {
-  height: 82vh;
+  height: 88vh;
 }
 
 .handle {

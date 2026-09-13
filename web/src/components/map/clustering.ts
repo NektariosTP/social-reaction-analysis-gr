@@ -30,6 +30,29 @@ export function buildClusterIndex(features: GeoJsonFeature[]) {
   return index;
 }
 
+/** The lowest integer zoom at which `eventId` renders as its own marker rather
+ * than being folded into a cluster with neighbouring events. Used by "View on
+ * map" so the target event is actually singled out, not left inside a cluster
+ * bubble. Returns `maxZoom` if it never fully separates (e.g. co-located events). */
+export function getEventIsolationZoom(
+  index: Supercluster<IndexedProperties>,
+  eventId: string,
+  [lng, lat]: [number, number],
+  maxZoom = 15,
+): number {
+  const pad = 0.02;
+  const bbox: [number, number, number, number] = [lng - pad, lat - pad, lng + pad, lat + pad];
+  for (let z = 0; z <= maxZoom; z++) {
+    const isolated = index.getClusters(bbox, z).some(
+      (c) =>
+        !("cluster" in c.properties && c.properties.cluster) &&
+        c.properties.__feature.properties.id === eventId,
+    );
+    if (isolated) return z;
+  }
+  return maxZoom;
+}
+
 export function getClusterPoints(
   index: Supercluster<IndexedProperties>,
   bbox: [number, number, number, number],

@@ -11,9 +11,20 @@ import styles from "./ClusterDetailContent.module.css";
 interface ClusterDetailContentProps {
   eventId: string;
   showHeadline?: boolean;
+  /** The article-count / first-seen meta chips. Hidden in the mobile inline
+   * analysis, where the story card above already shows the same numbers. */
+  showMeta?: boolean;
+  /** Drops the top border of the first section — used in the mobile inline
+   * analysis so it doesn't double up with the panel's own top border. */
+  flushTop?: boolean;
 }
 
-export function ClusterDetailContent({ eventId, showHeadline = true }: ClusterDetailContentProps) {
+export function ClusterDetailContent({
+  eventId,
+  showHeadline = true,
+  showMeta = true,
+  flushTop = false,
+}: ClusterDetailContentProps) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const { data: event, isLoading, isError } = useEvent(eventId);
@@ -23,19 +34,21 @@ export function ClusterDetailContent({ eventId, showHeadline = true }: ClusterDe
   if (!event) return null;
 
   return (
-    <div className={styles.content}>
+    <div className={`${styles.content} ${flushTop ? styles.flushTop : ""}`}>
       {showHeadline && (
         <h2 className={styles.headline}>{(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}</h2>
       )}
 
-      <div className={styles.metaChips}>
-        <span className={styles.metaChip}>
-          {event.article_count} {t("card.articles")}
-        </span>
-        {event.first_seen && (
-          <span className={styles.metaChip}>{formatRelativeTime(event.first_seen, lang)}</span>
-        )}
-      </div>
+      {showMeta && (
+        <div className={styles.metaChips}>
+          <span className={styles.metaChip}>
+            {event.article_count} {t("card.articles")}
+          </span>
+          {event.first_seen && (
+            <span className={styles.metaChip}>{formatRelativeTime(event.first_seen, lang)}</span>
+          )}
+        </div>
+      )}
 
       <div className={styles.section}>
         <div className={styles.sectionLabel}>{t("cluster.classification")}</div>

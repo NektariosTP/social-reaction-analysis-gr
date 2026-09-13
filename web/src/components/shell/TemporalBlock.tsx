@@ -5,7 +5,7 @@ import { partitionByNational } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
 import { Spinner, ErrorState, EmptyState } from "../common";
-import { ClusterDetailContent } from "../cluster";
+import { InlineAnalysis } from "../cluster";
 import styles from "./TemporalBlock.module.css";
 
 type Tab = "ongoing" | "upcoming";
@@ -17,6 +17,8 @@ interface TemporalBlockProps {
   error: boolean;
   onSelectEvent: (id: string) => void;
   expandedId?: string | null;
+  /** Mobile only: renders a "View on map" CTA inside the expanded analysis. */
+  onViewOnMap?: () => void;
 }
 
 function TemporalEventRow({
@@ -24,11 +26,13 @@ function TemporalEventRow({
   kind,
   expandedId,
   onSelect,
+  onViewOnMap,
 }: {
   event: EventSummary;
   kind: Tab;
   expandedId?: string | null;
   onSelect: (id: string) => void;
+  onViewOnMap?: () => void;
 }) {
   const { t } = useTranslation();
   const [lang] = useLang();
@@ -55,16 +59,12 @@ function TemporalEventRow({
         )}
         <span className={styles.rowSummary}>{summary}</span>
       </button>
-      {expandedId === event.id && (
-        <div className={styles.inlineDetail} data-inline-detail={event.id}>
-          <ClusterDetailContent eventId={event.id} showHeadline={false} />
-        </div>
-      )}
+      {expandedId === event.id && <InlineAnalysis eventId={event.id} onViewOnMap={onViewOnMap} />}
     </>
   );
 }
 
-export function TemporalBlock({ ongoing, upcoming, loading, error, expandedId, onSelectEvent }: TemporalBlockProps) {
+export function TemporalBlock({ ongoing, upcoming, loading, error, expandedId, onSelectEvent, onViewOnMap }: TemporalBlockProps) {
   const { t } = useTranslation();
   const [manualTab, setManualTab] = useState<Tab | null>(null);
   const activeTab: Tab = manualTab ?? (ongoing.length > 0 ? "ongoing" : "upcoming");
@@ -108,6 +108,7 @@ export function TemporalBlock({ ongoing, upcoming, loading, error, expandedId, o
                       kind="ongoing"
                       expandedId={expandedId}
                       onSelect={onSelectEvent}
+                      onViewOnMap={onViewOnMap}
                     />
                   ))}
                 </section>
@@ -122,6 +123,7 @@ export function TemporalBlock({ ongoing, upcoming, loading, error, expandedId, o
                       kind="ongoing"
                       expandedId={expandedId}
                       onSelect={onSelectEvent}
+                      onViewOnMap={onViewOnMap}
                     />
                   ))}
                 </section>
@@ -141,6 +143,7 @@ export function TemporalBlock({ ongoing, upcoming, loading, error, expandedId, o
                 kind="upcoming"
                 expandedId={expandedId}
                 onSelect={onSelectEvent}
+                onViewOnMap={onViewOnMap}
               />
             ))
           )

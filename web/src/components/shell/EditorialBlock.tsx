@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { EventSummary } from "../../client/types.gen";
 import { StoryCard } from "../cards";
-import { ClusterDetailContent } from "../cluster";
+import { ClusterDetailContent, InlineAnalysis } from "../cluster";
 import { Spinner, ErrorState, EmptyState } from "../common";
 import styles from "./EditorialBlock.module.css";
 
@@ -14,6 +14,8 @@ export interface EditorialBlockListProps {
   highlightedEventId: string | null;
   onSelectEvent: (id: string) => void;
   expandedId?: string | null;
+  /** Mobile only: renders a "View on map" CTA inside the expanded analysis. */
+  onViewOnMap?: () => void;
 }
 
 interface EditorialBlockDetailProps {
@@ -49,7 +51,8 @@ export function EditorialBlock(props: EditorialBlockProps) {
     );
   }
 
-  const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent, expandedId } = props;
+  const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent, expandedId, onViewOnMap } =
+    props;
   const articles = events.reduce((sum, e) => sum + (e.article_count ?? 0), 0);
 
   return (
@@ -79,12 +82,9 @@ export function EditorialBlock(props: EditorialBlockProps) {
               event={e}
               variant={i === 0 ? "featured" : "compact"}
               onOpen={onSelectEvent}
+              expanded={expandedId === e.id}
             />
-            {expandedId === e.id && (
-              <div className={styles.inlineDetail} data-inline-detail={e.id}>
-                <ClusterDetailContent eventId={e.id} showHeadline={false} />
-              </div>
-            )}
+            {expandedId === e.id && <InlineAnalysis eventId={e.id} onViewOnMap={onViewOnMap} />}
           </div>
         ))}
       </div>

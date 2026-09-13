@@ -6,14 +6,35 @@ interface BottomSheetProps {
   /** BottomNav's measured height (px) — the sheet's bottom edge sits here,
    * not at the true viewport edge, so it doesn't cover the nav bar. */
   bottomOffset: number;
+  /** Space (px) to keep clear at the top even when fully expanded, so the
+   * sheet stops short of the floating header and leaves a sliver of map
+   * visible. Caps the expanded height. */
+  topInset?: number;
+  /** Optional controlled expansion. When provided, the parent owns the
+   * peek/expanded state (e.g. to collapse the sheet from a "View on map"
+   * action); omit both to keep the sheet self-managed. */
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 /** Mobile-only draggable sheet: toggles between a peek and an expanded
  * height. Which content it shows is entirely owned by the parent (via
  * `children`, chosen by the active BottomNav tab) — this component only
  * handles sizing/dragging. */
-export function BottomSheet({ children, bottomOffset }: BottomSheetProps) {
-  const [expanded, setExpanded] = useState(false);
+export function BottomSheet({
+  children,
+  bottomOffset,
+  topInset = 0,
+  expanded: controlledExpanded,
+  onExpandedChange,
+}: BottomSheetProps) {
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? internalExpanded;
+  const setExpanded = (next: boolean | ((prev: boolean) => boolean)) => {
+    const value = typeof next === "function" ? next(expanded) : next;
+    onExpandedChange?.(value);
+    if (controlledExpanded === undefined) setInternalExpanded(value);
+  };
   const drag = useRef<{ startY: number; moved: boolean } | null>(null);
   // A real drag also fires a trailing click event on release; suppress that
   // one click so it doesn't immediately re-toggle what the drag just set.
@@ -48,7 +69,10 @@ export function BottomSheet({ children, bottomOffset }: BottomSheetProps) {
       className={styles.sheet}
       data-testid="bottom-sheet"
       data-expanded={expanded ? "true" : "false"}
-      style={{ bottom: bottomOffset }}
+      style={{
+        bottom: bottomOffset,
+        maxHeight: topInset ? `calc(100dvh - ${bottomOffset + topInset}px)` : undefined,
+      }}
     >
       <button
         type="button"

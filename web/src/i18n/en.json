@@ -39,6 +39,7 @@
   "cluster.supportedBy": "Supported by",
   "cluster.officialStatements": "Official statements & politician responses",
   "cluster.classification": "Classification",
+  "cluster.viewOnMap": "View on map",
   "cluster.relatedClusters": "Related events",
   "cluster.timeline": "Event timeline",
   "cluster.locations": "Event locations",

@@ -90,6 +90,12 @@
     grid-template-columns: 1fr;
   }
 
+  /* The classification reference is a legend duplicate on mobile — the Legend
+     tab already covers it, so drop it from the About tab. */
+  .classCol {
+    display: none;
+  }
+
   .col {
     border-right: none;
     border-bottom: 1px solid var(--color-border);

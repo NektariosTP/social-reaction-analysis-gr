@@ -18,5 +18,7 @@
 @media (max-width: 640px) {
   .panel {
     grid-template-columns: 1fr;
+    padding: var(--space-2) var(--space-3);
+    gap: 0;
   }
 }

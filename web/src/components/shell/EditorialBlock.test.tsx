@@ -8,6 +8,9 @@ vi.mock("../cluster", () => ({
   ClusterDetailContent: ({ eventId }: { eventId: string }) => (
     <div data-testid="detail-content">{eventId}</div>
   ),
+  InlineAnalysis: ({ eventId }: { eventId: string }) => (
+    <div data-inline-detail={eventId}>{eventId}</div>
+  ),
 }));
 
 const events: EventSummary[] = [

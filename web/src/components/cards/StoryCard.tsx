@@ -10,9 +10,13 @@ interface StoryCardProps {
   event: EventSummary;
   variant?: "featured" | "compact";
   onOpen?: (id: string) => void;
+  /** When true (mobile, this card's analysis is open), the classification pills
+   * and the "view full analysis" CTA collapse away smoothly, since the expanded
+   * analysis below already carries that information. */
+  expanded?: boolean;
 }
 
-export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps) {
+export function StoryCard({ event, variant = "compact", onOpen, expanded = false }: StoryCardProps) {
   const { t } = useTranslation();
   const [lang] = useLang();
   const summary = lang === "el" ? event.summary_el : event.summary_en;
@@ -29,15 +33,19 @@ export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps
         }
       }}
     >
-      <div className={styles.tags}>
-        {event.action_forms.map((v) => (
-          <AxisTag key={v} value={v} variant="action" />
-        ))}
-        {event.thematic_fields.map((v) => (
-          <AxisTag key={v} value={v} variant="theme" />
-        ))}
-        {event.channel && <AxisTag value={event.channel} variant="channel" />}
-        {event.intensity && <AxisTag value={event.intensity} variant="intensity" />}
+      <div className={styles.collapsible} data-collapsed={expanded || undefined}>
+        <div className={styles.collapsibleInner}>
+          <div className={styles.tags}>
+            {event.action_forms.map((v) => (
+              <AxisTag key={v} value={v} variant="action" />
+            ))}
+            {event.thematic_fields.map((v) => (
+              <AxisTag key={v} value={v} variant="theme" />
+            ))}
+            {event.channel && <AxisTag value={event.channel} variant="channel" />}
+            {event.intensity && <AxisTag value={event.intensity} variant="intensity" />}
+          </div>
+        </div>
       </div>
 
       <div className={`${styles.headline} ${isFeatured ? "" : styles.headlineCompact}`}>
@@ -48,7 +56,13 @@ export function StoryCard({ event, variant = "compact", onOpen }: StoryCardProps
         {event.article_count} {t("card.articles")} · {formatRelativeTime(event.last_seen, lang)}
       </div>
 
-      {isFeatured && <div className={styles.cta}>{t("card.viewFullAnalysis")}</div>}
+      {isFeatured && (
+        <div className={styles.collapsible} data-collapsed={expanded || undefined}>
+          <div className={styles.collapsibleInner}>
+            <div className={styles.cta}>{t("card.viewFullAnalysis")}</div>
+          </div>
+        </div>
+      )}
     </Link>
   );
 }

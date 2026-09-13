@@ -6,6 +6,7 @@ import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
+import { buildClusterIndex, getEventIsolationZoom } from "../components/map/clustering";
 import { OnboardingOverlay } from "../components/onboarding";
 import {
   HeaderBlock,
@@ -50,8 +51,19 @@ export function MainView() {
   const [legendHeight, setLegendHeight] = useState(0);
 
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState<SheetTab>("temporal");
+  // The tab the user explicitly picked; null means "follow the data-driven
+  // default" (see activeTab below).
+  const [userTab, setUserTab] = useState<SheetTab | null>(null);
+  // Mobile selection model:
+  //  - expandedId: the inline-expanded event in the list (also the map's framed
+  //    + highlighted event). Tapping a card expands its analysis in place.
+  //  - sheetExpanded: controlled peek/expanded state of the sheet, so "View on
+  //    map" can drop the full-screen sheet while keeping the event framed.
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+  // Explicit map fly command — set only by "View on map", so tapping an event
+  // (which just expands its inline analysis) never moves the map on its own.
+  const [mapFlyTo, setMapFlyTo] = useState<{ center: [number, number]; zoom?: number } | null>(null);
 
   // Measured so MapView can keep the initial view (and the mobile attribution
   // control) clear of the pinned header — same ResizeObserver idiom as sidebarWidth.
@@ -67,7 +79,7 @@ export function MainView() {
 
   const [bottomNavHeight, setBottomNavHeight] = useState(0);
 
-  // BottomSheet's peek height is 36vh (see BottomSheet.module.css .sheet) —
+  // BottomSheet's peek height is 30vh (see BottomSheet.module.css .sheet) —
   // kept in sync here so the map's mobile padding doesn't clip the country
   // behind the sheet+nav on initial load.
   const [viewportHeight, setViewportHeight] = useState(() =>
@@ -80,25 +92,46 @@ export function MainView() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  const bottomInset = bottomNavHeight + Math.round(viewportHeight * 0.36);
+  const bottomInset = bottomNavHeight + Math.round(viewportHeight * 0.3);
 
-  // Mobile selection is inline (no /cluster/:id route): toggle the open event.
+  // Keep the expanded sheet clear of the floating header (its measured height
+  // plus its top offset and a small map sliver), so a strip of map stays visible.
+  const sheetTopInset = mobileHeaderHeight + 44;
+
+  // Mobile: tapping an event expands its analysis inline (toggles), and lifts
+  // the sheet to full height so the analysis is readable.
   function handleMobileSelect(id: string) {
-    setExpandedId((cur) => (cur === id ? null : id));
+    const willOpen = expandedId !== id;
+    setExpandedId(willOpen ? id : null);
+    if (willOpen) setSheetExpanded(true);
   }
-  // Map tap on mobile: open in the Feed tab and expand it.
+  // Map tap on mobile: expand the tapped event in the Feed tab.
   function handleMobileSelectFromMap(id: string) {
+    setUserTab("feed");
     setExpandedId(id);
-    setActiveTab("feed");
+    setSheetExpanded(true);
   }
-  // Switching tabs collapses any open event.
+  // "View on map" (from the inline analysis): drop the full-screen sheet and
+  // zoom the map to the expanded event — far enough that it's singled out of any
+  // cluster it shares with nearby events, but never further out than ~11.
+  function handleViewOnMap() {
+    setSheetExpanded(false);
+    if (!expandedId) return;
+    const feature = geoFeatures.find((f) => f.properties.id === expandedId);
+    if (!feature) return;
+    const center = feature.geometry.coordinates as [number, number];
+    const index = buildClusterIndex(geoFeatures);
+    const zoom = Math.min(Math.max(getEventIsolationZoom(index, expandedId, center), 11), 16);
+    setMapFlyTo({ center, zoom });
+  }
+  // Switching tabs collapses any inline analysis.
   function handleTabChange(tab: SheetTab) {
-    setActiveTab(tab);
+    setUserTab(tab);
     setExpandedId(null);
   }
   function handleMethodology() {
     dismiss();
-    if (isMobile) setActiveTab("about");
+    if (isMobile) setUserTab("about");
     else setAboutOpen(true);
   }
 
@@ -145,6 +178,16 @@ export function MainView() {
   const ongoingQuery = useOngoingEvents();
   const upcomingQuery = useUpcomingEvents();
 
+  // Default the mobile view to Feed rather than an empty Calendar: once the
+  // Ongoing/Upcoming data has loaded and is empty, "temporal" falls back to
+  // "feed". A user's explicit tab choice (userTab) always wins.
+  const temporalEmpty =
+    !ongoingQuery.isLoading &&
+    !upcomingQuery.isLoading &&
+    (ongoingQuery.data?.length ?? 0) === 0 &&
+    (upcomingQuery.data?.length ?? 0) === 0;
+  const activeTab: SheetTab = userTab ?? (temporalEmpty ? "feed" : "temporal");
+
   const events = eventsQuery.data ?? [];
   const q = searchQuery.trim().toLowerCase();
   const filteredEvents = q
@@ -168,6 +211,7 @@ export function MainView() {
             features={geoFeatures}
             onSelectEvent={isMobile ? handleMobileSelectFromMap : handleSelectEventFromMap}
             selectedId={isMobile ? expandedId : mapSelectedId}
+            flyTo={mapFlyTo}
             onReadMorePopup={mode === "list" ? handleReadMore : undefined}
             onClosePopup={handleClosePopup}
             obstructedLeft={isMobile ? 0 : sidebarWidth}
@@ -193,7 +237,12 @@ export function MainView() {
             />
           </div>
 
-          <BottomSheet bottomOffset={bottomNavHeight}>
+          <BottomSheet
+            bottomOffset={bottomNavHeight}
+            topInset={sheetTopInset}
+            expanded={sheetExpanded}
+            onExpandedChange={setSheetExpanded}
+          >
             {activeTab === "temporal" && (
               <TemporalBlock
                 ongoing={ongoingQuery.data ?? []}
@@ -202,6 +251,7 @@ export function MainView() {
                 error={ongoingQuery.isError || upcomingQuery.isError}
                 expandedId={expandedId}
                 onSelectEvent={handleMobileSelect}
+                onViewOnMap={handleViewOnMap}
               />
             )}
             {activeTab === "feed" && (
@@ -213,6 +263,7 @@ export function MainView() {
                 highlightedEventId={expandedId}
                 expandedId={expandedId}
                 onSelectEvent={handleMobileSelect}
+                onViewOnMap={handleViewOnMap}
               />
             )}
             {activeTab === "legend" && <LegendPanel />}

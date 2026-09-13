@@ -18,6 +18,26 @@
   margin-bottom: 8px;
 }
 
+/* Smoothly collapse a block (tags row, CTA) to nothing by animating the grid
+   track from 1fr to 0fr — no fixed height needed. */
+.collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 180ms ease;
+}
+
+.collapsible[data-collapsed] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.collapsibleInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .headline {
   font-size: 14px;
   font-weight: 600;

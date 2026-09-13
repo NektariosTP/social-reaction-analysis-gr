@@ -239,6 +239,10 @@ export function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !selectedId) return;
+    // On mobile, selecting an event only expands its inline analysis — the map
+    // stays put until the user explicitly taps "View on map" (driven by the
+    // `flyTo` prop). Auto-framing on selection is desktop-only.
+    if (isMobile) return;
     const feature = featuresRef.current.find((f) => f.properties.id === selectedId);
     if (!feature) return;
     const [lng, lat] = feature.geometry.coordinates as [number, number];
@@ -247,7 +251,7 @@ export function MapView({
       zoom: Math.max(map.getZoom(), 11),
       offset: [obstructedLeft / 2, 0],
     });
-  }, [selectedId, obstructedLeft]);
+  }, [selectedId, obstructedLeft, isMobile]);
 
   const selectedFeature = selectedId
     ? features.find((f) => f.properties.id === selectedId)

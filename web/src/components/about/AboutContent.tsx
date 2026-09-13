@@ -28,7 +28,7 @@ export function AboutContent() {
           </div>
         </div>
 
-        <div className={styles.col}>
+        <div className={`${styles.col} ${styles.classCol}`}>
           <div className={styles.colLabel}>{t("about.classificationLabel")}</div>
           <AxisReferenceBlock label={`${t("filters.axis1")}`} color="var(--color-axis1)">
             <div className={styles.chipRow}>

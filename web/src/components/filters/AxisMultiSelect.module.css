@@ -33,3 +33,23 @@
   border-color: var(--color-accent);
   color: var(--color-accent-contrast);
 }
+
+/* Tighter rhythm on phones so the whole filter set stays scannable in the
+   header's expansion without heavy scrolling. */
+@media (max-width: 640px) {
+  .group {
+    margin-bottom: var(--space-2);
+  }
+
+  .label {
+    margin-bottom: 4px;
+  }
+
+  .chips {
+    gap: 5px;
+  }
+
+  .chip {
+    padding: 3px 8px;
+  }
+}
