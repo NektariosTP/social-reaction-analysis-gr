@@ -72,12 +72,13 @@ services:
              uv run uvicorn admin.main:app --host 0.0.0.0 --port 8001"
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: docker/caddy/Dockerfile
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
