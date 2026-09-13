@@ -9,6 +9,7 @@ class ReactionSettings(BaseSettings):
     request_delay_seconds: float = 2.0
     seed_dedup_sim: float = 0.9
     filter_variant: str = "broad"
+    reactions_max_age_days: int = 14
 
 
 settings = ReactionSettings()

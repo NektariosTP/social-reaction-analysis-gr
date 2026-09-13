@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine,
@@ -24,6 +25,10 @@ logger = logging.getLogger(__name__)
 
 async def _process_item(session: AsyncSession, item, sim_threshold: float) -> str:
     """Returns one of: 'filtered', 'reaction', 'seeded', 'deduped'."""
+    max_age = timedelta(days=settings.reactions_max_age_days)
+    if item.observed_at is not None and (datetime.now(UTC) - item.observed_at) > max_age:
+        return "filtered"
+
     title = clean_text(item.title)
     body = clean_text(item.body_text)
     blob = f"{title}. {body}".strip()
