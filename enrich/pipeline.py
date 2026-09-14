@@ -128,7 +128,7 @@ async def _link_to_announcement(
     match = find_announced_duplicate(
         centroid=centroid, action_forms=action_forms,
         place_lat=lat, place_lon=lon, is_national=is_national,
-        existing=existing, sim_threshold=reaction_settings.seed_dedup_sim,
+        existing=existing, sim_threshold=reaction_settings.announcement_merge_sim,
         event_day=event_day,
     )
     if match is None or match == event_id:

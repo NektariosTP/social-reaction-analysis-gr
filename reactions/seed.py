@@ -37,14 +37,13 @@ def find_announced_duplicate(
 ) -> str | None:
     af = set(action_forms)
     for eid, cen, _org, day, forms, elat, elon, enat in existing:
-        action_ok = bool(af & set(forms))
+        if not (af & set(forms)):
+            continue  # action-overlap prefilter (necessary, not sufficient)
+        if event_day is not None and day is not None and day != event_day:
+            continue  # DAY GATE: different Athens event-day never merges
         place_ok = _place_agreement(place_lat, place_lon, is_national, elat, elon, enat)
-        if event_day is not None:
-            slot = day == event_day and action_ok and place_ok
-        else:  # dateless joiner — anchor on place + action; it inherits the event's date
-            slot = action_ok and place_ok
         sim = float(np.dot(centroid, cen))
-        if slot or sim >= sim_threshold:
+        if sim >= sim_threshold or place_ok:
             return eid
     return None
 

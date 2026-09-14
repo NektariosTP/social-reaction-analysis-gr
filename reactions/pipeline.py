@@ -100,7 +100,7 @@ async def run_reactions_pipeline(engine: AsyncEngine | None = None) -> dict[str,
             items = await connector.fetch()
             counts["fetched"] += len(items)
             for item in items:
-                outcome = await _process_item(session, item, settings.seed_dedup_sim)
+                outcome = await _process_item(session, item, settings.announcement_merge_sim)
                 if outcome == "filtered":
                     counts["filtered"] += 1
                     continue

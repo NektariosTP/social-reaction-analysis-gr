@@ -49,7 +49,9 @@ def test_no_merge_same_day_action_but_different_city():
     assert match is None
 
 
-def test_merge_on_high_centroid_sim_alone():
+def test_high_sim_alone_no_longer_merges_across_days():
+    # Identical centroid (sim=1.0) but a DIFFERENT day and a non-overlapping action must
+    # NOT merge under the day-gate + action-prefilter (the old sim-alone shortcut is gone).
     existing = [("evt-1", _v(1), "adedy", date(2026, 9, 5),
                  ["Απεργία/Στάση εργασίας"], None, None, False)]
     match = find_announced_duplicate(
@@ -57,7 +59,45 @@ def test_merge_on_high_centroid_sim_alone():
         action_forms=["Κατάληψη"], place_lat=None, place_lon=None, is_national=False,
         existing=existing, sim_threshold=0.95,
     )
+    assert match is None
+
+
+def test_day_gate_blocks_cross_day_high_similarity():
+    # Same centroid (sim=1.0) but different days must NOT merge (the 0.738-cross-day lesson).
+    existing = [("evt-1", _v(1), "pame", date(2026, 9, 18),
+                 ["Διαδήλωση/Πορεία/Συγκέντρωση"], None, None, False)]
+    match = find_announced_duplicate(
+        centroid=_v(1), event_day=date(2026, 9, 16),
+        action_forms=["Διαδήλωση/Πορεία/Συγκέντρωση"],
+        place_lat=None, place_lon=None, is_national=False,
+        existing=existing, sim_threshold=0.72,
+    )
+    assert match is None
+
+
+def test_same_day_semantic_merges_without_place():
+    # Σαπφούς vs Κερατσίνι: same day, no coords, high semantic sim → one event.
+    existing = [("evt-1", _v(1), "pame", date(2026, 9, 18),
+                 ["Διαδήλωση/Πορεία/Συγκέντρωση"], None, None, False)]
+    match = find_announced_duplicate(
+        centroid=_v(1), event_day=date(2026, 9, 18),   # sim(_v(1),_v(1)) = 1.0 >= 0.72
+        action_forms=["Διαδήλωση/Πορεία/Συγκέντρωση"],
+        place_lat=None, place_lon=None, is_national=False,
+        existing=existing, sim_threshold=0.72,
+    )
     assert match == "evt-1"
+
+
+def test_same_day_low_similarity_does_not_merge():
+    existing = [("evt-1", _v(1), "pame", date(2026, 9, 16),
+                 ["Απεργία/Στάση εργασίας"], None, None, False)]
+    match = find_announced_duplicate(
+        centroid=_v(-1), event_day=date(2026, 9, 16),   # sim = -1 < 0.72, no place, not national
+        action_forms=["Απεργία/Στάση εργασίας"],
+        place_lat=None, place_lon=None, is_national=False,
+        existing=existing, sim_threshold=0.72,
+    )
+    assert match is None
 
 
 def test_dateless_joiner_matches_on_place_and_action():
