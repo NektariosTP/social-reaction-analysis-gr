@@ -30,3 +30,19 @@ def test_time_of_day_parsed():
 
 def test_no_date_returns_none():
     assert extract_event_datetime("Αποχαιρετάμε τον συνάδελφο", now=NOW) is None
+
+
+def test_dateless_time_defaults_to_midday():
+    now = datetime(2026, 9, 14, 9, 0, tzinfo=ATH)
+    got = extract_event_datetime("Συγκέντρωση στις 16 Σεπτεμβρίου", now=now)
+    assert got is not None
+    assert (got.when.hour, got.when.minute) == (12, 0)
+    assert got.has_time is False
+
+
+def test_explicit_time_is_preserved():
+    now = datetime(2026, 9, 14, 9, 0, tzinfo=ATH)
+    got = extract_event_datetime("Συγκέντρωση 16 Σεπτεμβρίου στις 18:30", now=now)
+    assert got is not None
+    assert (got.when.hour, got.when.minute) == (18, 30)
+    assert got.has_time is True

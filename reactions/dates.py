@@ -75,7 +75,7 @@ def extract_event_datetime(text: str, now: datetime | None = None) -> ExtractedD
         return None
 
     tod = _parse_time(folded)
-    hour, minute = (tod if tod else (0, 0))
+    hour, minute = (tod if tod else (12, 0))  # midday default: boundary-safe + indicative
 
     resolved: list[datetime] = []
     for month, day, yr in candidates:
