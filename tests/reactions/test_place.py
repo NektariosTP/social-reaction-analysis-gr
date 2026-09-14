@@ -8,10 +8,14 @@ def test_national_flag_set():
     assert r.is_national is True
 
 
-def test_gazetteer_city_resolves_coords():
-    r = resolve_place("Συγκέντρωση στη Θεσσαλονίκη")
-    # Thessaloniki is in the shipped gazetteer; coords populated.
-    assert r.name is not None and r.lat is not None and r.lon is not None
+def test_resolve_place_never_returns_gazetteer_coords():
+    r = resolve_place("Συγκέντρωση στη Θεσσαλονίκη αύριο")
+    assert r.lat is None and r.lon is None and r.name is None
+
+
+def test_resolve_place_still_detects_national_scope():
+    r = resolve_place("Πανελλαδική πανεργατική απεργία σε όλη τη χώρα")
+    assert r.is_national is True
 
 
 def test_unknown_place_returns_empty_coords():
