@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from reactions.db import (
     upsert_reaction, insert_announced_event, load_announced_events, reaction_already_linked,
+    merge_news_into_announced,
 )
 
 @pytest.mark.asyncio
@@ -75,3 +76,26 @@ async def test_reaction_already_linked_false_when_no_matching_row():
     session.execute = AsyncMock(return_value=result)
     linked = await reaction_already_linked(session, source_org="pame", url="http://x/1")
     assert linked is False
+
+@pytest.mark.asyncio
+async def test_load_announced_events_includes_enriched_zero_article():
+    session = AsyncMock()
+    result = MagicMock(); result.all.return_value = []
+    session.execute = AsyncMock(return_value=result)
+    await load_announced_events(session)
+    sql = session.execute.call_args.args[0].text
+    assert "status = 'enriched'" in sql
+    assert "article_count = 0" in sql
+
+@pytest.mark.asyncio
+async def test_merge_reparents_reactions():
+    session = AsyncMock()
+    news = ("[0,0]", 1, ["Απεργία/Στάση εργασίας"], [], "Φυσικό (offline)",
+            None, "sel", "sen", None, False, None, None)
+    ann = ("[0,0]", 0, ["Απεργία/Στάση εργασίας"])
+    first_calls = iter([MagicMock(first=MagicMock(return_value=news)),
+                        MagicMock(first=MagicMock(return_value=ann))])
+    session.execute = AsyncMock(side_effect=lambda *a, **k: next(first_calls, MagicMock()))
+    await merge_news_into_announced(session, announced_id="A", news_id="N")
+    executed = " ".join(c.args[0].text for c in session.execute.call_args_list)
+    assert "UPDATE event_reactions SET event_id = :a WHERE event_id = :n" in executed

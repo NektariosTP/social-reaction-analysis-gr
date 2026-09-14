@@ -110,8 +110,10 @@ async def load_announced_events(session: AsyncSession):
                COALESCE(e.is_national, FALSE)
         FROM events e
         WHERE e.centroid IS NOT NULL
+          AND e.article_count = 0
           AND ( e.status = 'announced'
-                OR (e.status = 'detected' AND e.article_count = 0) )
+                OR e.status = 'detected'
+                OR e.status = 'enriched' )
     """))
     out = []
     for eid, cen, org, day, forms, lat, lon, nat in result.all():
@@ -154,6 +156,9 @@ async def merge_news_into_announced(
         {"a": announced_id, "n": news_id})
     await session.execute(sa_text(
         "UPDATE event_locations SET event_id = :a WHERE event_id = :n"),
+        {"a": announced_id, "n": news_id})
+    await session.execute(sa_text(
+        "UPDATE event_reactions SET event_id = :a WHERE event_id = :n"),
         {"a": announced_id, "n": news_id})
     await session.execute(sa_text("""
         UPDATE events SET
