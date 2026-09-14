@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { SourceEvidenceList } from "./SourceEvidenceList";
 
 describe("SourceEvidenceList", () => {
@@ -44,5 +44,23 @@ describe("SourceEvidenceList", () => {
     );
     expect(screen.getByText("in.gr")).toBeInTheDocument();
     expect(screen.getByText("ΠΑΜΕ")).toBeInTheDocument();
+  });
+
+  it("reveals every remaining source in a single click", () => {
+    const articles = Array.from({ length: 7 }, (_, i) => ({
+      id: `a${i}`, source_id: `src-${i}`, source_type: "news",
+      url: `http://news/${i}`, title: `Άρθρο ${i}`, published_at: null,
+    }));
+    render(<SourceEvidenceList articles={articles} reactions={[]} />);
+
+    // Only the first 5 (PAGE_SIZE) show initially.
+    expect(screen.queryByText("Άρθρο 6")).not.toBeInTheDocument();
+    const button = screen.getByRole("button", { name: /show 2 more sources/i });
+
+    fireEvent.click(button);
+
+    // One click reveals all remaining and removes the button.
+    expect(screen.getByText("Άρθρο 6")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /more sources/i })).not.toBeInTheDocument();
   });
 });

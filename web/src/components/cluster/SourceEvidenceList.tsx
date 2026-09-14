@@ -80,7 +80,7 @@ export function SourceEvidenceList({
       ))}
       {visible < rows.length && (
         <button
-          onClick={() => setVisible((v) => v + PAGE_SIZE)}
+          onClick={() => setVisible(rows.length)}
           style={{
             border: "1px solid var(--color-border)",
             background: "none",
