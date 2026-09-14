@@ -49,15 +49,31 @@ async def _enrich_event(session: AsyncSession, event: Any) -> None:
         {"eid": event_id},
     )
     articles = art_result.all()
-    if not articles:
-        return
-    titles = [r[0] or "" for r in articles]
-    bodies = [r[1] or "" for r in articles]
-    reference_date = articles[0][2].isoformat() if articles[0][2] else None
+    if articles:
+        titles = [r[0] or "" for r in articles]
+        bodies = [r[1] or "" for r in articles]
+        reference_date = articles[0][2].isoformat() if articles[0][2] else None
+        n_sources = len(articles)
+    else:
+        # Announcement: no articles — enrich from the union reaction text(s) instead.
+        rx_result = await session.execute(
+            text(
+                "SELECT text, observed_at FROM event_reactions "
+                "WHERE event_id = :eid ORDER BY observed_at NULLS LAST LIMIT 10"
+            ),
+            {"eid": event_id},
+        )
+        reactions = rx_result.all()
+        if not reactions:
+            return
+        titles = [r[0] or "" for r in reactions]
+        bodies = titles  # reaction text already carries the announcement body
+        reference_date = reactions[0][1].isoformat() if reactions[0][1] else None
+        n_sources = len(reactions)
 
     enr = enrich_event_llm(
         article_titles=titles, article_bodies=bodies,
-        n_sources=len(articles), reference_date=reference_date,
+        n_sources=n_sources, reference_date=reference_date,
     )
     if enr is None:
         logger.warning("[enrich] Event %s left 'approved' (LLM failed).", event_id[:8])

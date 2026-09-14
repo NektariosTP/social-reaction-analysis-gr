@@ -52,7 +52,7 @@ async def test_merge_marks_news_merged_and_announced_enriched() -> None:
     session.execute = AsyncMock(side_effect=[
         MagicMock(first=lambda: news_row),
         MagicMock(first=lambda: ann_row),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
     ])
     await merge_news_into_announced(session, announced_id="A", news_id="N")
     sql = " ".join(str(c.args[0]) for c in session.execute.call_args_list)
@@ -78,7 +78,7 @@ async def test_merge_zero_article_count_announced_fully_adopts_news_centroid() -
     session.execute = AsyncMock(side_effect=[
         MagicMock(first=lambda: news_row),
         MagicMock(first=lambda: ann_row),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
     ])
     await merge_news_into_announced(session, announced_id="A", news_id="N")
 

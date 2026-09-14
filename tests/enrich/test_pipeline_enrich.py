@@ -47,6 +47,30 @@ async def test_enrich_event_writes_enriched_status(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_enrich_sources_reactions_when_no_articles() -> None:
+    from enrich.pipeline import _enrich_event
+
+    session = AsyncMock()
+    session.begin_nested = MagicMock(return_value=MagicMock())
+    # 1st execute → articles (empty); 2nd → reactions (one row: text, observed_at)
+    articles_res = MagicMock(); articles_res.all.return_value = []
+    reactions_res = MagicMock()
+    reactions_res.all.return_value = [("Απεργία 16 Σεπτεμβρίου στο Σύνταγμα", None)]
+    session.execute = AsyncMock(side_effect=[articles_res, reactions_res, MagicMock(), MagicMock()])
+
+    event = MagicMock(); event.id = "evt-1"; event.centroid = "[0,0]"
+    captured = {}
+    def fake_llm(article_titles, article_bodies, n_sources, reference_date):
+        captured["titles"] = article_titles
+        return None  # short-circuit after we've verified inputs
+
+    with patch("enrich.pipeline.enrich_event_llm", side_effect=fake_llm):
+        await _enrich_event(session, event)
+
+    assert captured["titles"] == ["Απεργία 16 Σεπτεμβρίου στο Σύνταγμα"]
+
+
+@pytest.mark.asyncio
 async def test_run_enrich_pipeline_selection_excludes_primary_location_null() -> None:
     """primary_location IS NULL is legitimate/permanent for venueless national events —
     it must not be part of the retry-selection, or such events get re-enriched forever."""
