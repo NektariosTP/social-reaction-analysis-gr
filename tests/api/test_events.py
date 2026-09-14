@@ -141,7 +141,48 @@ async def test_list_events_derives_upcoming_for_future_event_time() -> None:
     assert out[0].is_national is False
 
 
-from api.routes.events import _ORDER_BY_SQL, _TEMPORAL_DAY_OPS
+from api.routes.events import (
+    _ORDER_BY_SQL,
+    _TEMPORAL_DAY_OPS,
+    _fetch_event_by_id,
+    _fetch_events,
+)
+
+
+def _executed_sql(mock_session: AsyncMock) -> str:
+    """The SQL text of the last execute() call on a mocked session."""
+    return str(mock_session.execute.call_args.args[0])
+
+
+@pytest.mark.asyncio
+async def test_detail_query_derives_counts_from_attached_rows() -> None:
+    """article_count/source_count must be counted live from the rows the UI lists,
+    never read from the drift-prone stored events.* counter columns — otherwise a
+    news-into-announcement merge leaves a phantom "1 άρθρα" over 0 real articles."""
+    session = AsyncMock()
+    session.execute.return_value = MagicMock(first=MagicMock(return_value=None))
+    await _fetch_event_by_id(session, "evt-1")
+    sql = _executed_sql(session)
+    assert "count(*) FROM articles a" in sql
+    assert "count(*) FROM event_reactions r" in sql
+    assert "is_duplicate = FALSE" in sql
+    # The stored counters must not be the display source.
+    assert "article_count, source_count," not in sql
+    # Union announcements count as articles: the article_count expression itself
+    # folds in the event_reactions subquery.
+    assert "+ (SELECT count(*) FROM event_reactions r WHERE r.event_id = events.id)) AS article_count" in sql
+
+
+@pytest.mark.asyncio
+async def test_list_query_derives_counts_from_attached_rows() -> None:
+    session = AsyncMock()
+    session.execute.return_value = MagicMock(all=MagicMock(return_value=[]))
+    await _fetch_events(session, limit=10)
+    sql = _executed_sql(session)
+    assert "count(*) FROM articles a" in sql
+    assert "count(*) FROM event_reactions r" in sql
+    assert "article_count, source_count," not in sql
+    assert "+ (SELECT count(*) FROM event_reactions r WHERE r.event_id = events.id)) AS article_count" in sql
 
 
 def test_temporal_day_ops_cover_all_statuses() -> None:

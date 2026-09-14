@@ -9,12 +9,26 @@ describe("sourceCountDisplay", () => {
     });
   });
 
+  it("uses the singular article label for a single item", () => {
+    expect(sourceCountDisplay({ article_count: 1, source_count: 1 })).toEqual({
+      count: 1,
+      labelKey: "card.article",
+    });
+  });
+
   it("falls back to source_count with the sources label for announcement-only events", () => {
     // The union announcement link itself is a source_count=1+ entry even with zero
     // news article coverage — it must never read as "0 sources".
     expect(sourceCountDisplay({ article_count: 0, source_count: 17 })).toEqual({
       count: 17,
       labelKey: "card.sources",
+    });
+  });
+
+  it("uses the singular source label when only one source and no articles", () => {
+    expect(sourceCountDisplay({ article_count: 0, source_count: 1 })).toEqual({
+      count: 1,
+      labelKey: "card.source",
     });
   });
 });

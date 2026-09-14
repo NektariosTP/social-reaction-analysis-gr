@@ -28,6 +28,36 @@ from api.temporal import derive_temporal_status
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["events"])
 
+# Display counts are derived live from the rows actually attached to the event,
+# NOT from the stored events.article_count / source_count columns. Those columns
+# are incremental counters maintained by the write path (clustering, announcement
+# seeding, news-into-announcement merges) and drift out of sync with reality — a
+# merge can bump article_count for a news event whose article rows no longer
+# exist, producing a phantom badge over an event with zero attached articles.
+# Counting the same rows the UI lists keeps the badge honest and self-heals
+# already-drifted events with no migration/backfill.
+#
+# Union announcements (event_reactions) are counted as articles on the analysis
+# page too, even though they were never scraped as news — so both display counts
+# fold in the reactions. The two columns are equal by construction; both are kept
+# for the API contract.
+#
+# NB: reactions are folded in ONLY here at read time. The stored
+# events.article_count must never include them — reactions/db.load_announced_events
+# uses `article_count = 0` to find "announced, no news yet" events for cross-union
+# merging, and bumping the stored value would break that gate.
+_ARTICLE_ROWS_SQL = (
+    "(SELECT count(*) FROM articles a "
+    "WHERE a.event_id = events.id AND a.is_duplicate = FALSE)"
+)
+_REACTION_ROWS_SQL = (
+    "(SELECT count(*) FROM event_reactions r WHERE r.event_id = events.id)"
+)
+_DISPLAY_COUNTS_SQL = (
+    f"({_ARTICLE_ROWS_SQL} + {_REACTION_ROWS_SQL}) AS article_count, "
+    f"({_ARTICLE_ROWS_SQL} + {_REACTION_ROWS_SQL}) AS source_count"
+)
+
 # Day-comparison operators reproducing api.temporal.derive_temporal_status in SQL.
 # Keyed by a Literal-validated param, so the operator is never request-derived text.
 _TEMPORAL_DAY_OPS: dict[str, str] = {"upcoming": ">", "today": "=", "past": "<"}
@@ -114,7 +144,7 @@ async def _fetch_events(
             f"summary_el, summary_en, "
             f"ST_Y(primary_location::geometry) AS lat, "
             f"ST_X(primary_location::geometry) AS lon, "
-            f"article_count, source_count, first_seen, last_seen, status, "
+            f"{_DISPLAY_COUNTS_SQL}, first_seen, last_seen, status, "
             f"event_time, is_national, "
             f"(SELECT array_agg(u.actor_name ORDER BY u.is_seed DESC, u.first_seen ASC) FROM ("
             f"   SELECT r.actor_name,"
@@ -139,7 +169,7 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] |
             "summary_el, summary_en, "
             "ST_Y(primary_location::geometry) AS lat, "
             "ST_X(primary_location::geometry) AS lon, "
-            "article_count, source_count, first_seen, last_seen, status, "
+            f"{_DISPLAY_COUNTS_SQL}, first_seen, last_seen, status, "
             "event_time, is_national, "
             "(SELECT array_agg(u.actor_name ORDER BY u.is_seed DESC, u.first_seen ASC) FROM ("
             "   SELECT r.actor_name,"
