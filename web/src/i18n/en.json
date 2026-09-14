@@ -35,6 +35,7 @@
   "cluster.export": "Export JSON",
   "cluster.cite": "Cite",
   "cluster.sourceEvidence": "Sources",
+  "cluster.unionAnnouncement": "Union announcement",
   "cluster.unions": "Unions",
   "cluster.announcedBy": "Announced by",
   "cluster.supportedBy": "Supported by",

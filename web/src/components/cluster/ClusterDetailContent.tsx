@@ -3,6 +3,7 @@ import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
 import { sourceCountDisplay } from "../../utils/sourceDisplay";
+import { dedupeUnions } from "../../utils/unionDedup";
 import { Spinner, ErrorState } from "../common";
 import { ClassificationTable } from "./ClassificationTable";
 import { SourceEvidenceList } from "./SourceEvidenceList";
@@ -59,7 +60,7 @@ export function ClusterDetailContent({
       {event.reactions && event.reactions.length > 0 && (
         <div className={styles.section}>
           <div className={styles.sectionLabel}>
-            {t("cluster.unions")} ({event.reactions.length})
+            {t("cluster.unions")} ({dedupeUnions(event.reactions).length})
           </div>
           <UnionSourceList reactions={event.reactions} />
         </div>
@@ -67,9 +68,9 @@ export function ClusterDetailContent({
 
       <div className={styles.section}>
         <div className={styles.sectionLabel}>
-          {t("cluster.sourceEvidence")} ({event.articles?.length ?? 0})
+          {t("cluster.sourceEvidence")} ({(event.articles?.length ?? 0) + (event.reactions?.length ?? 0)})
         </div>
-        <SourceEvidenceList articles={event.articles ?? []} />
+        <SourceEvidenceList articles={event.articles ?? []} reactions={event.reactions ?? []} />
       </div>
     </div>
   );

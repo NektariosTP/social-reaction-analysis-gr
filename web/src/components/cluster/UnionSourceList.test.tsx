@@ -38,4 +38,18 @@ describe("UnionSourceList", () => {
     expect(screen.getByText("ΠΑΜΕ").closest("a")).toHaveAttribute("href", "http://pame/seeded");
     expect(screen.getByText("ΑΔΕΔΥ").closest("a")).toHaveAttribute("href", "http://adedy/1");
   });
+
+  it("does not list the same supporting union twice when it has multiple reaction rows", () => {
+    render(
+      <UnionSourceList
+        reactions={[
+          { id: "1", actor_name: "ΠΑΜΕ", source_org: "pame", url: "http://pame/seeded", observed_at: null, text: null },
+          { id: "2", actor_name: "ΑΔΕΔΥ", source_org: "adedy", url: "http://adedy/1", observed_at: null, text: null },
+          { id: "3", actor_name: "ΑΔΕΔΥ", source_org: "adedy", url: "http://adedy/2", observed_at: null, text: null },
+        ]}
+      />,
+    );
+    expect(screen.getAllByText("ΑΔΕΔΥ")).toHaveLength(1);
+    expect(screen.getByText("ΑΔΕΔΥ").closest("a")).toHaveAttribute("href", "http://adedy/1");
+  });
 });

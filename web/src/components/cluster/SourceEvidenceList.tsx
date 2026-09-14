@@ -1,23 +1,57 @@
 import { useState } from "react";
-import type { ArticleSummary } from "../../client/types.gen";
+import { useTranslation } from "react-i18next";
+import type { ArticleSummary, ReactionSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
 import { EmptyState } from "../common";
 
 const PAGE_SIZE = 5;
 
-export function SourceEvidenceList({ articles }: { articles: ArticleSummary[] }) {
+interface EvidenceRow {
+  id: string;
+  label: string;
+  detail: string;
+  tag: string;
+  publishedAt: string | null;
+  url: string | null;
+}
+
+function fromArticle(a: ArticleSummary): EvidenceRow {
+  return {
+    id: a.id, label: a.source_id ?? "—", detail: a.title ?? "",
+    tag: a.source_type ?? "", publishedAt: a.published_at ?? null, url: a.url ?? null,
+  };
+}
+
+function fromReaction(r: ReactionSummary, unionTag: string): EvidenceRow {
+  return {
+    id: r.id, label: r.actor_name, detail: r.text ?? "",
+    tag: unionTag, publishedAt: r.observed_at ?? null, url: r.url ?? null,
+  };
+}
+
+export function SourceEvidenceList({
+  articles, reactions = [],
+}: { articles: ArticleSummary[]; reactions?: ReactionSummary[] }) {
+  const { t } = useTranslation();
   const [lang] = useLang();
   const [visible, setVisible] = useState(PAGE_SIZE);
 
-  if (articles.length === 0) return <EmptyState message="No sources recorded for this cluster." />;
+  // A union's own announcement link is a valid, citable source — not just news
+  // coverage — so it belongs in this list alongside scraped articles.
+  const rows: EvidenceRow[] = [
+    ...articles.map(fromArticle),
+    ...reactions.map((r) => fromReaction(r, t("cluster.unionAnnouncement"))),
+  ];
+
+  if (rows.length === 0) return <EmptyState message="No sources recorded for this cluster." />;
 
   return (
     <div>
-      {articles.slice(0, visible).map((a) => (
+      {rows.slice(0, visible).map((row) => (
         <a
-          key={a.id}
-          href={a.url ?? undefined}
+          key={row.id}
+          href={row.url ?? undefined}
           target="_blank"
           rel="noreferrer"
           style={{
@@ -34,17 +68,17 @@ export function SourceEvidenceList({ articles }: { articles: ArticleSummary[] })
         >
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>
-              {a.source_id ?? "—"}
+              {row.label}
             </div>
-            <div style={{ fontSize: 9, opacity: 0.7, fontStyle: "italic" }}>{a.title ?? ""}</div>
+            <div style={{ fontSize: 9, opacity: 0.7, fontStyle: "italic" }}>{row.detail}</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 9, opacity: 0.5 }}>{a.source_type ?? ""}</div>
-            <div style={{ fontSize: 9, opacity: 0.45 }}>{formatRelativeTime(a.published_at, lang)}</div>
+            <div style={{ fontSize: 9, opacity: 0.5 }}>{row.tag}</div>
+            <div style={{ fontSize: 9, opacity: 0.45 }}>{formatRelativeTime(row.publishedAt, lang)}</div>
           </div>
         </a>
       ))}
-      {visible < articles.length && (
+      {visible < rows.length && (
         <button
           onClick={() => setVisible((v) => v + PAGE_SIZE)}
           style={{
@@ -57,7 +91,7 @@ export function SourceEvidenceList({ articles }: { articles: ArticleSummary[] })
             cursor: "pointer",
           }}
         >
-          + Show {articles.length - visible} more sources
+          + Show {rows.length - visible} more sources
         </button>
       )}
     </div>
