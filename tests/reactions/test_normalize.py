@@ -17,3 +17,18 @@ def test_drops_wordpress_tail_en():
 
 def test_drops_press_release_header():
     assert clean_text("ΔΕΛΤΙΟ ΤΥΠΟΥ Απεργία αύριο").strip() == "Απεργία αύριο"
+
+
+def test_folds_latin_homoglyph_inside_greek_token():
+    # Real case: 8a5b347a's title started with a Latin 'A' (U+0041).
+    out = clean_text("Aντιφασιστική συγκέντρωση")
+    assert out.startswith("Α")            # Greek Alpha U+0391
+    assert ord(out[0]) == 0x0391
+
+
+def test_folds_latin_homoglyph_midword():
+    assert clean_text("πoρεία") == "πορεία"   # Latin 'o' → Greek omicron
+
+
+def test_leaves_pure_latin_tokens_untouched():
+    assert clean_text("TEXAN RSS feed") == "TEXAN RSS feed"
