@@ -66,6 +66,28 @@ describe("ClusterDetailContent", () => {
     expect(container.querySelector(".maplibregl-map")).toBeNull();
   });
 
+  it("counts sources from source_count, not the (possibly truncated) article array", () => {
+    vi.mocked(useEvent).mockReturnValueOnce({
+      data: {
+        ...locatedEvent,
+        source_count: 47,
+        // The API caps the articles array; the header must not count it.
+        articles: Array.from({ length: 20 }, (_, i) => ({ id: `a${i}` })),
+        reactions: [{ id: "r1", actor_name: "ΠΑΜΕ" }],
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useEvent>);
+    render(
+      <MemoryRouter>
+        <ClusterDetailContent eventId="evt-1" />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText((_, el) => el?.textContent === "Sources (47)"),
+    ).toBeInTheDocument();
+  });
+
   it("hides the headline when showHeadline is false", () => {
     render(
       <MemoryRouter>

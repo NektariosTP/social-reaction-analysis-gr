@@ -68,7 +68,10 @@ export function ClusterDetailContent({
 
       <div className={styles.section}>
         <div className={styles.sectionLabel}>
-          {t("cluster.sourceEvidence")} ({(event.articles?.length ?? 0) + (event.reactions?.length ?? 0)})
+          {/* source_count is the authoritative total (all non-duplicate articles +
+              reactions), same value the badge shows. The articles array can be
+              capped for very large events, so never count it here. */}
+          {t("cluster.sourceEvidence")} ({event.source_count})
         </div>
         <SourceEvidenceList articles={event.articles ?? []} reactions={event.reactions ?? []} />
       </div>

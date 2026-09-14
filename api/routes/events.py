@@ -189,9 +189,14 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] |
 async def _fetch_event_articles(session: AsyncSession, event_id: str) -> list[Row[Any]]:
     result = await session.execute(
         text(
+            # 500 is a defensive ceiling, not a display cap: the evidence list must
+            # carry every non-duplicate article so its count matches the badge /
+            # ΠΗΓΕΣ header (both derived from source_count). Real events top out in
+            # the dozens; a cap of 20 was silently truncating large events (e.g. 44
+            # articles shown as 23 sources against a 47 badge).
             "SELECT id::text, source_id, source_type, url, title, published_at "
             "FROM articles WHERE event_id = :eid AND is_duplicate = FALSE "
-            "ORDER BY published_at DESC LIMIT 20"
+            "ORDER BY published_at DESC LIMIT 500"
         ),
         {"eid": event_id},
     )
