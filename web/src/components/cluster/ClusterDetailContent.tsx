@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
+import { sourceCountDisplay } from "../../utils/sourceDisplay";
 import { Spinner, ErrorState } from "../common";
 import { ClassificationTable } from "./ClassificationTable";
 import { SourceEvidenceList } from "./SourceEvidenceList";
@@ -42,7 +43,7 @@ export function ClusterDetailContent({
       {showMeta && (
         <div className={styles.metaChips}>
           <span className={styles.metaChip}>
-            {event.article_count} {t("card.articles")}
+            {sourceCountDisplay(event).count} {t(sourceCountDisplay(event).labelKey)}
           </span>
           {event.first_seen && (
             <span className={styles.metaChip}>{formatRelativeTime(event.first_seen, lang)}</span>

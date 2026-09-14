@@ -4,6 +4,7 @@ import maplibregl from "maplibre-gl";
 import { useTranslation } from "react-i18next";
 import { useEvent } from "../../api/queries";
 import { useLang } from "../../hooks/useLang";
+import { sourceCountDisplay } from "../../utils/sourceDisplay";
 import { AxisTag, Spinner } from "../common";
 import styles from "./ClusterPopup.module.css";
 
@@ -66,7 +67,7 @@ export function ClusterPopup({ map, eventId, coordinates, onReadMore, onClose }:
             {(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}
           </div>
           <div className={styles.meta}>
-            {event.article_count} {t("card.articles")}
+            {sourceCountDisplay(event).count} {t(sourceCountDisplay(event).labelKey)}
           </div>
           {onReadMore && (
             <button className={styles.ctaBtn} onClick={() => onReadMore(event.id)}>

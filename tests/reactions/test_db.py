@@ -1,7 +1,9 @@
 from unittest.mock import AsyncMock, MagicMock
 import numpy as np
 import pytest
-from reactions.db import upsert_reaction, insert_announced_event, load_announced_events
+from reactions.db import (
+    upsert_reaction, insert_announced_event, load_announced_events, reaction_already_linked,
+)
 
 @pytest.mark.asyncio
 async def test_upsert_reaction_uses_on_conflict_and_has_no_stance():
@@ -20,7 +22,9 @@ async def test_upsert_reaction_uses_on_conflict_and_has_no_stance():
     )
     sql = session.execute.call_args.args[0].text
     assert "INSERT INTO event_reactions" in sql
-    assert "ON CONFLICT (source_org, url) DO NOTHING" in sql
+    assert "ON CONFLICT (source_org, url) DO UPDATE" in sql
+    assert "event_id = COALESCE(event_reactions.event_id, EXCLUDED.event_id)" in sql
+    assert "match_method = EXCLUDED.match_method" in sql
     assert "stance" not in sql
     assert ok is True
 
@@ -52,3 +56,22 @@ async def test_load_announced_events_includes_pending_detected_seeds():
     assert "status = 'announced'" in sql
     assert "status = 'detected'" in sql
     assert "article_count = 0" in sql
+
+@pytest.mark.asyncio
+async def test_reaction_already_linked_true_when_row_has_event_id():
+    session = AsyncMock()
+    result = MagicMock(); result.first.return_value = (1,)
+    session.execute = AsyncMock(return_value=result)
+    linked = await reaction_already_linked(session, source_org="pame", url="http://x/1")
+    sql = session.execute.call_args.args[0].text
+    assert "FROM event_reactions" in sql
+    assert "event_id IS NOT NULL" in sql
+    assert linked is True
+
+@pytest.mark.asyncio
+async def test_reaction_already_linked_false_when_no_matching_row():
+    session = AsyncMock()
+    result = MagicMock(); result.first.return_value = None
+    session.execute = AsyncMock(return_value=result)
+    linked = await reaction_already_linked(session, source_org="pame", url="http://x/1")
+    assert linked is False

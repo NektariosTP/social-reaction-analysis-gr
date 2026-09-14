@@ -14,7 +14,7 @@ from nlp.embeddings import embed_query
 from reactions.actions import map_action_forms
 from reactions.config import settings
 from reactions.dates import extract_event_datetime
-from reactions.db import upsert_reaction
+from reactions.db import reaction_already_linked, upsert_reaction
 from reactions.filters import FILTER_VARIANTS, passes_filter
 from reactions.normalize import clean_text
 from reactions.place import resolve_place
@@ -24,10 +24,16 @@ logger = logging.getLogger(__name__)
 
 
 async def _process_item(session: AsyncSession, item, sim_threshold: float) -> str:
-    """Returns one of: 'filtered', 'reaction', 'seeded', 'deduped'."""
+    """Returns one of: 'filtered', 'duplicate', 'reaction', 'seeded', 'deduped'."""
     max_age = timedelta(days=settings.reactions_max_age_days)
     if item.observed_at is not None and (datetime.now(UTC) - item.observed_at) > max_age:
         return "filtered"
+
+    # Feed items reappear across pipeline cycles until they age out. If this
+    # (source_org, url) is already linked to an event, re-running seed/attach would
+    # double-count source_count and re-skew the event centroid for zero new information.
+    if await reaction_already_linked(session, source_org=item.source_org, url=item.url):
+        return "duplicate"
 
     title = clean_text(item.title)
     body = clean_text(item.body_text)
@@ -80,7 +86,10 @@ async def run_reactions_pipeline(engine: AsyncEngine | None = None) -> dict[str,
     session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
         _engine, expire_on_commit=False
     )
-    counts = {"fetched": 0, "filtered": 0, "reactions_written": 0, "seeded": 0, "deduped": 0}
+    counts = {
+        "fetched": 0, "filtered": 0, "duplicate": 0,
+        "reactions_written": 0, "seeded": 0, "deduped": 0,
+    }
     async with session_factory() as session:
         for src in load_union_sources():
             connector = UnionFeedConnector(
@@ -94,6 +103,9 @@ async def run_reactions_pipeline(engine: AsyncEngine | None = None) -> dict[str,
                 outcome = await _process_item(session, item, settings.seed_dedup_sim)
                 if outcome == "filtered":
                     counts["filtered"] += 1
+                    continue
+                if outcome == "duplicate":
+                    counts["duplicate"] += 1
                     continue
                 counts["reactions_written"] += 1
                 if outcome in ("seeded", "deduped"):

@@ -33,7 +33,9 @@ async def upsert_reaction(
                         :id, :event_id, :source_org, :actor_name, 'union',
                         :text, :url, :observed_at, :match_score, :match_method
                     )
-                    ON CONFLICT (source_org, url) DO NOTHING
+                    ON CONFLICT (source_org, url) DO UPDATE SET
+                        event_id = COALESCE(event_reactions.event_id, EXCLUDED.event_id),
+                        match_method = EXCLUDED.match_method
                 """),
                 {
                     "id": str(uuid_mod.uuid4()), "event_id": event_id,
@@ -74,6 +76,23 @@ async def insert_announced_event(
         },
     )).first()
     return row[0]
+
+
+async def reaction_already_linked(session: AsyncSession, *, source_org: str, url: str) -> bool:
+    """True when this (source_org, url) is already attached to an event.
+
+    A reaction that already has a non-NULL event_id was already counted (source_count,
+    centroid) on the cycle it was first matched — reprocessing it must be a no-op so
+    the same re-scraped feed item never contributes to source_count/centroid twice."""
+    result = await session.execute(
+        sa_text(
+            "SELECT 1 FROM event_reactions "
+            "WHERE source_org = :source_org AND url = :url AND event_id IS NOT NULL "
+            "LIMIT 1"
+        ),
+        {"source_org": source_org, "url": url},
+    )
+    return result.first() is not None
 
 
 async def load_announced_events(session: AsyncSession):

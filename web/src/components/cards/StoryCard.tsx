@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { EventSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
+import { sourceCountDisplay } from "../../utils/sourceDisplay";
 import { AxisTag } from "../common";
 import styles from "./StoryCard.module.css";
 
@@ -21,6 +22,7 @@ export function StoryCard({ event, variant = "compact", onOpen, expanded = false
   const [lang] = useLang();
   const summary = lang === "el" ? event.summary_el : event.summary_en;
   const isFeatured = variant === "featured";
+  const { count, labelKey } = sourceCountDisplay(event);
 
   return (
     <Link
@@ -53,7 +55,7 @@ export function StoryCard({ event, variant = "compact", onOpen, expanded = false
       </div>
 
       <div className={styles.meta}>
-        {event.article_count} {t("card.articles")} · {formatRelativeTime(event.last_seen, lang)}
+        {count} {t(labelKey)} · {formatRelativeTime(event.last_seen, lang)}
       </div>
 
       {isFeatured && (

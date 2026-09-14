@@ -18,6 +18,19 @@ const event: EventSummary = {
   last_seen: "2026-01-01T00:00:00Z",
 };
 
+describe("StoryCard source count", () => {
+  it("shows source_count with the sources label for an announcement-only event (article_count 0)", () => {
+    const announcement: EventSummary = { ...event, article_count: 0, source_count: 17 };
+    render(
+      <MemoryRouter>
+        <StoryCard event={announcement} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/17 sources/)).toBeInTheDocument();
+    expect(screen.queryByText(/0 articles/)).not.toBeInTheDocument();
+  });
+});
+
 describe("StoryCard onOpen", () => {
   it("calls onOpen instead of navigating on a plain click when onOpen is provided", () => {
     const onOpen = vi.fn();
