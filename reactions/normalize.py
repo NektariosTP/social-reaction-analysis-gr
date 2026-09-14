@@ -25,7 +25,7 @@ _TOKEN_RE = re.compile(r"\S+")
 
 
 def _defang_homoglyphs(txt: str) -> str:
-    def _fix(m: "re.Match[str]") -> str:
+    def _fix(m: re.Match[str]) -> str:
         tok = m.group(0)
         return tok.translate(_LAT2GRK) if _GREEK_RE.search(tok) else tok
     return _TOKEN_RE.sub(_fix, txt)
