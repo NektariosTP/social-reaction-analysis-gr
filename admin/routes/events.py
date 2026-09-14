@@ -101,7 +101,7 @@ async def approve_event(
     await session.execute(
         text("""
             UPDATE events
-            SET status = CASE WHEN article_count = 0 THEN 'announced' ELSE 'approved' END
+            SET status = 'approved'
             WHERE id = :id AND status = 'detected'
         """),
         {"id": event_id},
