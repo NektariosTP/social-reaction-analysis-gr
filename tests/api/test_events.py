@@ -214,3 +214,47 @@ async def test_get_event_detail_includes_reactions_in_observed_order(client: Asy
     data = resp.json()
     assert [x["actor_name"] for x in data["reactions"]] == ["ΑΔΕΔΥ", "ΠΑΜΕ"]
     assert data["reactions"][0]["url"] == "http://adedy/1"
+
+
+from api.routes.events import _fetch_events, _fetch_event_by_id
+
+
+def _mock_session_capturing():
+    session = AsyncMock()
+    result = MagicMock()
+    result.all.return_value = []
+    result.first.return_value = None
+    session.execute = AsyncMock(return_value=result)
+    return session
+
+
+@pytest.mark.asyncio
+async def test_list_orders_announcer_by_seeded_reaction():
+    session = _mock_session_capturing()
+    await _fetch_events(session)
+    sql = session.execute.call_args.args[0].text
+    assert "match_method = 'seeded'" in sql
+    assert "ORDER BY u.is_seed DESC, u.first_seen ASC" in sql
+
+
+@pytest.mark.asyncio
+async def test_detail_orders_announcer_by_seeded_reaction():
+    session = _mock_session_capturing()
+    await _fetch_event_by_id(session, "evt-1")
+    sql = session.execute.call_args.args[0].text
+    assert "match_method = 'seeded'" in sql
+    assert "ORDER BY u.is_seed DESC, u.first_seen ASC" in sql
+
+
+from api.routes.events import _fetch_event_reactions
+
+
+@pytest.mark.asyncio
+async def test_reactions_list_orders_seeded_reaction_first():
+    # A union can have multiple event_reactions rows for the same event (e.g. a
+    # 'seeded' announcement plus a later 'deduped' article). observed_at alone can
+    # put the non-seeded row first, which mislabels the announcer downstream.
+    session = _mock_session_capturing()
+    await _fetch_event_reactions(session, "evt-1")
+    sql = session.execute.call_args.args[0].text
+    assert "ORDER BY (match_method = 'seeded') DESC, observed_at ASC NULLS LAST, created_at ASC" in sql

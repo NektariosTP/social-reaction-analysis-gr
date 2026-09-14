@@ -27,7 +27,8 @@ function UnionRow({ reaction }: { reaction: ReactionSummary }) {
 export function UnionSourceList({ reactions }: { reactions: ReactionSummary[] }) {
   const { t } = useTranslation();
   if (reactions.length === 0) return null;
-  const [announcer, ...supporters] = reactions;
+  const [announcer, ...rest] = reactions;
+  const supporters = rest.filter((r) => r.actor_name !== announcer.actor_name);
 
   return (
     <div>

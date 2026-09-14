@@ -116,11 +116,13 @@ async def _fetch_events(
             f"ST_X(primary_location::geometry) AS lon, "
             f"article_count, source_count, first_seen, last_seen, status, "
             f"event_time, is_national, "
-            f"(SELECT array_agg(u.actor_name ORDER BY u.first_seen) FROM ("
-            f"   SELECT r.actor_name, MIN(r.observed_at) AS first_seen"
+            f"(SELECT array_agg(u.actor_name ORDER BY u.is_seed DESC, u.first_seen ASC) FROM ("
+            f"   SELECT r.actor_name,"
+            f"          bool_or(r.match_method = 'seeded') AS is_seed,"
+            f"          MIN(r.observed_at) AS first_seen"
             f"   FROM event_reactions r WHERE r.event_id = events.id"
             f"   GROUP BY r.actor_name"
-            f" ) u) AS participating_unions /* [0] is announced_by, Python-derived */ "
+            f" ) u) AS participating_unions /* [0] is announced_by (seeding union first) */ "
             f"FROM events WHERE {where} "
             f"ORDER BY {_ORDER_BY_SQL[order_by]} "
             f"LIMIT :limit OFFSET :offset"
@@ -139,11 +141,13 @@ async def _fetch_event_by_id(session: AsyncSession, event_id: str) -> Row[Any] |
             "ST_X(primary_location::geometry) AS lon, "
             "article_count, source_count, first_seen, last_seen, status, "
             "event_time, is_national, "
-            "(SELECT array_agg(u.actor_name ORDER BY u.first_seen) FROM ("
-            "   SELECT r.actor_name, MIN(r.observed_at) AS first_seen"
+            "(SELECT array_agg(u.actor_name ORDER BY u.is_seed DESC, u.first_seen ASC) FROM ("
+            "   SELECT r.actor_name,"
+            "          bool_or(r.match_method = 'seeded') AS is_seed,"
+            "          MIN(r.observed_at) AS first_seen"
             "   FROM event_reactions r WHERE r.event_id = events.id"
             "   GROUP BY r.actor_name"
-            " ) u) AS participating_unions, /* [0] is announced_by, Python-derived */ "
+            " ) u) AS participating_unions, /* [0] is announced_by (seeding union first) */ "
             "classification_confidence "
             "FROM events WHERE id = :id"
         ),
@@ -169,7 +173,7 @@ async def _fetch_event_reactions(session: AsyncSession, event_id: str) -> list[R
         text(
             "SELECT id::text, actor_name, source_org, url, observed_at, text "
             "FROM event_reactions WHERE event_id = :eid "
-            "ORDER BY observed_at ASC NULLS LAST, created_at ASC"
+            "ORDER BY (match_method = 'seeded') DESC, observed_at ASC NULLS LAST, created_at ASC"
         ),
         {"eid": event_id},
     )
