@@ -4,8 +4,13 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJsonFeature } from "../../client/types.gen";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { buildClusterIndex, getClusterPoints } from "./clustering";
-import { createMarkerElement, createClusterMarkerElement } from "./markerElement";
+import {
+  createMarkerElement,
+  createClusterMarkerElement,
+  createLocationLabelElement,
+} from "./markerElement";
 import { buildClusterPreview, LEAF_SAMPLE_SIZE } from "./clusterPreview";
+import { primaryLocationLabel, secondaryLocationLabels, LABEL_MIN_ZOOM } from "./locationLabels";
 import { ClusterPopup } from "./ClusterPopup";
 import { useLocationOverlay } from "./useLocationOverlay";
 import styles from "./MapView.module.css";
@@ -172,7 +177,9 @@ export function MapView({
         bounds[1][0],
         bounds[1][1],
       ];
-      const points = getClusterPoints(index, bbox, map.getZoom());
+      const zoom = map.getZoom();
+      const showLabels = zoom >= LABEL_MIN_ZOOM;
+      const points = getClusterPoints(index, bbox, zoom);
 
       markersRef.current = points.map((point) => {
         if (point.isCluster) {
@@ -194,12 +201,30 @@ export function MapView({
           feature.properties,
           feature.properties.article_count,
           feature.properties.id === selectedId,
+          // Primary subtitle only once zoomed in past the threshold — an
+          // un-clustered marker at country/region overview stays label-free.
+          showLabels ? primaryLocationLabel(feature.properties) : undefined,
         );
         el.addEventListener("click", () => onSelectEventRef.current(feature.properties.id));
         return new maplibregl.Marker({ element: el, anchor: "center" })
           .setLngLat(point.coordinates)
           .addTo(map);
       });
+
+      // Secondary-location subtitles: gated on zoom, and on each secondary's OWN
+      // position being in view — never on the primary's cluster/viewport state,
+      // so a secondary keeps its label when the primary is panned off or
+      // clustered (matches the always-on secondaries overlay below).
+      if (showLabels) {
+        for (const label of secondaryLocationLabels(featuresRef.current, bbox)) {
+          const el = createLocationLabelElement(label.text, false);
+          markersRef.current.push(
+            new maplibregl.Marker({ element: el, anchor: "top", offset: [0, 10] })
+              .setLngLat(label.coordinates)
+              .addTo(map),
+          );
+        }
+      }
 
       // Overlay covers every multi-location event regardless of viewport or
       // clustering (see buildLocationOverlay) — it isn't derived from `points`.

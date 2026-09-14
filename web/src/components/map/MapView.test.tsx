@@ -205,6 +205,124 @@ it("plays the spring-in entrance only on a zoom-triggered render, not a plain pa
   expect(zoomedCluster.querySelector<HTMLElement>('[data-role="orbiter"]')?.style.opacity).toBe("0");
 });
 
+/** Run `body` with the mock map reporting `zoom`, restoring the original after. */
+function withZoom(zoom: number, body: () => void) {
+  const mapProto = (maplibregl as unknown as { Map: { prototype: { getZoom: unknown } } }).Map
+    .prototype;
+  const original = mapProto.getZoom;
+  mapProto.getZoom = () => zoom;
+  try {
+    body();
+  } finally {
+    mapProto.getZoom = original;
+  }
+}
+
+it("shows no location subtitle below the zoom threshold, even for an un-clustered marker", () => {
+  // Regression: subtitles used to appear as soon as an event was un-clustered
+  // (i.e. at country/region overview) — far too early.
+  const named: GeoJsonFeature = {
+    ...feature,
+    properties: {
+      ...feature.properties,
+      locations: [{ lat: 38.0, lon: 23.7, label: "Σύνταγμα", is_primary: true }],
+    },
+  };
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  calls.length = 0;
+  // Mock's default getZoom() is 5.6 — well below LABEL_MIN_ZOOM (11).
+  render(<MapView features={[named]} onSelectEvent={vi.fn()} selectedId={null} />);
+  const anyLabel = calls.some((c) =>
+    (c.element as HTMLElement).querySelector('[data-role="location-label"]'),
+  );
+  expect(anyLabel).toBe(false);
+});
+
+it("shows the primary location's admin-saved name once zoomed in past the threshold", () => {
+  const named: GeoJsonFeature = {
+    ...feature,
+    properties: {
+      ...feature.properties,
+      locations: [{ lat: 38.0, lon: 23.7, label: "Σύνταγμα", is_primary: true }],
+    },
+  };
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  withZoom(12, () => {
+    calls.length = 0;
+    render(<MapView features={[named]} onSelectEvent={vi.fn()} selectedId={null} />);
+    const label = calls
+      .map((c) => (c.element as HTMLElement).querySelector('[data-role="location-label"]'))
+      .find(Boolean);
+    expect(label?.textContent).toBe("Σύνταγμα");
+  });
+});
+
+it("adds a separate subtitle marker for each named secondary location when zoomed in", () => {
+  const multi: GeoJsonFeature = {
+    ...feature,
+    properties: {
+      ...feature.properties,
+      locations: [
+        { lat: 38.0, lon: 23.7, label: "Σύνταγμα", is_primary: true },
+        { lat: 40.64, lon: 22.94, label: "Θεσσαλονίκη", is_primary: false },
+      ],
+    },
+  };
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  withZoom(12, () => {
+    calls.length = 0;
+    render(<MapView features={[multi]} onSelectEvent={vi.fn()} selectedId={null} />);
+    const secondaryLabelCall = calls.find(
+      (c) => (c.element as HTMLElement).textContent === "Θεσσαλονίκη",
+    );
+    expect(secondaryLabelCall).toBeDefined();
+    expect(secondaryLabelCall?.anchor).toBe("top");
+  });
+});
+
+it("keeps a secondary's subtitle even when its event's primary is folded into a cluster", () => {
+  // Regression: secondary subtitles used to be gated on the primary being an
+  // un-clustered, in-view marker, so they vanished the moment the primary
+  // joined a cluster or panned off screen.
+  const multi: GeoJsonFeature = {
+    ...feature,
+    properties: {
+      ...feature.properties,
+      locations: [
+        { lat: 38.0, lon: 23.7, label: "Σύνταγμα", is_primary: true },
+        { lat: 40.64, lon: 22.94, label: "Θεσσαλονίκη", is_primary: false },
+      ],
+    },
+  };
+  // A second event right on top of `multi`'s primary, so at the test zoom the two
+  // primaries cluster and `multi` is never rendered as its own marker.
+  const near: GeoJsonFeature = {
+    ...feature,
+    geometry: { type: "Point", coordinates: [23.7001, 38.0001] },
+    properties: { ...feature.properties, id: "evt-2" },
+  };
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  withZoom(12, () => {
+    calls.length = 0;
+    render(<MapView features={[multi, near]} onSelectEvent={vi.fn()} selectedId={null} />);
+    // Primaries clustered → no "Σύνταγμα" primary subtitle …
+    const primaryLabel = calls.find(
+      (c) => (c.element as HTMLElement).querySelector('[data-role="location-label"]')?.textContent ===
+        "Σύνταγμα",
+    );
+    expect(primaryLabel).toBeUndefined();
+    // … but the far-away secondary keeps its own subtitle.
+    const secondaryLabelCall = calls.find(
+      (c) => (c.element as HTMLElement).textContent === "Θεσσαλονίκη",
+    );
+    expect(secondaryLabelCall).toBeDefined();
+  });
+});
+
 it("adds a zooming motion cue on zoomstart and removes it on zoomend", () => {
   const mapInstances = (
     maplibregl as unknown as { mapInstances: { trigger: (event: string) => void }[] }

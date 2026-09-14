@@ -8,6 +8,7 @@ export function createMarkerElement(
   properties: MarkerProperties,
   articleCount: number,
   selected: boolean,
+  locationLabel?: string | null,
 ): HTMLDivElement {
   const style = markerStyle(properties);
 
@@ -36,7 +37,28 @@ export function createMarkerElement(
   badge.textContent = String(articleCount);
   wrapper.appendChild(badge);
 
+  if (locationLabel) {
+    wrapper.appendChild(createLocationLabelElement(locationLabel, true));
+  }
+
   return wrapper;
+}
+
+/** A small "location name" pill. `nested` positions it below a parent marker
+ * that owns the coordinate (see createMarkerElement); pass false when it is
+ * itself the whole marker element (see secondary-location labels in MapView.tsx). */
+export function createLocationLabelElement(text: string, nested: boolean): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = styles.locationLabel;
+  el.dataset.role = "location-label";
+  el.textContent = text;
+  if (nested) {
+    el.style.position = "absolute";
+    el.style.top = "100%";
+    el.style.left = "50%";
+    el.style.transform = "translateX(-50%)";
+  }
+  return el;
 }
 
 const ORBITER_MAX_DIAMETER = 22;

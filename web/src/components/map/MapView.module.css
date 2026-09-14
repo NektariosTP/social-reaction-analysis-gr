@@ -94,6 +94,24 @@
   border: 1.5px solid var(--color-surface);
 }
 
+.locationLabel {
+  margin-top: var(--space-1);
+  padding: 1px 6px;
+  border-radius: var(--space-1);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+}
+
 @keyframes orbiterDrift {
   0%,
   100% {
