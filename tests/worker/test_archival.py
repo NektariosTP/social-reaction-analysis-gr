@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
-from worker.archival import run_archival_sweep
+from worker.archival import ARCHIVE_AFTER_HOURS, run_archival_sweep
 
 
 def _mock_session_with_results(row_counts: list[int]) -> AsyncMock:
@@ -36,7 +36,7 @@ async def test_run_archival_sweep_handles_zero_matches() -> None:
     assert metrics == {"n_archived": 0}
 
 
-async def test_run_archival_sweep_uses_72_hour_threshold() -> None:
+async def test_run_archival_sweep_uses_24_hour_threshold() -> None:
     session = _mock_session_with_results([0])
 
     await run_archival_sweep(session)
@@ -44,35 +44,45 @@ async def test_run_archival_sweep_uses_72_hour_threshold() -> None:
     archive_sql = str(session.execute.call_args_list[0][0][0])
     archive_params = session.execute.call_args_list[0][0][1]
 
+    assert ARCHIVE_AFTER_HOURS == 24
     assert "hours =>" in archive_sql
-    assert archive_params["archive_after_hours"] == 72
+    assert archive_params["archive_after_hours"] == 24
 
 
-async def test_run_archival_sweep_guards_upcoming_enriched_events() -> None:
-    """Enriched events whose day is still upcoming must never be archived on the
-    quiet rule alone — the event_time day-guard has to gate the enriched branch."""
+async def test_run_archival_sweep_archives_24h_after_event_time() -> None:
+    """A dated event is archived 24h after event_time, independent of last_seen."""
     session = _mock_session_with_results([0])
 
     await run_archival_sweep(session)
 
     archive_sql = str(session.execute.call_args_list[0][0][0])
 
-    assert "status = 'enriched'" in archive_sql
-    # The quiet branch only fires for undated or already-past events.
+    # Hour-precise trigger anchored on event_time (not a day-granular comparison).
+    assert "event_time IS NOT NULL" in archive_sql
+    assert "event_time + make_interval(hours => :archive_after_hours)" in archive_sql
+    # The old 72h-quiet + day-boundary logic must be gone.
+    assert "Europe/Athens" not in archive_sql
+
+
+async def test_run_archival_sweep_covers_both_statuses() -> None:
+    """Both enriched and announced events are swept by the same rule."""
+    session = _mock_session_with_results([0])
+
+    await run_archival_sweep(session)
+
+    archive_sql = str(session.execute.call_args_list[0][0][0])
+
+    assert "'enriched'" in archive_sql
+    assert "'announced'" in archive_sql
+
+
+async def test_run_archival_sweep_undated_events_fall_back_to_quiet_rule() -> None:
+    """Events with no event_time archive after 24h of silence (last_seen)."""
+    session = _mock_session_with_results([0])
+
+    await run_archival_sweep(session)
+
+    archive_sql = str(session.execute.call_args_list[0][0][0])
+
     assert "event_time IS NULL" in archive_sql
-    assert "Europe/Athens" in archive_sql
-
-
-async def test_run_archival_sweep_retires_lapsed_announced_events() -> None:
-    """Announced events whose event day (Athens) has passed must be archived so a
-    lapsed announcement stops showing as ongoing/upcoming."""
-    session = _mock_session_with_results([0])
-
-    await run_archival_sweep(session)
-
-    archive_sql = str(session.execute.call_args_list[0][0][0])
-
-    assert "status = 'announced'" in archive_sql
-    # Uses the same day-boundary predicate the API's temporal_status filter uses.
-    assert "(event_time AT TIME ZONE 'Europe/Athens')::date" in archive_sql
-    assert "(now() AT TIME ZONE 'Europe/Athens')::date" in archive_sql
+    assert "last_seen < now() - make_interval(hours => :archive_after_hours)" in archive_sql
