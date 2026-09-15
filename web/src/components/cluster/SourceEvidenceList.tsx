@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ArticleSummary, ReactionSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
+import { publisherFromUrl } from "../../utils/publisher";
 import { EmptyState } from "../common";
 
 const PAGE_SIZE = 5;
@@ -17,8 +18,15 @@ interface EvidenceRow {
 }
 
 function fromArticle(a: ArticleSummary): EvidenceRow {
+  // "google_news_rss" is a pipeline label, not a source the reader recognises —
+  // show the publisher (article URL host) instead. Other source_ids (reddit,
+  // apergia, …) already name a real source, so keep them as-is.
+  const label =
+    a.source_id === "google_news_rss"
+      ? (publisherFromUrl(a.url) ?? a.source_id)
+      : (a.source_id ?? "—");
   return {
-    id: a.id, label: a.source_id ?? "—", detail: a.title ?? "",
+    id: a.id, label, detail: a.title ?? "",
     tag: a.source_type ?? "", publishedAt: a.published_at ?? null, url: a.url ?? null,
   };
 }

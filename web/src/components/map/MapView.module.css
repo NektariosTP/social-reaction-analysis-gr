@@ -104,10 +104,20 @@
   font-family: var(--font-ui);
   font-size: 10px;
   font-weight: 600;
-  white-space: nowrap;
-  max-width: 140px;
+  /* Wrap to at most two centred lines instead of truncating a single line with
+     an ellipsis — full names like "Θεσσαλονίκη Κέντρο" now read in full. Only
+     genuinely long names clamp (with the ellipsis on the 2nd line). Overlap
+     between neighbouring labels is handled separately in labelPlacement.ts. */
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.2;
+  max-width: 170px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
   box-shadow: var(--shadow-card);
   pointer-events: none;
 }

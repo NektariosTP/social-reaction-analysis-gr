@@ -12,7 +12,7 @@ export function BrandMark({ size = 28, className }: BrandMarkProps) {
       viewBox="0 0 32 32"
       fill="none"
       role="img"
-      aria-label="protest.map"
+      aria-label="apergia.map"
       data-testid="brand-mark"
       className={className}
     >

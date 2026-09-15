@@ -8,7 +8,7 @@ describe("BrandMark", () => {
     const mark = screen.getByTestId("brand-mark");
     expect(mark.tagName.toLowerCase()).toBe("svg");
     expect(mark).toHaveAttribute("role", "img");
-    expect(mark).toHaveAttribute("aria-label", "protest.map");
+    expect(mark).toHaveAttribute("aria-label", "apergia.map");
   });
 
   it("applies a custom size and className", () => {

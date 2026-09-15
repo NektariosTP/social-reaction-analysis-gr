@@ -10,7 +10,10 @@ import {
   createLocationLabelElement,
 } from "./markerElement";
 import { buildClusterPreview, LEAF_SAMPLE_SIZE } from "./clusterPreview";
+import { MARKER_DIAMETER } from "./markerStyle";
 import { primaryLocationLabel, secondaryLocationLabels, LABEL_MIN_ZOOM } from "./locationLabels";
+import { estimateLabelBox, selectVisibleLabels } from "./labelPlacement";
+import type { SecondaryLabelPoint } from "./locationLabels";
 import { ClusterPopup } from "./ClusterPopup";
 import { useLocationOverlay } from "./useLocationOverlay";
 import styles from "./MapView.module.css";
@@ -24,6 +27,13 @@ const GREECE_CENTER: [number, number] = [23.7, 38.5];
 const GREECE_ZOOM = 6.5;
 const GREECE_ZOOM_MOBILE = 5.6;
 const GREECE_MIN_ZOOM = 5.6;
+
+// Namespaced ids so primary and secondary labels never collide in the placement
+// set. Priority: the selected marker's primary label always wins a collision.
+const SELECTED_LABEL_PRIORITY = 1_000;
+const primaryLabelId = (eventId: string) => `p:${eventId}`;
+const secondaryLabelId = (s: SecondaryLabelPoint) =>
+  `s:${s.eventId}:${s.coordinates[0]},${s.coordinates[1]}`;
 
 interface MapViewProps {
   features: GeoJsonFeature[];
@@ -181,6 +191,44 @@ export function MapView({
       const showLabels = zoom >= LABEL_MIN_ZOOM;
       const points = getClusterPoints(index, bbox, zoom);
 
+      // Secondary-location subtitles: gated on zoom, and on each secondary's OWN
+      // position being in view — never on the primary's cluster/viewport state,
+      // so a secondary keeps its label when the primary is panned off or
+      // clustered (matches the always-on secondaries overlay below).
+      const secondaries = showLabels
+        ? secondaryLocationLabels(featuresRef.current, bbox)
+        : [];
+
+      // Which location labels can render without piling on top of a neighbour.
+      // We project every candidate to screen pixels, estimate its box, and place
+      // greedily by priority — the selected marker's label is never dropped, and
+      // any label that would overlap one already placed is suppressed (its
+      // marker still renders and its location still shows in the popup).
+      const visibleLabels = showLabels
+        ? selectVisibleLabels([
+            ...points.flatMap((point) => {
+              if (point.isCluster) return [];
+              const feature = point.feature!;
+              const text = primaryLocationLabel(feature.properties);
+              if (!text) return [];
+              const priority =
+                feature.properties.id === selectedId ? SELECTED_LABEL_PRIORITY : 0;
+              return [
+                estimateLabelBox(
+                  primaryLabelId(feature.properties.id),
+                  text,
+                  map.project(point.coordinates),
+                  MARKER_DIAMETER / 2,
+                  priority,
+                ),
+              ];
+            }),
+            ...secondaries.map((s) =>
+              estimateLabelBox(secondaryLabelId(s), s.text, map.project(s.coordinates), 10, 0),
+            ),
+          ])
+        : new Set<string>();
+
       markersRef.current = points.map((point) => {
         if (point.isCluster) {
           const leaves = index
@@ -197,13 +245,16 @@ export function MapView({
             .addTo(map);
         }
         const feature = point.feature!;
+        const labelText = primaryLocationLabel(feature.properties);
+        // Show the primary subtitle only past the label zoom threshold AND when
+        // it survived overlap suppression — otherwise the marker is label-free.
+        const showThisLabel =
+          showLabels && !!labelText && visibleLabels.has(primaryLabelId(feature.properties.id));
         const el = createMarkerElement(
           feature.properties,
           feature.properties.article_count,
           feature.properties.id === selectedId,
-          // Primary subtitle only once zoomed in past the threshold — an
-          // un-clustered marker at country/region overview stays label-free.
-          showLabels ? primaryLocationLabel(feature.properties) : undefined,
+          showThisLabel ? labelText : undefined,
         );
         el.addEventListener("click", () => onSelectEventRef.current(feature.properties.id));
         return new maplibregl.Marker({ element: el, anchor: "center" })
@@ -211,19 +262,14 @@ export function MapView({
           .addTo(map);
       });
 
-      // Secondary-location subtitles: gated on zoom, and on each secondary's OWN
-      // position being in view — never on the primary's cluster/viewport state,
-      // so a secondary keeps its label when the primary is panned off or
-      // clustered (matches the always-on secondaries overlay below).
-      if (showLabels) {
-        for (const label of secondaryLocationLabels(featuresRef.current, bbox)) {
-          const el = createLocationLabelElement(label.text, false);
-          markersRef.current.push(
-            new maplibregl.Marker({ element: el, anchor: "top", offset: [0, 10] })
-              .setLngLat(label.coordinates)
-              .addTo(map),
-          );
-        }
+      for (const label of secondaries) {
+        if (!visibleLabels.has(secondaryLabelId(label))) continue;
+        const el = createLocationLabelElement(label.text, false);
+        markersRef.current.push(
+          new maplibregl.Marker({ element: el, anchor: "top", offset: [0, 10] })
+            .setLngLat(label.coordinates)
+            .addTo(map),
+        );
       }
 
       // Overlay covers every multi-location event regardless of viewport or

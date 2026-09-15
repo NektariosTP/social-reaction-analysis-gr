@@ -119,6 +119,12 @@ export class Map {
   getZoom() {
     return 5.6;
   }
+  // Deterministic linear lng/lat → screen projection: distinct coordinates map
+  // to distinct, well-separated pixels so label overlap suppression behaves the
+  // same way it would on a real map (far-apart labels never collide).
+  project(lngLat: [number, number]) {
+    return { x: lngLat[0] * 1000, y: -lngLat[1] * 1000 };
+  }
   easeTo() {}
   flyTo() {}
   addSource(id: string, source: Record<string, unknown>) {
