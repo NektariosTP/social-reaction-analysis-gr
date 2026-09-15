@@ -5,7 +5,6 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
-import pytest
 
 from nlp.event_registry import (
     apply_merges,

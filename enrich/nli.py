@@ -15,7 +15,7 @@ NLI_MODEL = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
 
 # Calibrated in Step 10 via scripts/tune_noise_gate.py: best-precision point in the
 # zero-false-negative band (0.30-0.55) — rejecting a real event outweighs the F1 cost
-# of a few extra non-events reaching pending_review.
+# of a few extra non-events reaching the detected triage queue.
 NOISE_GATE_THRESHOLD = 0.55
 
 _NOISE_GATE_TEMPLATE = "Αυτό το κείμενο περιγράφει {}."

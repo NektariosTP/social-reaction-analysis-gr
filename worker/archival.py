@@ -26,7 +26,7 @@ async def run_archival_sweep(session: AsyncSession) -> dict[str, Any]:
     archived_result = await session.execute(
         text("""
             UPDATE events SET status = 'archived'
-            WHERE status IN ('enriched', 'announced')
+            WHERE status = 'enriched'
               AND (
                 (event_time IS NOT NULL
                     AND now() >= event_time + make_interval(hours => :archive_after_hours))

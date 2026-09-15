@@ -13,7 +13,8 @@ async def test_fetch_events_includes_announced_status_and_roster():
     session.execute = AsyncMock(return_value=result)
     await _fetch_events(session)
     sql = session.execute.call_args.args[0].text
-    assert "status IN ('enriched', 'announced')" in sql
+    assert "status = 'enriched'" in sql
+    assert "'announced'" not in sql
     assert "announced_by" in sql
     assert "participating_unions" in sql
     assert "array_agg" in sql.lower()

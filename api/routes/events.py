@@ -96,7 +96,7 @@ async def _fetch_events(
     limit: int = 50,
     offset: int = 0,
 ) -> list[Row[Any]]:
-    conditions = ["status IN ('enriched', 'announced')"]
+    conditions = ["status = 'enriched'"]
     params: dict[str, Any] = {"limit": limit, "offset": offset}
 
     if action_form:

@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 from nlp.clustering import single_pass_cluster, find_merges
 
 from nlp.clustering import (
-    ClusterResult,
     apply_quality_gates,
     compute_intra_similarity,
     run_hdbscan,

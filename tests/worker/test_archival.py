@@ -64,8 +64,8 @@ async def test_run_archival_sweep_archives_24h_after_event_time() -> None:
     assert "Europe/Athens" not in archive_sql
 
 
-async def test_run_archival_sweep_covers_both_statuses() -> None:
-    """Both enriched and announced events are swept by the same rule."""
+async def test_run_archival_sweep_targets_enriched_events() -> None:
+    """Enriched events are swept once they age out."""
     session = _mock_session_with_results([0])
 
     await run_archival_sweep(session)
@@ -73,7 +73,7 @@ async def test_run_archival_sweep_covers_both_statuses() -> None:
     archive_sql = str(session.execute.call_args_list[0][0][0])
 
     assert "'enriched'" in archive_sql
-    assert "'announced'" in archive_sql
+    assert "'announced'" not in archive_sql
 
 
 async def test_run_archival_sweep_undated_events_fall_back_to_quiet_rule() -> None:

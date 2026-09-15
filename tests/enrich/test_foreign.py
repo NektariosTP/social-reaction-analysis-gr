@@ -1,7 +1,6 @@
 """Foreign-location rejection + embassy mapping + point-in-Greece."""
 from __future__ import annotations
 
-from unittest.mock import patch
 
 import respx
 from httpx import Response

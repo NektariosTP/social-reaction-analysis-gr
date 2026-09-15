@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 from datetime import datetime, timedelta, timezone
 
 from nlp.deduplication import find_duplicates_in_cluster, find_duplicates_global

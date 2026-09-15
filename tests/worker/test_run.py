@@ -6,14 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from worker.run import run_worker_cycle
 
 
-def _patched_session_factory(mock_sf: MagicMock, has_pending_review: bool = False) -> None:
+def _patched_session_factory(mock_sf: MagicMock, has_undetriaged: bool = False) -> None:
     """Wire the mock so `session_factory()` (i.e. mock_sf.return_value()) — not
     mock_sf.return_value itself — yields the async context manager. Getting this
     one level wrong silently no-ops instead of raising, since MagicMock supplies
     its own default __aenter__/__aexit__."""
     mock_session = AsyncMock()
     mock_result = MagicMock()
-    mock_result.first.return_value = object() if has_pending_review else None
+    mock_result.first.return_value = object() if has_undetriaged else None
     mock_session.execute = AsyncMock(return_value=mock_result)
     mock_sf.return_value.return_value.__aenter__ = AsyncMock(return_value=mock_session)
     mock_sf.return_value.return_value.__aexit__ = AsyncMock(return_value=None)
@@ -66,7 +66,7 @@ async def test_full_mode_runs_all_phases() -> None:
     mock_enrich.assert_awaited_once()
 
 
-async def test_full_mode_skips_enrich_while_events_pending_review() -> None:
+async def test_full_mode_skips_enrich_while_events_undetriaged() -> None:
     with (
         patch("worker.run.run_ingestion", new_callable=AsyncMock, return_value={}),
         patch("worker.run.run_nlp_pipeline", new_callable=AsyncMock, return_value={}),
@@ -78,7 +78,7 @@ async def test_full_mode_skips_enrich_while_events_pending_review() -> None:
         patch("worker.run.settings") as mock_settings,
     ):
         mock_settings.pipeline_mode = "full"
-        _patched_session_factory(mock_sf, has_pending_review=True)
+        _patched_session_factory(mock_sf, has_undetriaged=True)
 
         metrics = await run_worker_cycle(engine=MagicMock())
 

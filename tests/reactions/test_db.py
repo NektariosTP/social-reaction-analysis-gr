@@ -54,8 +54,8 @@ async def test_load_announced_events_includes_pending_detected_seeds():
     await load_announced_events(session)
 
     sql = session.execute.call_args.args[0].text
-    assert "status = 'announced'" in sql
-    assert "status = 'detected'" in sql
+    assert "status IN ('detected', 'enriched')" in sql
+    assert "'announced'" not in sql
     assert "article_count = 0" in sql
 
 @pytest.mark.asyncio
@@ -84,7 +84,7 @@ async def test_load_announced_events_includes_enriched_zero_article():
     session.execute = AsyncMock(return_value=result)
     await load_announced_events(session)
     sql = session.execute.call_args.args[0].text
-    assert "status = 'enriched'" in sql
+    assert "status IN ('detected', 'enriched')" in sql
     assert "article_count = 0" in sql
 
 @pytest.mark.asyncio

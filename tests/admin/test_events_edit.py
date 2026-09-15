@@ -86,7 +86,7 @@ async def test_edit_event_form_404_for_missing_event(client) -> None:
 async def test_edit_event_submit_rejects_invalid_axis_value(client) -> None:
     c, mock_session = client
     detail_result = MagicMock()
-    detail_result.first.return_value = MagicMock(status="pending_review", event_time=None)
+    detail_result.first.return_value = MagicMock(status="detected", event_time=None)
     empty_result = MagicMock()
     empty_result.all.return_value = []
     mock_session.execute = AsyncMock(side_effect=[detail_result, empty_result, empty_result])
@@ -106,7 +106,7 @@ async def test_edit_event_form_renders_new_fields(client):
         id="evt-1", action_forms=[], thematic_fields=[], channel="Φυσικό (offline)",
         intensity="Ειρηνική", summary_el="", summary_en="", classification_confidence=None,
         lat=37.98, lon=23.72, article_count=1, source_count=1,
-        first_seen=None, last_seen=None, status="pending_review",
+        first_seen=None, last_seen=None, status="detected",
         event_time=None, is_national=False,
     )
     locations = MagicMock()

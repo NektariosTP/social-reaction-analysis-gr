@@ -1,6 +1,5 @@
 from __future__ import annotations
 from datetime import date, datetime, timezone
-import pytest
 from nlp.event_dates import resolve_event_day, EventDay
 
 # 2026-09-14 is a Monday; "την Πέμπτη" → 2026-09-17, "την Τετάρτη" → 2026-09-16.

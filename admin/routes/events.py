@@ -20,7 +20,7 @@ from enrich.axes import AXIS_ACTION_FORMS, AXIS_CHANNEL, AXIS_INTENSITY, AXIS_TH
 router = APIRouter(dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="admin/templates")
 
-ALL_STATUSES = ["detected", "approved", "pending_review", "enriched", "announced", "archived", "rejected"]
+ALL_STATUSES = ["detected", "approved", "enriched", "archived", "rejected"]
 _ATHENS = ZoneInfo("Europe/Athens")
 
 

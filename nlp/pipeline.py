@@ -12,7 +12,6 @@ import uuid
 from datetime import datetime, timezone
 
 import numpy as np
-from sklearn.metrics import silhouette_score
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,

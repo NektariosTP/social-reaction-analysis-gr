@@ -111,9 +111,7 @@ async def load_announced_events(session: AsyncSession):
         FROM events e
         WHERE e.centroid IS NOT NULL
           AND e.article_count = 0
-          AND ( e.status = 'announced'
-                OR e.status = 'detected'
-                OR e.status = 'enriched' )
+          AND e.status IN ('detected', 'enriched')
     """))
     out = []
     for eid, cen, org, day, forms, lat, lon, nat in result.all():
