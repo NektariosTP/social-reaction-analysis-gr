@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
@@ -90,3 +90,28 @@ def extract_event_datetime(text: str, now: datetime | None = None) -> ExtractedD
     future = [d for d in resolved if d.date() >= now.date()]
     when = min(future) if future else min(resolved)
     return ExtractedDate(when=when, is_future=when.date() >= now.date(), has_time=tod is not None)
+
+
+def all_event_days(text: str, now: datetime | None = None) -> list[date]:
+    """Every calendar date mentioned in `text` (day granularity, Europe/Athens,
+    year-resolved), WITH multiplicity, sorted ascending. Reuses the numeric +
+    Greek-word extraction of extract_event_datetime; no relative-weekday logic here."""
+    now = now or datetime.now(_ATH)
+    folded = _fold(text)
+    cands: list[tuple[int, int, int | None]] = []
+    for m in _NUMERIC_RE.finditer(folded):
+        day_, month = int(m.group(1)), int(m.group(2))
+        yr = int(m.group(3)) if m.group(3) else None
+        if 1 <= month <= 12 and 1 <= day_ <= 31:
+            cands.append((month, day_, yr))
+    for m in _WORD_RE.finditer(folded):
+        yr = int(m.group(3)) if m.group(3) else None
+        cands.append((_MONTHS[m.group(2)], int(m.group(1)), yr))
+    out: list[date] = []
+    for month, day_, yr in cands:
+        year = _resolve_year(yr, month, day_, now)
+        try:
+            out.append(date(year, month, day_))
+        except ValueError:
+            continue
+    return sorted(out)

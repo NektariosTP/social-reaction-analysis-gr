@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
-from reactions.dates import extract_event_datetime
+from reactions.dates import extract_event_datetime, all_event_days
 
 ATH = ZoneInfo("Europe/Athens")
 NOW = datetime(2026, 8, 27, 12, 0, tzinfo=ATH)
@@ -46,3 +46,19 @@ def test_explicit_time_is_preserved():
     assert got is not None
     assert (got.when.hour, got.when.minute) == (18, 30)
     assert got.has_time is True
+
+
+def test_all_event_days_numeric_and_word():
+    now = datetime(2026, 9, 14, 9, 0, tzinfo=ZoneInfo("Europe/Athens"))
+    got = all_event_days("Απεργία 16/9 και στις 30 Σεπτεμβρίου", now=now)
+    assert got == [date(2026, 9, 16), date(2026, 9, 30)]
+
+
+def test_all_event_days_keeps_multiplicity():
+    now = datetime(2026, 9, 14, 9, 0, tzinfo=ZoneInfo("Europe/Athens"))
+    got = all_event_days("16 Σεπτεμβρίου ... πάλι 16/9", now=now)
+    assert got == [date(2026, 9, 16), date(2026, 9, 16)]
+
+
+def test_all_event_days_empty_when_no_date():
+    assert all_event_days("Στάση εργασίας την Τετάρτη") == []
