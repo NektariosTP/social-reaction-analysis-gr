@@ -11,17 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 
-def find_duplicates_in_cluster(
+def _find_duplicates(
     articles: list[tuple[str, np.ndarray, datetime]],
     cosine_threshold: float,
     time_window_hours: int,
 ) -> set[str]:
-    """
-    Return IDs of articles that are duplicates within a single cluster.
-
-    Strategy: sort by published_at ascending; the first occurrence is canonical.
-    Later articles within the time window and above the cosine threshold are marked duplicate.
-    """
+    """Earliest-is-canonical cosine + time-window dedup over a flat article list."""
     if len(articles) < 2:
         return set()
 
@@ -44,6 +39,25 @@ def find_duplicates_in_cluster(
                 duplicates.add(id_j)
 
     return duplicates
+
+
+def find_duplicates_in_cluster(
+    articles: list[tuple[str, np.ndarray, datetime]],
+    cosine_threshold: float,
+    time_window_hours: int,
+) -> set[str]:
+    """Duplicates within a single cluster (thin wrapper over the shared core)."""
+    return _find_duplicates(articles, cosine_threshold, time_window_hours)
+
+
+def find_duplicates_global(
+    articles: list[tuple[str, np.ndarray, datetime]],
+    cosine_threshold: float,
+    time_window_hours: int,
+) -> set[str]:
+    """Cross-cluster dedup: same core, but fed the WHOLE window so a near-duplicate
+    story spread across two clusters is caught before it seeds a second event."""
+    return _find_duplicates(articles, cosine_threshold, time_window_hours)
 
 
 async def mark_duplicates(
