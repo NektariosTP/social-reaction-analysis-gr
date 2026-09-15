@@ -112,6 +112,12 @@
   white-space: normal;
   word-break: break-word;
   line-height: 1.2;
+  /* width:max-content is load-bearing, not cosmetic: the label is absolutely
+     positioned inside the ~34px marker wrapper with left:50%, so a plain
+     `max-width` collapses it to the shrink-to-fit width of that tiny box (~17px)
+     and every word breaks to 1–2 chars per line. max-content sizes the box to
+     its text first, then max-width caps it at 170px before wrapping kicks in. */
+  width: max-content;
   max-width: 170px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
