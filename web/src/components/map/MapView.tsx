@@ -13,6 +13,7 @@ import { buildClusterPreview, LEAF_SAMPLE_SIZE } from "./clusterPreview";
 import { MARKER_DIAMETER } from "./markerStyle";
 import { primaryLocationLabel, secondaryLocationLabels, LABEL_MIN_ZOOM } from "./locationLabels";
 import { estimateLabelBox, selectVisibleLabels } from "./labelPlacement";
+import { fanOffsetsByCoincidence } from "./markerFan";
 import type { SecondaryLabelPoint } from "./locationLabels";
 import { ClusterPopup } from "./ClusterPopup";
 import { useLocationOverlay } from "./useLocationOverlay";
@@ -191,6 +192,23 @@ export function MapView({
       const showLabels = zoom >= LABEL_MIN_ZOOM;
       const points = getClusterPoints(index, bbox, zoom);
 
+      // Events pinned to the exact same coordinates (e.g. a shared city centroid)
+      // un-cluster into bubbles stacked on top of each other once zoomed in. Fan
+      // each coincident group into a small grid via per-marker pixel offsets so
+      // they sit side by side instead. Keyed by event id → applied identically to
+      // the marker and its label box below.
+      const fanOffsets = fanOffsetsByCoincidence(
+        points
+          .filter((p) => !p.isCluster)
+          .map((p) => ({ id: p.feature!.properties.id, coordinates: p.coordinates })),
+      );
+      const fanOffset = (id: string): [number, number] => fanOffsets.get(id) ?? [0, 0];
+      const projectWithFan = (coord: [number, number], id: string) => {
+        const p = map.project(coord);
+        const [dx, dy] = fanOffset(id);
+        return { x: p.x + dx, y: p.y + dy };
+      };
+
       // Secondary-location subtitles: gated on zoom, and on each secondary's OWN
       // position being in view — never on the primary's cluster/viewport state,
       // so a secondary keeps its label when the primary is panned off or
@@ -217,7 +235,7 @@ export function MapView({
                 estimateLabelBox(
                   primaryLabelId(feature.properties.id),
                   text,
-                  map.project(point.coordinates),
+                  projectWithFan(point.coordinates, feature.properties.id),
                   MARKER_DIAMETER / 2,
                   priority,
                 ),
@@ -257,7 +275,7 @@ export function MapView({
           showThisLabel ? labelText : undefined,
         );
         el.addEventListener("click", () => onSelectEventRef.current(feature.properties.id));
-        return new maplibregl.Marker({ element: el, anchor: "center" })
+        return new maplibregl.Marker({ element: el, anchor: "center", offset: fanOffset(feature.properties.id) })
           .setLngLat(point.coordinates)
           .addTo(map);
       });

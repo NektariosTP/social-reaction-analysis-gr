@@ -323,6 +323,41 @@ it("keeps a secondary's subtitle even when its event's primary is folded into a 
   });
 });
 
+it("fans co-located bubbles into a row instead of stacking them at high zoom", () => {
+  // Two events pinned to the exact same coordinates. Past the cluster maxZoom
+  // they un-cluster and would otherwise render as bubbles stacked on the point;
+  // they should instead get symmetric horizontal pixel offsets.
+  const a: GeoJsonFeature = { ...feature, properties: { ...feature.properties, id: "evt-a" } };
+  const b: GeoJsonFeature = {
+    ...feature,
+    geometry: { type: "Point", coordinates: [23.7, 38.0] },
+    properties: { ...feature.properties, id: "evt-b" },
+  };
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  withZoom(15, () => {
+    calls.length = 0;
+    render(<MapView features={[a, b]} onSelectEvent={vi.fn()} selectedId={null} />);
+    const offsets = calls.map((c) => c.offset).filter(Boolean);
+    // MARKER_FAN_STEP = 34 + 6 → centred pair at ±20px, same row (dy 0).
+    expect(offsets).toContainEqual([-20, 0]);
+    expect(offsets).toContainEqual([20, 0]);
+  });
+});
+
+it("leaves a lone bubble on its point (zero offset)", () => {
+  const calls = (maplibregl as unknown as { markerConstructorCalls: Record<string, unknown>[] })
+    .markerConstructorCalls;
+  withZoom(15, () => {
+    calls.length = 0;
+    render(<MapView features={[feature]} onSelectEvent={vi.fn()} selectedId={null} />);
+    const markerOffsets = calls
+      .filter((c) => (c.element as HTMLElement).querySelector('[data-role="bubble"]'))
+      .map((c) => c.offset);
+    expect(markerOffsets).toEqual([[0, 0]]);
+  });
+});
+
 it("adds a zooming motion cue on zoomstart and removes it on zoomend", () => {
   const mapInstances = (
     maplibregl as unknown as { mapInstances: { trigger: (event: string) => void }[] }
