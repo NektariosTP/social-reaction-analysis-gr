@@ -22,6 +22,8 @@ class NlpSettings(BaseSettings):
     dedup_cosine_threshold: float = 0.95
     dedup_time_window_hours: int = 72
     cluster_tau: float = 0.72
+    date_split_min_bucket: int = 3  # min dated articles for a bucket to peel into its own event
+    date_split_tolerance_days: int = 0  # merge adjacent event-days (genuine multi-day events)
     embedding_dim: int = 768  # exposed for a future model swap: one line here + an Alembic step
     embedding_chunk_words: int = 100  # mpnet max_seq_length=128 tokens; conservative word window
 
