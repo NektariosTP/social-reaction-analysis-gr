@@ -1,4 +1,4 @@
-:80 {
+{$SITE_ADDRESS::80} {
     redir /admin /admin/events?status=detected
 
     @api path /health /events* /docs /openapi.json /redoc
@@ -7,6 +7,9 @@
     }
 
     handle_path /admin/* {
+        basic_auth {
+            {$ADMIN_USER:admin} {$ADMIN_PASSWORD_HASH:$2b$12$NhQspEht3txvR/xi065NeudBvAqRASY1wZYnvskf/Lun6eSPgRyDe}
+        }
         reverse_proxy admin:8001
     }
 
