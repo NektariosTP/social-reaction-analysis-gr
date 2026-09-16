@@ -24,6 +24,8 @@
   "time.7d": "Last 7 days",
   "time.30d": "Last 30 days",
   "time.all": "All time",
+  "time.live": "Live",
+  "time.travelLabel": "Time travel",
   "kpi.events": "events",
   "kpi.articles": "articles",
   "editorial.back": "‹ Back",
