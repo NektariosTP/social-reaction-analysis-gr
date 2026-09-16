@@ -4,7 +4,7 @@ import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
 import { sourceCountDisplay } from "../../utils/sourceDisplay";
 import { dedupeUnions } from "../../utils/unionDedup";
-import { Spinner, ErrorState } from "../common";
+import { Spinner, ErrorState, TemporalBanner } from "../common";
 import { ClassificationTable } from "./ClassificationTable";
 import { SourceEvidenceList } from "./SourceEvidenceList";
 import { UnionSourceList } from "./UnionSourceList";
@@ -19,12 +19,16 @@ interface ClusterDetailContentProps {
   /** Drops the top border of the first section — used in the mobile inline
    * analysis so it doesn't double up with the panel's own top border. */
   flushTop?: boolean;
+  /** The highlighted time/unions banner. Hidden in the mobile inline analysis,
+   * where the story card above already shows it. */
+  showBanner?: boolean;
 }
 
 export function ClusterDetailContent({
   eventId,
   showHeadline = true,
   showMeta = true,
+  showBanner = true,
   flushTop = false,
 }: ClusterDetailContentProps) {
   const { t } = useTranslation();
@@ -40,6 +44,8 @@ export function ClusterDetailContent({
       {showHeadline && (
         <h2 className={styles.headline}>{(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}</h2>
       )}
+
+      {showBanner && <TemporalBanner event={event} />}
 
       {showMeta && (
         <div className={styles.metaChips}>

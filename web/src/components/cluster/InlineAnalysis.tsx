@@ -27,7 +27,7 @@ export function InlineAnalysis({ eventId, onViewOnMap }: InlineAnalysisProps) {
   return (
     <div className={styles.wrap} data-open={open || undefined} data-inline-detail={eventId}>
       <div className={styles.inner}>
-        <ClusterDetailContent eventId={eventId} showHeadline={false} showMeta={false} flushTop />
+        <ClusterDetailContent eventId={eventId} showHeadline={false} showMeta={false} showBanner={false} flushTop />
         {onViewOnMap && (
           <div className={styles.ctaBar}>
             <button type="button" className={styles.viewOnMap} onClick={onViewOnMap}>

@@ -96,4 +96,24 @@ describe("ClusterDetailContent", () => {
     );
     expect(screen.queryByText("Test narrative")).not.toBeInTheDocument();
   });
+
+  it("renders the temporal banner when the event has a scheduled time or unions", async () => {
+    vi.mocked(useEvent).mockReturnValueOnce({
+      data: {
+        ...locatedEvent,
+        temporal_status: "today",
+        event_time: "2026-01-01T09:00:00Z",
+        announced_by: "ΓΣΕΕ",
+        participating_unions: ["ΓΣΕΕ"],
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useEvent>);
+    render(
+      <MemoryRouter>
+        <ClusterDetailContent eventId="evt-1" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/ΓΣΕΕ/)).toBeInTheDocument();
+  });
 });
