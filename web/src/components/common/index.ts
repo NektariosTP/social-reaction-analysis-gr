@@ -7,3 +7,4 @@ export { ComingSoonBlock } from "./ComingSoonBlock";
 export { Spinner } from "./Spinner";
 export { ErrorState } from "./ErrorState";
 export { EmptyState } from "./EmptyState";
+export { TemporalBanner } from "./TemporalBanner";

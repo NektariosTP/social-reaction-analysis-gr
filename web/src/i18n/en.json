@@ -30,6 +30,8 @@
   "editorial.back": "‹ Back",
   "card.viewFullAnalysis": "View details →",
   "card.readMore": "Read More →",
+  "banner.today": "Today",
+  "banner.joinedBy": "joined by {{names}}",
   "card.article": "article",
   "card.articles": "articles",
   "card.source": "source",
