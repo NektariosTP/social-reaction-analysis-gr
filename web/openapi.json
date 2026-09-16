@@ -136,6 +136,24 @@
             "description": "ISO 8601 date"
           },
           {
+            "name": "event_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 8601 day YYYY-MM-DD",
+              "title": "Event Date"
+            },
+            "description": "ISO 8601 day YYYY-MM-DD"
+          },
+          {
             "name": "bbox",
             "in": "query",
             "required": false,
@@ -311,6 +329,24 @@
               ],
               "title": "Channel"
             }
+          },
+          {
+            "name": "event_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 8601 day YYYY-MM-DD",
+              "title": "Event Date"
+            },
+            "description": "ISO 8601 day YYYY-MM-DD"
           }
         ],
         "responses": {

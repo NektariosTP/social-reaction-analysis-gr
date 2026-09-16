@@ -3,7 +3,7 @@ M8 field exposure: event_time, temporal_status, is_national on event responses.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
@@ -299,3 +299,44 @@ async def test_reactions_list_orders_seeded_reaction_first():
     await _fetch_event_reactions(session, "evt-1")
     sql = session.execute.call_args.args[0].text
     assert "ORDER BY (match_method = 'seeded') DESC, observed_at ASC NULLS LAST, created_at ASC" in sql
+
+
+from api.routes.events import _parse_iso_date  # noqa: E402
+from fastapi import HTTPException  # noqa: E402
+
+
+@pytest.mark.asyncio
+async def test_fetch_events_filters_by_event_date() -> None:
+    session = _mock_session_capturing()
+    await _fetch_events(session, event_date="2026-09-16")
+    call = session.execute.call_args
+    sql = call.args[0].text
+    assert "(event_time AT TIME ZONE 'Europe/Athens')::date = :event_date" in sql
+    assert call.args[1]["event_date"] == date(2026, 9, 16)
+
+
+@pytest.mark.asyncio
+async def test_fetch_events_rejects_bad_event_date() -> None:
+    session = _mock_session_capturing()
+    with pytest.raises(HTTPException) as exc:
+        await _fetch_events(session, event_date="not-a-date")
+    assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_events_passes_event_date(client: AsyncClient) -> None:
+    mock = AsyncMock(return_value=[])
+    with patch("api.routes.events._fetch_events", mock):
+        resp = await client.get("/events?event_date=2026-09-16")
+    assert resp.status_code == 200
+    assert mock.call_args.kwargs["event_date"] == "2026-09-16"
+
+
+@pytest.mark.asyncio
+async def test_geojson_passes_event_date(client: AsyncClient) -> None:
+    mock = AsyncMock(return_value=[])
+    with patch("api.routes.events._fetch_events", mock), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
+        resp = await client.get("/events/geojson?event_date=2026-09-16")
+    assert resp.status_code == 200
+    assert mock.call_args.kwargs["event_date"] == "2026-09-16"

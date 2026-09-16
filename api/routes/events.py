@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -80,6 +80,15 @@ def _parse_iso_datetime(value: str, field: str) -> datetime:
         raise HTTPException(status_code=422, detail=f"Invalid {field!r}: {value!r}") from exc
 
 
+def _parse_iso_date(value: str, field: str) -> date:
+    """Parse a YYYY-MM-DD day to a native date for binding against the
+    (event_time AT TIME ZONE 'Europe/Athens')::date comparison."""
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid {field!r}: {value!r}") from exc
+
+
 async def _fetch_events(
     session: AsyncSession,
     *,
@@ -89,6 +98,7 @@ async def _fetch_events(
     intensity: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    event_date: str | None = None,
     bbox: str | None = None,
     temporal_status: str | None = None,
     is_national: bool | None = None,
@@ -117,6 +127,11 @@ async def _fetch_events(
     if date_to:
         conditions.append("last_seen <= :date_to")
         params["date_to"] = _parse_iso_datetime(date_to, "date_to")
+    if event_date:
+        conditions.append(
+            "(event_time AT TIME ZONE 'Europe/Athens')::date = :event_date"
+        )
+        params["event_date"] = _parse_iso_date(event_date, "event_date")
     if bbox:
         # bbox = "west,south,east,north"
         parts = [float(p) for p in bbox.split(",")]
@@ -252,6 +267,7 @@ async def list_events(
     intensity: Annotated[str | None, Query()] = None,
     date_from: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     date_to: Annotated[str | None, Query(description="ISO 8601 date")] = None,
+    event_date: Annotated[str | None, Query(description="ISO 8601 day YYYY-MM-DD")] = None,
     bbox: Annotated[str | None, Query(description="west,south,east,north")] = None,
     temporal_status: Annotated[Literal["upcoming", "today", "past"] | None, Query()] = None,
     is_national: Annotated[bool | None, Query()] = None,
@@ -268,6 +284,7 @@ async def list_events(
         intensity=intensity,
         date_from=date_from,
         date_to=date_to,
+        event_date=event_date,
         bbox=bbox,
         temporal_status=temporal_status,
         is_national=is_national,
@@ -307,9 +324,10 @@ async def events_geojson(
     action_form: Annotated[str | None, Query()] = None,
     thematic_field: Annotated[str | None, Query()] = None,
     channel: Annotated[str | None, Query()] = None,
+    event_date: Annotated[str | None, Query(description="ISO 8601 day YYYY-MM-DD")] = None,
     db: AsyncSession = Depends(get_db),
 ) -> GeoJSONFeatureCollection:
-    rows = await _fetch_events(db, action_form=action_form, thematic_field=thematic_field, channel=channel, limit=1000)
+    rows = await _fetch_events(db, action_form=action_form, thematic_field=thematic_field, channel=channel, event_date=event_date, limit=1000)
     located = [r for r in rows if r.lat is not None and r.lon is not None]
     locations_by_event = await _fetch_event_locations(db, [str(r.id) for r in located])
     features = []

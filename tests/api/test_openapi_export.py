@@ -16,3 +16,9 @@ def test_geojson_properties_schema_has_locations() -> None:
     schema = app.openapi()
     props = schema["components"]["schemas"]["GeoJSONProperties"]["properties"]
     assert "locations" in props
+
+
+def test_events_endpoint_exposes_event_date_param() -> None:
+    schema = app.openapi()
+    params = schema["paths"]["/events"]["get"]["parameters"]
+    assert any(p["name"] == "event_date" for p in params)

@@ -447,6 +447,12 @@ export type ListEventsEventsGetData = {
          */
         date_to?: string | null;
         /**
+         * Event Date
+         *
+         * ISO 8601 day YYYY-MM-DD
+         */
+        event_date?: string | null;
+        /**
          * Bbox
          *
          * west,south,east,north
@@ -512,6 +518,12 @@ export type EventsGeojsonEventsGeojsonGetData = {
          * Channel
          */
         channel?: string | null;
+        /**
+         * Event Date
+         *
+         * ISO 8601 day YYYY-MM-DD
+         */
+        event_date?: string | null;
     };
     url: '/events/geojson';
 };
