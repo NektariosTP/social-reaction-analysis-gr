@@ -1,1 +1,1 @@
-"""Phase 2 — NLP: embed → HDBSCAN cluster → dedup → event registry."""
+"""Phase 2 — NLP: embed → single-pass cluster → dedup → event registry."""

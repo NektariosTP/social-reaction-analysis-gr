@@ -13,8 +13,6 @@ class NlpSettings(BaseSettings):
     )
     embedding_batch_size: int = 32
     cluster_window_days: int = 14
-    hdbscan_min_cluster_size: int = 3
-    hdbscan_min_samples: int = 2
     cluster_min_articles: int = 3
     cluster_min_intra_sim: float = 0.78
     event_registry_sim_threshold: float = 0.85

@@ -1,4 +1,4 @@
-"""Tests for HDBSCAN clustering + quality gates (no DB — synthetic numpy vectors)."""
+"""Tests for single-pass clustering + quality gates (no DB — synthetic numpy vectors)."""
 from __future__ import annotations
 
 import numpy as np
@@ -7,7 +7,6 @@ from nlp.clustering import single_pass_cluster, find_merges
 from nlp.clustering import (
     apply_quality_gates,
     compute_intra_similarity,
-    run_hdbscan,
 )
 
 
@@ -19,15 +18,6 @@ def _make_tight_cluster(n: int = 5, seed: int = 0) -> np.ndarray:
     vecs = base + noise
     norms = np.linalg.norm(vecs, axis=1, keepdims=True)
     return vecs / norms
-
-
-def test_hdbscan_finds_two_well_separated_clusters() -> None:
-    cluster_a = _make_tight_cluster(6, seed=0)
-    cluster_b = _make_tight_cluster(6, seed=99)
-    X = np.vstack([cluster_a, cluster_b])
-    labels = run_hdbscan(X, min_cluster_size=3, min_samples=2)
-    unique = set(labels) - {-1}
-    assert len(unique) == 2
 
 
 def test_compute_intra_similarity_high_for_tight_cluster() -> None:

@@ -1,10 +1,9 @@
-"""HDBSCAN clustering over article embeddings with configurable quality gates."""
+"""Single-pass incremental clustering over article embeddings with quality gates."""
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
 
-import hdbscan
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -16,19 +15,6 @@ class ClusterResult:
     embeddings: np.ndarray
     centroid: np.ndarray
     intra_sim: float
-
-
-def run_hdbscan(
-    X: np.ndarray,
-    min_cluster_size: int,
-    min_samples: int,
-) -> np.ndarray:
-    clusterer = hdbscan.HDBSCAN(
-        min_cluster_size=min_cluster_size,
-        min_samples=min_samples,
-        metric="euclidean",
-    )
-    return np.asarray(clusterer.fit_predict(X))
 
 
 def compute_intra_similarity(vecs: np.ndarray) -> float:
@@ -64,66 +50,6 @@ def apply_quality_gates(
             centroid=centroid,
             intra_sim=sim,
         )
-    return results
-
-
-async def cluster_articles_from_db(
-    session: object,
-    window_days: int,
-    min_cluster_size: int,
-    min_samples: int,
-    min_articles: int,
-    min_intra_sim: float,
-) -> dict[int, ClusterResult]:
-    """Fetch embeddings from DB and run full cluster pipeline. Returns quality-gated results."""
-    from sqlalchemy import text
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-    assert isinstance(session, AsyncSession)
-    result = await session.execute(
-        text(
-            """
-            SELECT id, embedding::text
-            FROM articles
-            WHERE embedding IS NOT NULL
-              AND is_duplicate = FALSE
-              AND event_id IS NULL
-              AND ingested_at >= NOW() - INTERVAL '1 day' * :window_days
-            ORDER BY ingested_at ASC
-            """
-        ),
-        {"window_days": window_days},
-    )
-    rows = result.all()
-    if not rows:
-        logger.info("[cluster] No embedded articles in window.")
-        return {}
-
-    ids = [str(r[0]) for r in rows]
-    vecs = np.array(
-        [[float(v) for v in r[1].strip("[]").split(",")] for r in rows],
-        dtype=np.float32,
-    )
-    logger.info("[cluster] Running HDBSCAN on %d articles.", len(ids))
-    labels = run_hdbscan(vecs, min_cluster_size, min_samples)
-
-    raw: dict[int, tuple[list[str], list[np.ndarray]]] = {}
-    for i, (article_id, label) in enumerate(zip(ids, labels)):
-        if label == -1:
-            continue
-        if label not in raw:
-            raw[label] = ([], [])
-        raw[label][0].append(article_id)
-        raw[label][1].append(vecs[i])
-
-    raw_arrays = {k: (v[0], np.array(v[1])) for k, v in raw.items()}
-    results = apply_quality_gates(raw_arrays, min_articles, min_intra_sim)
-
-    n_noise = int((labels == -1).sum())
-    logger.info(
-        "[cluster] %d clusters (quality-gated from %d raw), %d noise.",
-        len(results), len(raw), n_noise,
-    )
     return results
 
 
@@ -191,8 +117,8 @@ async def single_pass_cluster_from_db(
     min_articles: int,
     min_intra_sim: float,
 ) -> dict[int, ClusterResult]:
-    """DB-backed single-pass grouping of un-clustered articles. Drop-in for
-    cluster_articles_from_db: returns the same quality-gated ClusterResult dict."""
+    """DB-backed single-pass grouping of un-clustered articles.
+    Returns a quality-gated ClusterResult dict keyed by cluster label."""
     from sqlalchemy import text
     from sqlalchemy.ext.asyncio import AsyncSession
 

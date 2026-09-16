@@ -30,7 +30,7 @@ uv run alembic upgrade head
 # Phase 1 — Ingest: fetch → normalise → dedup by content_hash → articles table
 uv run python -m ingestion.run
 
-# Phase 2 — NLP: embed → cluster (HDBSCAN) → deduplicate → event registry
+# Phase 2 — NLP: embed → cluster (single-pass) → deduplicate → event registry
 uv run python -m nlp.pipeline
 
 # Phase 3 — Enrichment: 4-axis classify → geocode → summarise (EL+EN)
@@ -50,7 +50,7 @@ uvicorn api.main:app --reload --port 8000
 ```
 External sources
   → Ingestion (Phase 1): fetch → normalise → dedup (content_hash) → articles table
-  → NLP (Phase 2): embed (pgvector) → HDBSCAN cluster → dedupe → event registry
+  → NLP (Phase 2): embed (pgvector) → single-pass cluster → dedupe → event registry
   → Enrichment (Phase 3): 4-axis classify → geocode (Nominatim → PostGIS) → summarise
   → PostgreSQL 16 + pgvector + PostGIS  ←→  FastAPI (Phase 4): /events, /stats, /health
   → Frontend (Phase 5): React + TypeScript + MapLibre GL JS map + dashboard
@@ -74,7 +74,7 @@ External sources
 ### NLP Pipeline (`nlp/`)
 - `pipeline.py` — orchestrator; incremental per-stage processing
 - `embeddings.py` — sentence-transformers (`paraphrase-multilingual-mpnet-base-v2`), stored in `pgvector`
-- `clustering.py` — HDBSCAN; quality gates: `min_articles`, `min_intra_similarity`, `min_relevance`
+- `clustering.py` — single-pass incremental (greedy cosine ≥ `tau`); quality gates: `min_articles`, `min_intra_similarity`, `min_relevance`
 - `deduplication.py` — cosine + time-window; marks `is_duplicate`
 - `event_registry.py` — centroid cosine matching → stable `event_id` (UUID), `first_seen`/`last_seen`
 
@@ -104,7 +104,7 @@ All variables optional with sensible defaults. Commonly changed:
 - `GROQ_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` — LLM provider (Groq primary)
 - `LLM_MODEL` — explicit model string (auto-detected if omitted)
 - `PIPELINE_MODE` — worker cycle behaviour (default: `scrape_only`)
-- `CLUSTER_MIN_ARTICLES=3`, `CLUSTER_MIN_INTRA_SIM=0.78` — HDBSCAN quality gates
+- `CLUSTER_MIN_ARTICLES=3`, `CLUSTER_MIN_INTRA_SIM=0.78` — clustering quality gates; `CLUSTER_TAU=0.72` — single-pass cosine threshold
 - `DATABASE_URL` — Postgres connection string (default: Docker Compose `db` service)
 - `NOMINATIM_URL` — self-hosted Nominatim base URL
 

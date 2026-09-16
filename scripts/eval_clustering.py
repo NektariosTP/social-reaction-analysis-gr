@@ -1,7 +1,7 @@
 """Score clustering against gold_group in tests/fixtures/gold/clustering.jsonl.
 
 Baseline mode: use the pipeline_event_id already stored on each article as the
-'predicted' grouping (what the current HDBSCAN+registry produced). Later
+'predicted' grouping (what the single-pass clusterer + registry produced). Later
 milestones re-run the new clusterer over the same fixture articles and compare."""
 from __future__ import annotations
 

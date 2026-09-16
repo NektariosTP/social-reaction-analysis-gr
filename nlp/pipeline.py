@@ -93,8 +93,6 @@ async def run_nlp_pipeline(engine: AsyncEngine | None = None) -> dict[str, objec
     config_snapshot = {
         "embedding_model": settings.embedding_model,
         "cluster_window_days": settings.cluster_window_days,
-        "hdbscan_min_cluster_size": settings.hdbscan_min_cluster_size,
-        "hdbscan_min_samples": settings.hdbscan_min_samples,
         "cluster_min_articles": settings.cluster_min_articles,
         "cluster_min_intra_sim": settings.cluster_min_intra_sim,
         "event_registry_sim_threshold": settings.event_registry_sim_threshold,
