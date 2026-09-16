@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useEvents, useEventsGeoJSON, applyClientFilters } from "../api/queries";
-import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
-import { useLang } from "../hooks/useLang";
+import { useFilterState } from "../hooks/useFilterState";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
 import { Footer } from "../components/layout";
 import { MapView, MapLegend } from "../components/map";
@@ -23,12 +23,11 @@ import { useIsMobile } from "../hooks/useIsMobile";
 import styles from "./MainView.module.css";
 
 export function MainView() {
-  const [lang] = useLang();
+  const { t } = useTranslation();
   const { seen, dismiss } = useOnboardingSeen();
   const { filters, setFilters, toggleInList } = useFilterState();
   const [searchParams] = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [aboutOpen, setAboutOpen] = useState(false);
 
   // The floating sidebar (.blocks) sits on top of the map and its width is
@@ -164,25 +163,22 @@ export function MainView() {
     navigate(`/?${searchParams.toString()}`);
   }
 
-  const dateFrom = timeRangeToDateFrom(filters.timeRange);
+  const eventDate = filters.day ?? undefined;
   const eventsQuery = useEvents({
     actionForms: filters.actionForms,
     thematicFields: filters.thematicFields,
     channel: filters.channel ?? undefined,
     intensities: filters.intensities,
-    dateFrom,
+    eventDate,
     limit: 100,
   });
-  const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined });
+  const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined, eventDate });
 
   // Mobile sheet defaults to the unified feed; a user's explicit tab choice wins.
   const activeTab: SheetTab = userTab ?? "feed";
 
   const events = eventsQuery.data ?? [];
-  const q = searchQuery.trim().toLowerCase();
-  const filteredEvents = q
-    ? events.filter((e) => (lang === "el" ? e.summary_el : e.summary_en)?.toLowerCase().includes(q))
-    : events;
+  const emptyDayMessage = filters.day ? t("feed.emptyDay") : undefined;
 
   const geoFeatures = applyClientFilters(
     (geojsonQuery.data?.features ?? []).map((f) => ({ ...f.properties, feature: f })),
@@ -218,8 +214,6 @@ export function MainView() {
         <>
           <div className={styles.mobileHeader} ref={mobileHeaderRef}>
             <HeaderBlock
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
               filters={filters}
               onToggleFilterValue={toggleInList}
               onSetFilters={setFilters}
@@ -236,13 +230,14 @@ export function MainView() {
             {activeTab === "feed" && (
               <EditorialBlock
                 mode="list"
-                events={filteredEvents}
+                events={events}
                 eventsLoading={eventsQuery.isLoading}
                 eventsError={eventsQuery.isError}
                 highlightedEventId={expandedId}
                 expandedId={expandedId}
                 onSelectEvent={handleMobileSelect}
                 onViewOnMap={handleViewOnMap}
+                emptyMessage={emptyDayMessage}
               />
             )}
             {activeTab === "legend" && <LegendPanel />}
@@ -256,8 +251,6 @@ export function MainView() {
           <div className={styles.blocks} ref={sidebarRef}>
             <div className={styles.headerBlock}>
               <HeaderBlock
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
                 filters={filters}
                 onToggleFilterValue={toggleInList}
                 onSetFilters={setFilters}
@@ -268,13 +261,14 @@ export function MainView() {
               <div className={styles.editorialBlock}>
                 <EditorialBlock
                   mode={mode}
-                  events={filteredEvents}
+                  events={events}
                   eventsLoading={eventsQuery.isLoading}
                   eventsError={eventsQuery.isError}
                   highlightedEventId={previewId}
                   onSelectEvent={handleSelectEventFromList}
                   detailEventId={routeClusterId ?? ""}
                   onBack={handleBack}
+                  emptyMessage={emptyDayMessage}
                 />
               </div>
             </div>

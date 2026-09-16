@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FilterState } from "../../hooks/useFilterState";
-import { FilterPanel } from "../filters";
+import { FilterPanel, TimelineSlider } from "../filters";
 import { BrandMark } from "../common";
 import styles from "./HeaderBlock.module.css";
 
-type Expanded = "none" | "search" | "filter";
-
 interface HeaderBlockProps {
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
   filters: FilterState;
   onToggleFilterValue: (key: "actionForms" | "thematicFields", value: string) => void;
   onSetFilters: (next: Partial<FilterState>) => void;
@@ -17,33 +13,25 @@ interface HeaderBlockProps {
 }
 
 export function HeaderBlock({
-  searchQuery,
-  onSearchChange,
   filters,
   onToggleFilterValue,
   onSetFilters,
   trailing,
 }: HeaderBlockProps) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState<Expanded>("none");
+  const [filterOpen, setFilterOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  function closeSearch() {
-    setExpanded("none");
-  }
-
   useEffect(() => {
-    if (expanded === "none") return;
+    if (!filterOpen) return;
 
     function handlePointerDown(e: PointerEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        closeSearch();
+        setFilterOpen(false);
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        closeSearch();
-      }
+      if (e.key === "Escape") setFilterOpen(false);
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -52,7 +40,7 @@ export function HeaderBlock({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [expanded]);
+  }, [filterOpen]);
 
   return (
     <div ref={rootRef}>
@@ -62,22 +50,19 @@ export function HeaderBlock({
         {trailing && <div className={styles.trailing}>{trailing}</div>}
       </div>
       <div className={styles.searchRow}>
-        <input
-          className={styles.searchInput}
-          placeholder={t("search.placeholder")}
-          value={searchQuery}
-          onFocus={() => setExpanded("search")}
-          onChange={(e) => onSearchChange(e.target.value)}
+        <TimelineSlider
+          value={filters.day}
+          onChange={(day) => onSetFilters({ day })}
         />
         <button
           className={styles.filterToggle}
-          onClick={() => setExpanded((e) => (e === "filter" ? "none" : "filter"))}
+          onClick={() => setFilterOpen((v) => !v)}
         >
-          {expanded === "filter" ? "⋀" : "⋁"} {t("filters.title")}
+          {filterOpen ? "⋀" : "⋁"} {t("filters.title")}
         </button>
       </div>
 
-      {expanded === "filter" && (
+      {filterOpen && (
         <div className={styles.expansion}>
           <FilterPanel filters={filters} onToggle={onToggleFilterValue} onSetFilters={onSetFilters} />
           <div className={styles.expansionActions}>
@@ -89,13 +74,13 @@ export function HeaderBlock({
                   thematicFields: [],
                   channel: null,
                   intensities: [],
-                  timeRange: "all",
+                  day: null,
                 })
               }
             >
               {t("filters.clear")}
             </button>
-            <button className={styles.doneBtn} onClick={() => setExpanded("none")}>
+            <button className={styles.doneBtn} onClick={() => setFilterOpen(false)}>
               {t("filters.done")}
             </button>
           </div>

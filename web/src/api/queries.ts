@@ -18,8 +18,7 @@ export interface EventFilters {
   thematicFields?: string[];
   channel?: string;
   intensities?: string[];
-  dateFrom?: string;
-  dateTo?: string;
+  eventDate?: string;
   bbox?: string;
   limit?: number;
   offset?: number;
@@ -66,8 +65,7 @@ export function useEvents(filters: EventFilters = {}) {
         listEventsEventsGet({
           query: {
             channel: filters.channel ?? null,
-            date_from: filters.dateFrom ?? null,
-            date_to: filters.dateTo ?? null,
+            event_date: filters.eventDate ?? null,
             bbox: filters.bbox ?? null,
             limit: filters.limit ?? 100,
             offset: filters.offset ?? 0,
@@ -87,13 +85,16 @@ export function useEvent(id: string | undefined) {
   });
 }
 
-export function useEventsGeoJSON(filters: Pick<EventFilters, "channel"> = {}) {
+export function useEventsGeoJSON(filters: Pick<EventFilters, "channel" | "eventDate"> = {}) {
   return useQuery({
     queryKey: ["events-geojson", filters],
     queryFn: () =>
       unwrap(
         eventsGeojsonEventsGeojsonGet({
-          query: { channel: filters.channel ?? null },
+          query: {
+            channel: filters.channel ?? null,
+            event_date: filters.eventDate ?? null,
+          },
         }),
       ),
   });

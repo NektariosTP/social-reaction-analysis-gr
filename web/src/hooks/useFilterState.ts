@@ -1,27 +1,13 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
-export type TimeRange = "24h" | "7d" | "30d" | "all";
-
 export interface FilterState {
   actionForms: string[];
   thematicFields: string[];
   channel: string | null;
   intensities: string[];
-  timeRange: TimeRange;
-}
-
-const TIME_RANGE_HOURS: Record<TimeRange, number | null> = {
-  "24h": 24,
-  "7d": 24 * 7,
-  "30d": 24 * 30,
-  all: null,
-};
-
-export function timeRangeToDateFrom(range: TimeRange): string | undefined {
-  const hours = TIME_RANGE_HOURS[range];
-  if (hours === null) return undefined;
-  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  /** ISO YYYY-MM-DD local day to time-travel to, or null for Live (present). */
+  day: string | null;
 }
 
 // Taxonomy values may contain literal commas (e.g. the Intensity "Disruptive"
@@ -66,7 +52,7 @@ export function useFilterState() {
       thematicFields: parseList(params, "a2"),
       channel: params.get("a3"),
       intensities: parseList(params, "a4"),
-      timeRange: (params.get("t") as TimeRange | null) ?? "all",
+      day: params.get("d"),
     }),
     [params],
   );
@@ -90,8 +76,8 @@ export function useFilterState() {
           if (merged.intensities.length) out.set("a4", serializeList(merged.intensities));
           else out.delete("a4");
 
-          if (merged.timeRange !== "all") out.set("t", merged.timeRange);
-          else out.delete("t");
+          if (merged.day) out.set("d", merged.day);
+          else out.delete("d");
 
           return out;
         },

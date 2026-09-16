@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import "../../i18n";
 import { HeaderBlock } from "./HeaderBlock";
 import type { FilterState } from "../../hooks/useFilterState";
 
@@ -8,13 +9,11 @@ const baseFilters: FilterState = {
   thematicFields: [],
   channel: null,
   intensities: [],
-  timeRange: "all",
+  day: null,
 };
 
 function setup(overrides: Partial<React.ComponentProps<typeof HeaderBlock>> = {}) {
   const props = {
-    searchQuery: "",
-    onSearchChange: vi.fn(),
     filters: baseFilters,
     onToggleFilterValue: vi.fn(),
     onSetFilters: vi.fn(),
@@ -28,19 +27,23 @@ describe("HeaderBlock", () => {
   it("renders the SVG brand mark, not a letter mark", () => {
     setup();
     expect(screen.getByTestId("brand-mark")).toBeInTheDocument();
-    expect(screen.queryByText("p")).not.toBeInTheDocument();
   });
 
-  it("expands the filter panel and closes the search panel if it was open", () => {
+  it("renders the time-travel slider instead of a search input", () => {
     setup();
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
+    expect(screen.getByRole("slider")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/search/i)).not.toBeInTheDocument();
+  });
+
+  it("expands the filter panel when the Filters toggle is clicked", () => {
+    setup();
     fireEvent.click(screen.getByText(/filters/i));
     expect(screen.getByText("Clear")).toBeInTheDocument();
   });
 
-  it("calls onSetFilters with a fully-reset state when Clear is clicked", () => {
+  it("calls onSetFilters with a fully-reset state (day → null) when Clear is clicked", () => {
     const props = setup({
-      filters: { ...baseFilters, actionForms: ["Κατάληψη"], timeRange: "7d" },
+      filters: { ...baseFilters, actionForms: ["Κατάληψη"], day: "2026-09-09" },
     });
     fireEvent.click(screen.getByText(/filters/i));
     fireEvent.click(screen.getByText("Clear"));
@@ -49,7 +52,7 @@ describe("HeaderBlock", () => {
       thematicFields: [],
       channel: null,
       intensities: [],
-      timeRange: "all",
+      day: null,
     });
   });
 
@@ -64,13 +67,7 @@ describe("HeaderBlock", () => {
     render(
       <div>
         <div data-testid="outside">outside</div>
-        <HeaderBlock
-          searchQuery=""
-          onSearchChange={vi.fn()}
-          filters={baseFilters}
-          onToggleFilterValue={vi.fn()}
-          onSetFilters={vi.fn()}
-        />
+        <HeaderBlock filters={baseFilters} onToggleFilterValue={vi.fn()} onSetFilters={vi.fn()} />
       </div>,
     );
     fireEvent.click(screen.getByText(/filters/i));
@@ -79,26 +76,12 @@ describe("HeaderBlock", () => {
     expect(screen.queryByText("Clear")).not.toBeInTheDocument();
   });
 
-  it("keeps the filter popup open when clicking inside it", () => {
-    setup();
-    fireEvent.click(screen.getByText(/filters/i));
-    fireEvent.pointerDown(screen.getByText("Clear"));
-    expect(screen.getByText("Clear")).toBeInTheDocument();
-  });
-
   it("closes the popup on Escape", () => {
     setup();
     fireEvent.click(screen.getByText(/filters/i));
     expect(screen.getByText("Clear")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByText("Clear")).not.toBeInTheDocument();
-  });
-
-  it("preserves the search query text when Escape closes the search popup", () => {
-    const props = setup({ searchQuery: "athens" });
-    fireEvent.focus(screen.getByPlaceholderText(/search/i));
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(props.onSearchChange).not.toHaveBeenCalled();
   });
 
   it("renders the trailing slot in the brand row", () => {

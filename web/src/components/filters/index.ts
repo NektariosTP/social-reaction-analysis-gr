@@ -1,2 +1,2 @@
 export { FilterPanel } from "./FilterPanel";
-export { TimeRangeTabs } from "./TimeRangeTabs";
+export { TimelineSlider } from "./TimelineSlider";

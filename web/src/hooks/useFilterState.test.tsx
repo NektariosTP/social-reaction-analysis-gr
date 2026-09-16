@@ -113,3 +113,29 @@ describe("useFilterState URL round-trip", () => {
     expect(result.current.filters.intensities).not.toEqual([]);
   });
 });
+
+describe("useFilterState day (time-travel) param", () => {
+  it("defaults day to null (Live) when the `d` param is absent", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/"]}>{children}</MemoryRouter>,
+    });
+    expect(result.current.filters.day).toBeNull();
+  });
+
+  it("round-trips a selected day through the `d` URL param", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/"]}>{children}</MemoryRouter>,
+    });
+    act(() => {
+      result.current.setFilters({ day: "2026-09-09" });
+    });
+    expect(result.current.filters.day).toBe("2026-09-09");
+  });
+
+  it("reads an initial day from the `d` param", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/?d=2026-09-01"]}>{children}</MemoryRouter>,
+    });
+    expect(result.current.filters.day).toBe("2026-09-01");
+  });
+});

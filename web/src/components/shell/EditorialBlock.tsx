@@ -17,6 +17,8 @@ export interface EditorialBlockListProps {
   expandedId?: string | null;
   /** Mobile only: renders a "View on map" CTA inside the expanded analysis. */
   onViewOnMap?: () => void;
+  /** Shown in the feed when a specific past day has no events. */
+  emptyMessage?: string;
 }
 
 interface EditorialBlockDetailProps {
@@ -52,7 +54,7 @@ export function EditorialBlock(props: EditorialBlockProps) {
     );
   }
 
-  const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent, expandedId, onViewOnMap } =
+  const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent, expandedId, onViewOnMap, emptyMessage } =
     props;
   const sorted = sortEventsForFeed(events);
   const articles = events.reduce((sum, e) => sum + (e.article_count ?? 0), 0);
@@ -72,7 +74,7 @@ export function EditorialBlock(props: EditorialBlockProps) {
       <div className={styles.feedList} ref={listRef}>
         {eventsLoading && <Spinner />}
         {eventsError && <ErrorState />}
-        {!eventsLoading && !eventsError && events.length === 0 && <EmptyState />}
+        {!eventsLoading && !eventsError && events.length === 0 && <EmptyState message={emptyMessage} />}
         {sorted.map((e, i) => (
           <div
             key={e.id}

@@ -1,10 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { ACTION_FORM, THEMATIC_FIELD } from "../../i18n/taxonomy";
-import type { FilterState, TimeRange } from "../../hooks/useFilterState";
+import type { FilterState } from "../../hooks/useFilterState";
 import { AxisMultiSelect } from "./AxisMultiSelect";
 import { ChannelSelect } from "./ChannelSelect";
 import { IntensityRangeSelect } from "./IntensityRangeSelect";
-import { TimeRangeTabs } from "./TimeRangeTabs";
 import styles from "./FilterPanel.module.css";
 
 const ACTION_FORM_OPTIONS = Object.keys(ACTION_FORM);
@@ -21,16 +20,6 @@ export function FilterPanel({ filters, onToggle, onSetFilters }: FilterPanelProp
 
   return (
     <div className={styles.panel}>
-      <div className={styles.timeRow}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 6 }}>
-          {t("filters.time")}
-        </div>
-        <TimeRangeTabs
-          value={filters.timeRange}
-          onChange={(timeRange: TimeRange) => onSetFilters({ timeRange })}
-        />
-      </div>
-
       <div className={styles.col}>
         <AxisMultiSelect
           title={t("filters.axis1")}
