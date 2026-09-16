@@ -4,6 +4,7 @@ import type { EventSummary } from "../../client/types.gen";
 import { StoryCard } from "../cards";
 import { ClusterDetailContent, InlineAnalysis } from "../cluster";
 import { Spinner, ErrorState, EmptyState } from "../common";
+import { sortEventsForFeed } from "../../utils/sortEvents";
 import styles from "./EditorialBlock.module.css";
 
 export interface EditorialBlockListProps {
@@ -53,6 +54,7 @@ export function EditorialBlock(props: EditorialBlockProps) {
 
   const { events, eventsLoading, eventsError, highlightedEventId, onSelectEvent, expandedId, onViewOnMap } =
     props;
+  const sorted = sortEventsForFeed(events);
   const articles = events.reduce((sum, e) => sum + (e.article_count ?? 0), 0);
 
   return (
@@ -71,7 +73,7 @@ export function EditorialBlock(props: EditorialBlockProps) {
         {eventsLoading && <Spinner />}
         {eventsError && <ErrorState />}
         {!eventsLoading && !eventsError && events.length === 0 && <EmptyState />}
-        {events.map((e, i) => (
+        {sorted.map((e, i) => (
           <div
             key={e.id}
             data-event-id={e.id}

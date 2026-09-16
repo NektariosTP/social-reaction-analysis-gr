@@ -105,4 +105,39 @@ describe("EditorialBlock", () => {
     // back button is a sibling above the content, not wrapping it
     expect(backBtn.contains(detailContent)).toBe(false);
   });
+
+  it("renders feed events in sortEventsForFeed order (upcoming first)", () => {
+    const past: EventSummary = {
+      id: "past",
+      action_forms: [],
+      thematic_fields: [],
+      channel: null,
+      intensity: null,
+      summary_en: "Past event",
+      summary_el: null,
+      article_count: 1,
+      source_count: 1,
+      status: "active",
+      temporal_status: "past",
+      last_seen: "2026-01-05T00:00:00Z",
+    };
+    const upcoming: EventSummary = {
+      id: "up",
+      action_forms: [],
+      thematic_fields: [],
+      channel: null,
+      intensity: null,
+      summary_en: "Upcoming event",
+      summary_el: null,
+      article_count: 1,
+      source_count: 1,
+      status: "active",
+      temporal_status: "upcoming",
+      event_time: "2026-01-10T09:00:00Z",
+      last_seen: "2026-01-01T00:00:00Z",
+    };
+    renderList({ events: [past, upcoming] });
+    const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-event-id]"));
+    expect(cards.map((c) => c.dataset.eventId)).toEqual(["up", "past"]);
+  });
 });
