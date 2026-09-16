@@ -41,17 +41,24 @@ function multiLocFeature(id: string): GeoJsonFeature {
 }
 
 describe("useLocationOverlay", () => {
-  it("adds the overlay sources and both layers when style is loaded", () => {
+  it("adds the overlay sources and all four (static + active) layers when style is loaded", () => {
     const map = new mock.Map({});
     renderHook(() => useLocationOverlay(map, true, vi.fn()));
     const layerIds = mock.mapLayerCalls.map((l) => l.layer.id);
-    expect(layerIds).toEqual(expect.arrayContaining(["event-connectors", "event-secondaries"]));
+    expect(layerIds).toEqual(
+      expect.arrayContaining([
+        "event-connectors",
+        "event-connectors-active",
+        "event-secondaries",
+        "event-secondaries-active",
+      ]),
+    );
   });
 
   it("pushes derived data to the sources on updateOverlay", () => {
     const map = new mock.Map({});
     const { result } = renderHook(() => useLocationOverlay(map, true, vi.fn()));
-    result.current.updateOverlay([multiLocFeature("a")], "a");
+    result.current.updateOverlay([multiLocFeature("a")], ["a"]);
     // one secondary + one connector collection pushed
     expect(mock.mapSetDataCalls.length).toBeGreaterThanOrEqual(2);
     const pushed = mock.mapSetDataCalls.map((c) => c.data as GeoJSON.FeatureCollection);

@@ -6,20 +6,29 @@ import { buildLocationOverlay } from "./eventLocations";
 const CONNECTOR_SOURCE = "event-connectors-src";
 const SECONDARY_SOURCE = "event-secondaries-src";
 const CONNECTOR_LAYER = "event-connectors";
+const CONNECTOR_ACTIVE_LAYER = "event-connectors-active";
 const SECONDARY_LAYER = "event-secondaries";
+const SECONDARY_ACTIVE_LAYER = "event-secondaries-active";
 
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 // Ant-trail dash patterns, cycled to make dashes flow toward the primary.
+// Only the active (hovered/selected) connector layer ever animates through
+// these — every other connector stays on the first frame so the map isn't a
+// field of crawling lines when several multi-location events are on screen.
 const DASH_SEQUENCE: number[][] = [
   [0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5],
   [2, 4, 1], [2.5, 4, 0.5], [3, 4, 0], [0, 0.5, 3, 3.5],
   [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5],
   [0, 3, 3, 1], [0, 3.5, 3, 0.5],
 ];
+const STATIC_DASH = DASH_SEQUENCE[0];
 
 export interface LocationOverlayHandle {
-  updateOverlay(features: GeoJsonFeature[], selectedId: string | null): void;
+  updateOverlay(
+    features: GeoJsonFeature[],
+    activeIds: ReadonlyArray<string | null | undefined>,
+  ): void;
 }
 
 export function useLocationOverlay(
@@ -27,7 +36,7 @@ export function useLocationOverlay(
   styleLoaded: boolean,
   onSelectEvent: (id: string) => void,
 ): LocationOverlayHandle {
-  const hasDataRef = useRef(false);
+  const hasActiveRef = useRef(false);
   const onSelectRef = useRef(onSelectEvent);
   useEffect(() => {
     onSelectRef.current = onSelectEvent;
@@ -39,31 +48,58 @@ export function useLocationOverlay(
     map.addSource(CONNECTOR_SOURCE, { type: "geojson", data: EMPTY });
     map.addSource(SECONDARY_SOURCE, { type: "geojson", data: EMPTY });
 
-    // Connectors first so circles paint above the lines.
+    // Static layers first so the active layers (drawn per-event, on
+    // hover/select) always paint on top of the muted crowd.
     map.addLayer({
       id: CONNECTOR_LAYER,
       type: "line",
       source: CONNECTOR_SOURCE,
+      filter: ["!", ["get", "active"]],
       paint: {
         "line-color": ["get", "color"],
-        // Keep the unselected state clearly legible (not a faint ghost) while
-        // still visibly emphasising the selected event.
-        "line-opacity": ["case", ["get", "selected"], 0.95, 0.65],
-        "line-width": ["case", ["get", "selected"], 3, 2],
-        "line-dasharray": [0, 4, 3],
+        "line-opacity": 0.65,
+        "line-width": 2,
+        "line-dasharray": STATIC_DASH,
+      },
+    });
+    map.addLayer({
+      id: CONNECTOR_ACTIVE_LAYER,
+      type: "line",
+      source: CONNECTOR_SOURCE,
+      filter: ["get", "active"],
+      paint: {
+        "line-color": ["get", "color"],
+        "line-opacity": 0.95,
+        "line-width": 3,
+        "line-dasharray": STATIC_DASH,
       },
     });
     map.addLayer({
       id: SECONDARY_LAYER,
       type: "circle",
       source: SECONDARY_SOURCE,
+      filter: ["!", ["get", "active"]],
       paint: {
         "circle-color": ["get", "color"],
-        "circle-radius": ["case", ["get", "selected"], 8, 7],
-        "circle-opacity": ["case", ["get", "selected"], 0.95, 0.8],
+        "circle-radius": 7,
+        "circle-opacity": 0.8,
         "circle-stroke-width": 1.5,
         "circle-stroke-color": "#ffffff",
-        "circle-stroke-opacity": ["case", ["get", "selected"], 1, 0.9],
+        "circle-stroke-opacity": 0.9,
+      },
+    });
+    map.addLayer({
+      id: SECONDARY_ACTIVE_LAYER,
+      type: "circle",
+      source: SECONDARY_SOURCE,
+      filter: ["get", "active"],
+      paint: {
+        "circle-color": ["get", "color"],
+        "circle-radius": 8,
+        "circle-opacity": 0.95,
+        "circle-stroke-width": 1.5,
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-opacity": 1,
       },
     });
 
@@ -77,22 +113,24 @@ export function useLocationOverlay(
     const leave = () => {
       map.getCanvas().style.cursor = "";
     };
-    map.on("click", SECONDARY_LAYER, handleClick);
-    map.on("mouseenter", SECONDARY_LAYER, enter);
-    map.on("mouseleave", SECONDARY_LAYER, leave);
+    for (const layer of [SECONDARY_LAYER, SECONDARY_ACTIVE_LAYER]) {
+      map.on("click", layer, handleClick);
+      map.on("mouseenter", layer, enter);
+      map.on("mouseleave", layer, leave);
+    }
 
-    // Ant-trail animation (~15fps), only while connectors are present.
+    // Ant-trail animation (~15fps), only while an active connector exists.
     let raf = 0;
     let step = 0;
     let last = 0;
     const tick = (t: number) => {
       raf = requestAnimationFrame(tick);
-      if (!hasDataRef.current) return;
+      if (!hasActiveRef.current) return;
       if (t - last < 66) return;
       last = t;
       step = (step + 1) % DASH_SEQUENCE.length;
-      if (map.getLayer(CONNECTOR_LAYER)) {
-        map.setPaintProperty(CONNECTOR_LAYER, "line-dasharray", DASH_SEQUENCE[step]);
+      if (map.getLayer(CONNECTOR_ACTIVE_LAYER)) {
+        map.setPaintProperty(CONNECTOR_ACTIVE_LAYER, "line-dasharray", DASH_SEQUENCE[step]);
       }
     };
     raf = requestAnimationFrame(tick);
@@ -105,18 +143,19 @@ export function useLocationOverlay(
       // mini-map). Touching a removed map throws ("reading 'getLayer' of
       // undefined") — its layers/sources are already gone anyway, so bail.
       if ((map as unknown as { _removed?: boolean })._removed) return;
-      if (map.getLayer(SECONDARY_LAYER)) map.removeLayer(SECONDARY_LAYER);
-      if (map.getLayer(CONNECTOR_LAYER)) map.removeLayer(CONNECTOR_LAYER);
+      for (const id of [SECONDARY_ACTIVE_LAYER, SECONDARY_LAYER, CONNECTOR_ACTIVE_LAYER, CONNECTOR_LAYER]) {
+        if (map.getLayer(id)) map.removeLayer(id);
+      }
       if (map.getSource(SECONDARY_SOURCE)) map.removeSource(SECONDARY_SOURCE);
       if (map.getSource(CONNECTOR_SOURCE)) map.removeSource(CONNECTOR_SOURCE);
     };
   }, [map, styleLoaded]);
 
   return {
-    updateOverlay(features, selectedId) {
+    updateOverlay(features, activeIds) {
       if (!map) return;
-      const { secondaries, connectors } = buildLocationOverlay(features, selectedId);
-      hasDataRef.current = connectors.features.length > 0;
+      const { secondaries, connectors } = buildLocationOverlay(features, activeIds);
+      hasActiveRef.current = connectors.features.some((f) => f.properties?.active === true);
       (map.getSource(CONNECTOR_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(connectors);
       (map.getSource(SECONDARY_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(secondaries);
     },

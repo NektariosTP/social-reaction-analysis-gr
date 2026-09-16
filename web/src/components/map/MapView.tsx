@@ -83,6 +83,11 @@ export function MapView({
   useEffect(() => {
     featuresRef.current = features;
   }, [features]);
+  // Transient hover state for the location-overlay lines: which primary
+  // marker the cursor is currently over. Lives outside React state so
+  // hovering never re-triggers the (expensive) marker rebuild below — it
+  // only pushes new data into the already-mounted overlay GL layers.
+  const hoveredIdRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -275,6 +280,14 @@ export function MapView({
           showThisLabel ? labelText : undefined,
         );
         el.addEventListener("click", () => onSelectEventRef.current(feature.properties.id));
+        el.addEventListener("mouseenter", () => {
+          hoveredIdRef.current = feature.properties.id;
+          overlay.updateOverlay(featuresRef.current, [selectedId, hoveredIdRef.current]);
+        });
+        el.addEventListener("mouseleave", () => {
+          if (hoveredIdRef.current === feature.properties.id) hoveredIdRef.current = null;
+          overlay.updateOverlay(featuresRef.current, [selectedId, hoveredIdRef.current]);
+        });
         return new maplibregl.Marker({ element: el, anchor: "center", offset: fanOffset(feature.properties.id) })
           .setLngLat(point.coordinates)
           .addTo(map);
@@ -292,7 +305,7 @@ export function MapView({
 
       // Overlay covers every multi-location event regardless of viewport or
       // clustering (see buildLocationOverlay) — it isn't derived from `points`.
-      overlay.updateOverlay(featuresRef.current, selectedId ?? null);
+      overlay.updateOverlay(featuresRef.current, [selectedId, hoveredIdRef.current]);
     };
 
     const handleZoomStart = () => {

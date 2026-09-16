@@ -17,6 +17,7 @@
   "filters.axis4": "Intensity",
   "legend.title": "Legend",
   "legend.countHint": "Number on marker = article count",
+  "legend.colorHint": "Marker/line colour = intensity",
   "sheet.feed": "Feed",
   "time.travelLabel": "Time travel",
   "kpi.events": "events",

@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY } from "../../i18n/taxonomy";
+import { useLang } from "../../hooks/useLang";
+import { ACTION_FORM, THEMATIC_FIELD, CHANNEL, INTENSITY, axisLabel } from "../../i18n/taxonomy";
 import { AxisReferenceBlock } from "../common/AxisReferenceBlock";
 import { AxisValueChip, type ChipAxis } from "../common/AxisValueChip";
+import { INTENSITY_COLORS } from "./bubbleColors";
 import styles from "./MapLegend.module.css";
 
 const AXES: { titleKey: string; axis: ChipAxis; values: string[]; color: string }[] = [
@@ -17,6 +19,7 @@ const AXES: { titleKey: string; axis: ChipAxis; values: string[]; color: string 
  * About, onboarding) so the legend reads as one system. */
 export function LegendContent() {
   const { t } = useTranslation();
+  const [lang] = useLang();
 
   return (
     <div className={styles.content}>
@@ -30,6 +33,17 @@ export function LegendContent() {
         </AxisReferenceBlock>
       ))}
       <div className={styles.hint}>{t("legend.countHint")}</div>
+      <div className={styles.colorHint}>
+        {t("legend.colorHint")}
+        <div className={styles.swatchRow}>
+          {Object.entries(INTENSITY).map(([value, { level }]) => (
+            <span key={value} className={styles.swatch}>
+              <span className={styles.dot} style={{ background: INTENSITY_COLORS[level] }} />
+              {axisLabel(value, lang)}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

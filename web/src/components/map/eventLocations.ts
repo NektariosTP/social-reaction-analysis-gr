@@ -23,13 +23,20 @@ interface Loc {
  * a nearby cluster — in both cases the satellites/connectors must still show.
  * Connectors anchor to the event's own primary coordinate (≈ the cluster's
  * position when it is clustered), so they don't dangle in empty space.
+ *
+ * All connectors/satellites render at all times to avoid a fully-hidden
+ * discovery problem, but only stay muted + static until "activated" — by
+ * hovering or selecting the event's primary marker, or selecting it from the
+ * event list/analysis panel. `activeIds` carries every id that should light
+ * up right now (typically the hovered id and the selected id together).
  */
 export function buildLocationOverlay(
   features: GeoJsonFeature[],
-  selectedId: string | null,
+  activeIds: ReadonlyArray<string | null | undefined>,
 ): LocationOverlay {
   const secondaries: GeoJSON.Feature[] = [];
   const connectors: GeoJSON.Feature[] = [];
+  const active = new Set(activeIds.filter((id): id is string => !!id));
 
   for (const f of features) {
     const id = f.properties.id;
@@ -42,8 +49,7 @@ export function buildLocationOverlay(
       is_primary: true,
     };
     const color = intensityColor(f.properties.intensity);
-    const selected = id === selectedId;
-    const props = { eventId: id, selected, color };
+    const props = { eventId: id, active: active.has(id), color };
 
     for (const loc of locations) {
       if (loc.is_primary) continue;

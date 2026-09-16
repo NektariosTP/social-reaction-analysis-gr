@@ -17,6 +17,7 @@
   "filters.axis4": "Ένταση",
   "legend.title": "Υπόμνημα",
   "legend.countHint": "Ο αριθμός στον δείκτη = πλήθος άρθρων",
+  "legend.colorHint": "Το χρώμα δείκτη/γραμμής = ένταση",
   "sheet.feed": "Ροή",
   "time.travelLabel": "Χρονική πλοήγηση",
   "kpi.events": "γεγονότα",
