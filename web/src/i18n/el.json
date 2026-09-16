@@ -19,7 +19,6 @@
   "filters.time": "Χρονικό εύρος",
   "legend.title": "Υπόμνημα",
   "legend.countHint": "Ο αριθμός στον δείκτη = πλήθος άρθρων",
-  "sheet.temporal": "Ημερολόγιο",
   "sheet.feed": "Ροή",
   "time.24h": "Τελευταίες 24 ώρες",
   "time.7d": "Τελευταίες 7 ημέρες",
@@ -90,14 +89,5 @@
   "about.thesisPdf": "Πλήρες PDF διπλωματικής",
   "about.thesisRepo": "[repository πανεπιστημίου]",
   "about.licenseUse": "Τα δεδομένα προορίζονται μόνο για ακαδημαϊκή, μη εμπορική χρήση.",
-  "about.licenseCopyright": "© 2026 [Όνομα Συγγραφέα] — CC BY-NC 4.0",
-  "temporal": {
-    "ongoing": "Σε εξέλιξη",
-    "upcoming": "Προσεχώς",
-    "panhellenic": "Πανελλαδικά",
-    "other": "Υπόλοιπα",
-    "today": "Σήμερα",
-    "emptyOngoing": "Καμία δράση σήμερα.",
-    "emptyUpcoming": "Καμία προγραμματισμένη δράση."
-  }
+  "about.licenseCopyright": "© 2026 [Όνομα Συγγραφέα] — CC BY-NC 4.0"
 }

@@ -19,7 +19,6 @@
   "filters.time": "Time range",
   "legend.title": "Legend",
   "legend.countHint": "Number on marker = article count",
-  "sheet.temporal": "Calendar",
   "sheet.feed": "Feed",
   "time.24h": "Last 24h",
   "time.7d": "Last 7 days",
@@ -90,14 +89,5 @@
   "about.thesisPdf": "Full thesis PDF",
   "about.thesisRepo": "[university repository]",
   "about.licenseUse": "Data for academic, non-commercial use only.",
-  "about.licenseCopyright": "© 2026 [Author Name] — CC BY-NC 4.0",
-  "temporal": {
-    "ongoing": "Ongoing",
-    "upcoming": "Upcoming",
-    "panhellenic": "Panhellenic",
-    "other": "Other",
-    "today": "Today",
-    "emptyOngoing": "No events happening today.",
-    "emptyUpcoming": "No upcoming events scheduled."
-  }
+  "about.licenseCopyright": "© 2026 [Author Name] — CC BY-NC 4.0"
 }
