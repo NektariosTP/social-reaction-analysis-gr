@@ -316,6 +316,27 @@ async def test_fetch_events_filters_by_event_date() -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_events_day_filter_includes_archived_events() -> None:
+    # The archival sweep (worker/archival.py) flips events to status='archived'
+    # 24h after their event_time — which is often *before* a user time-travels
+    # back to that day. Live (no event_date) must still hide archived events;
+    # only the day-filtered query should see through the sweep.
+    session = _mock_session_capturing()
+    await _fetch_events(session, event_date="2026-09-15")
+    sql = session.execute.call_args.args[0].text
+    assert "status IN ('enriched', 'archived')" in sql
+
+
+@pytest.mark.asyncio
+async def test_fetch_events_live_excludes_archived_events() -> None:
+    session = _mock_session_capturing()
+    await _fetch_events(session)
+    sql = session.execute.call_args.args[0].text
+    assert "status = 'enriched'" in sql
+    assert "archived" not in sql
+
+
+@pytest.mark.asyncio
 async def test_fetch_events_rejects_bad_event_date() -> None:
     session = _mock_session_capturing()
     with pytest.raises(HTTPException) as exc:

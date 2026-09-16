@@ -10,10 +10,18 @@ function isoNDaysAgo(n: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function formatIso(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" }).format(
+    new Date(y, m - 1, d),
+  );
+}
+
 describe("TimelineSlider", () => {
-  it("shows the Live label and sits at the rightmost position when value is null", () => {
+  it("shows today's date (never the word Live) and sits at the rightmost position when value is null", () => {
     render(<TimelineSlider value={null} onChange={vi.fn()} maxDaysBack={30} />);
-    expect(screen.getByText("Live")).toBeInTheDocument();
+    expect(screen.getByText(formatIso(isoNDaysAgo(0)))).toBeInTheDocument();
+    expect(screen.queryByText("Live")).not.toBeInTheDocument();
     const input = screen.getByRole("slider") as HTMLInputElement;
     expect(input.value).toBe("30");
   });
@@ -22,7 +30,7 @@ describe("TimelineSlider", () => {
     render(<TimelineSlider value={isoNDaysAgo(5)} onChange={vi.fn()} maxDaysBack={30} />);
     const input = screen.getByRole("slider") as HTMLInputElement;
     expect(input.value).toBe("25"); // 30 - 5 days back
-    expect(screen.queryByText("Live")).not.toBeInTheDocument();
+    expect(screen.getByText(formatIso(isoNDaysAgo(5)))).toBeInTheDocument();
   });
 
   it("updates the label live on input but does NOT commit onChange until release", () => {
@@ -31,7 +39,7 @@ describe("TimelineSlider", () => {
     const input = screen.getByRole("slider") as HTMLInputElement;
     fireEvent.input(input, { target: { value: "20" } }); // 10 days back
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.queryByText("Live")).not.toBeInTheDocument();
+    expect(screen.getByText(formatIso(isoNDaysAgo(10)))).toBeInTheDocument();
   });
 
   it("commits the resolved day on release (change event)", () => {

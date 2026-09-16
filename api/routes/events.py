@@ -106,7 +106,13 @@ async def _fetch_events(
     limit: int = 50,
     offset: int = 0,
 ) -> list[Row[Any]]:
-    conditions = ["status = 'enriched'"]
+    # The archival sweep (worker/archival.py) flips events to status='archived'
+    # 24h after their event_time, which routinely happens before a user
+    # time-travels back to that day. Only the day-filtered query sees through
+    # the sweep; Live keeps hiding archived events.
+    conditions = [
+        "status IN ('enriched', 'archived')" if event_date else "status = 'enriched'"
+    ]
     params: dict[str, Any] = {"limit": limit, "offset": offset}
 
     if action_form:

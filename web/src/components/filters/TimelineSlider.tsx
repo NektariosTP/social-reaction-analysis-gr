@@ -61,18 +61,23 @@ export function TimelineSlider({ value, onChange, maxDaysBack = 30 }: TimelineSl
     return () => el.removeEventListener("change", commit);
   }, [onChange, maxDaysBack]);
 
-  const day = posToDay(pos, maxDaysBack);
-  const label =
-    day === null
-      ? t("time.live")
-      : new Intl.DateTimeFormat(i18n.language, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        }).format(new Date(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8, 10))));
+  // Always shows an actual calendar date, including today's — never the word "Live".
+  const shownDay = posToDay(pos, maxDaysBack) ?? isoNDaysAgo(0);
+  const label = new Intl.DateTimeFormat(i18n.language, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(
+    new Date(
+      Number(shownDay.slice(0, 4)),
+      Number(shownDay.slice(5, 7)) - 1,
+      Number(shownDay.slice(8, 10)),
+    ),
+  );
 
   return (
     <div className={styles.slider}>
+      <span className={styles.label}>{label}</span>
       <input
         ref={ref}
         type="range"
@@ -84,7 +89,6 @@ export function TimelineSlider({ value, onChange, maxDaysBack = 30 }: TimelineSl
         className={styles.range}
         aria-label={t("time.travelLabel")}
       />
-      <span className={styles.label}>{label}</span>
     </div>
   );
 }
