@@ -1,0 +1,20 @@
+# apergia.map
+
+> Real-time platform that detects, classifies, and visualises social movements and civic reactions in Greece. It ingests Greek-language news and social content, groups related coverage into discrete events via NLP clustering, geocodes each event to a location within Greece, and labels it across four independent axes: Action Form (e.g. demonstration, strike, occupation), Thematic Field (e.g. labour, political, environmental), Channel (physical/digital/hybrid), and Intensity (peaceful to violent/confrontational). Events are summarised bilingually in Greek and English.
+
+Data covers events across Greece only, drawn from Greek news RSS feeds and official sources (e.g. unions). Coverage is continuously updated; a day-by-day time-travel slider lets users step back through up to 30 days of history in addition to the live view.
+
+## Interface
+- [Map & dashboard](https://apergiamap.dpdns.org/): interactive MapLibre GL map of Greece with event markers, filterable by action form, thematic field, channel, intensity, region, and date; paired with a statistics dashboard.
+
+## API
+- [OpenAPI docs](https://apergiamap.dpdns.org/docs): interactive Swagger UI for the read-only REST API.
+- [OpenAPI schema](https://apergiamap.dpdns.org/openapi.json): machine-readable schema, source of truth for the generated TypeScript client.
+- `GET /events` — paginated, filterable event list (all four classification axes, region, bbox, date).
+- `GET /events/{id}` — single event detail.
+- `GET /events/geojson` — events as a GeoJSON FeatureCollection for map rendering.
+- `GET /health` — service health check.
+
+## Notes
+- The platform is scoped to Greece only; events outside Greece are out of scope even if a source (e.g. Cypriot Greek-language news) is picked up.
+- This is a research/thesis project, not a commercial news source; event detection and classification are automated (NLP/LLM-based) and may contain errors.
