@@ -4,7 +4,7 @@ import type { EventSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
 import { formatRelativeTime } from "../../utils/time";
 import { sourceCountDisplay } from "../../utils/sourceDisplay";
-import { AxisTag } from "../common";
+import { AxisTag, TemporalBanner } from "../common";
 import styles from "./StoryCard.module.css";
 
 interface StoryCardProps {
@@ -35,6 +35,8 @@ export function StoryCard({ event, variant = "compact", onOpen, expanded = false
         }
       }}
     >
+      <TemporalBanner event={event} />
+
       <div className={styles.collapsible} data-collapsed={expanded || undefined}>
         <div className={styles.collapsibleInner}>
           <div className={styles.tags}>

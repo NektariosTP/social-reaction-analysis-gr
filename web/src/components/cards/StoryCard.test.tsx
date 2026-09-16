@@ -52,3 +52,30 @@ describe("StoryCard onOpen", () => {
     expect(screen.getByText("Test event").closest("a")).toHaveAttribute("href", "/cluster/evt-1");
   });
 });
+
+describe("StoryCard temporal banner", () => {
+  it("renders the temporal banner for an upcoming/union event", () => {
+    const upcoming: EventSummary = {
+      ...event,
+      temporal_status: "upcoming",
+      event_time: "2026-02-01T09:00:00Z",
+      announced_by: "ΓΣΕΕ",
+      participating_unions: ["ΓΣΕΕ"],
+    };
+    render(
+      <MemoryRouter>
+        <StoryCard event={upcoming} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/ΓΣΕΕ/)).toBeInTheDocument();
+  });
+
+  it("renders no banner for a plain undated event with no unions", () => {
+    render(
+      <MemoryRouter>
+        <StoryCard event={event} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/📣/)).not.toBeInTheDocument();
+  });
+});
