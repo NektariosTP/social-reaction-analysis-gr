@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import styles from "./BottomNav.module.css";
 
-export type SheetTab = "temporal" | "feed" | "legend" | "about";
+export type SheetTab = "feed" | "legend" | "about";
 
 interface BottomNavProps {
   active: SheetTab;
@@ -13,7 +13,6 @@ interface BottomNavProps {
 }
 
 const TABS: { key: SheetTab; icon: string; labelKey: string }[] = [
-  { key: "temporal", icon: "📣", labelKey: "sheet.temporal" },
   { key: "feed", icon: "📰", labelKey: "sheet.feed" },
   { key: "legend", icon: "🗺️", labelKey: "legend.title" },
   { key: "about", icon: "ℹ️", labelKey: "nav.about" },

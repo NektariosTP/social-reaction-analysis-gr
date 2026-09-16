@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useEvents, useEventsGeoJSON, useOngoingEvents, useUpcomingEvents, applyClientFilters } from "../api/queries";
+import { useEvents, useEventsGeoJSON, applyClientFilters } from "../api/queries";
 import { useFilterState, timeRangeToDateFrom } from "../hooks/useFilterState";
 import { useLang } from "../hooks/useLang";
 import { useOnboardingSeen } from "../hooks/useOnboardingSeen";
@@ -11,7 +11,6 @@ import { OnboardingOverlay } from "../components/onboarding";
 import {
   HeaderBlock,
   EditorialBlock,
-  TemporalBlock,
   UserControls,
   BottomSheet,
   BottomNav,
@@ -175,18 +174,9 @@ export function MainView() {
     limit: 100,
   });
   const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined });
-  const ongoingQuery = useOngoingEvents();
-  const upcomingQuery = useUpcomingEvents();
 
-  // Default the mobile view to Feed rather than an empty Calendar: once the
-  // Ongoing/Upcoming data has loaded and is empty, "temporal" falls back to
-  // "feed". A user's explicit tab choice (userTab) always wins.
-  const temporalEmpty =
-    !ongoingQuery.isLoading &&
-    !upcomingQuery.isLoading &&
-    (ongoingQuery.data?.length ?? 0) === 0 &&
-    (upcomingQuery.data?.length ?? 0) === 0;
-  const activeTab: SheetTab = userTab ?? (temporalEmpty ? "feed" : "temporal");
+  // Mobile sheet defaults to the unified feed; a user's explicit tab choice wins.
+  const activeTab: SheetTab = userTab ?? "feed";
 
   const events = eventsQuery.data ?? [];
   const q = searchQuery.trim().toLowerCase();
@@ -243,17 +233,6 @@ export function MainView() {
             expanded={sheetExpanded}
             onExpandedChange={setSheetExpanded}
           >
-            {activeTab === "temporal" && (
-              <TemporalBlock
-                ongoing={ongoingQuery.data ?? []}
-                upcoming={upcomingQuery.data ?? []}
-                loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
-                error={ongoingQuery.isError || upcomingQuery.isError}
-                expandedId={expandedId}
-                onSelectEvent={handleMobileSelect}
-                onViewOnMap={handleViewOnMap}
-              />
-            )}
             {activeTab === "feed" && (
               <EditorialBlock
                 mode="list"
@@ -286,16 +265,6 @@ export function MainView() {
             </div>
 
             <div className={styles.scrollColumn}>
-              {mode === "list" && (
-                <TemporalBlock
-                  ongoing={ongoingQuery.data ?? []}
-                  upcoming={upcomingQuery.data ?? []}
-                  loading={ongoingQuery.isLoading || upcomingQuery.isLoading}
-                  error={ongoingQuery.isError || upcomingQuery.isError}
-                  onSelectEvent={handleSelectEventFromList}
-                />
-              )}
-
               <div className={styles.editorialBlock}>
                 <EditorialBlock
                   mode={mode}
