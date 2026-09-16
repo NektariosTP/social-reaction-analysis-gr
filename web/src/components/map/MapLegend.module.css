@@ -58,16 +58,11 @@
 }
 
 .swatchRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.swatch {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 
 .dot {
