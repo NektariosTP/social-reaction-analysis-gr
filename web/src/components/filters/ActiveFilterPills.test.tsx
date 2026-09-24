@@ -55,4 +55,30 @@ describe("ActiveFilterPills", () => {
     await userEvent.click(screen.getByRole("button", { name: /last 7 days/i }));
     expect(onSetFilters).toHaveBeenCalledWith({ windowDays: null, day: null });
   });
+
+  it("colors an action-form pill like its legend chip", () => {
+    renderPills({ ...EMPTY, actionForms: ["Κατάληψη"] });
+    expect(screen.getByRole("button", { name: /occupation/i }).className).toMatch(/action/);
+  });
+
+  it("colors a theme pill like its legend chip", () => {
+    renderPills({ ...EMPTY, thematicFields: ["Εργασιακό"] });
+    expect(screen.getByRole("button", { name: /labour/i }).className).toMatch(/theme/);
+  });
+
+  it("colors a channel pill like its legend chip", () => {
+    renderPills({ ...EMPTY, channel: "Φυσικό (offline)" });
+    expect(screen.getByRole("button", { name: /physical/i }).className).toMatch(/channel/);
+  });
+
+  it("colors an intensity pill like its legend chip", () => {
+    renderPills({ ...EMPTY, intensity: "Ειρηνική" });
+    expect(screen.getByRole("button", { name: /peaceful/i }).className).toMatch(/intensity/);
+  });
+
+  it("does not apply an axis color class to the range pill", () => {
+    renderPills({ ...EMPTY, windowDays: 7 });
+    const className = screen.getByRole("button", { name: /last 7 days/i }).className;
+    expect(className).not.toMatch(/action|theme|channel|intensity/);
+  });
 });

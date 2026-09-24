@@ -51,7 +51,7 @@ export const CHANNEL_BORDER_STYLE: Record<string, "solid" | "dashed" | "dotted">
 
 export const INTENSITY: Record<string, IntensityEntry> = {
   "Ειρηνική": { en: "Peaceful", level: 1 },
-  "Διαταρακτική (μη βίαιη, παρεμποδιστική)": { en: "Disruptive (non-violent, obstructive)", level: 2 },
+  "Διαταρακτική": { en: "Disruptive", level: 2 },
   "Βίαιη/Συγκρουσιακή": { en: "Violent / Confrontational", level: 3 },
 };
 

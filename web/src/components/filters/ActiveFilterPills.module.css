@@ -18,8 +18,40 @@
   white-space: nowrap;
 }
 
+/* Taxonomy pills borrow the legend's per-axis palette instead of the
+   neutral default above, so an active filter reads as the same chip
+   whether it's clicked off here or in the legend. */
+.action {
+  border-color: transparent;
+  background: var(--axis-action-bg);
+  color: var(--axis-action-fg);
+}
+
+.theme {
+  border-color: transparent;
+  background: var(--axis-theme-bg);
+  color: var(--axis-theme-fg);
+}
+
+.channel {
+  border-color: transparent;
+  background: var(--axis-channel-bg);
+  color: var(--axis-channel-fg);
+}
+
+.intensity {
+  border-color: transparent;
+  background: var(--axis-intensity-bg);
+  color: var(--axis-intensity-fg);
+}
+
+.icon {
+  font-size: 13px;
+}
+
 .x {
-  color: var(--color-text-muted);
+  color: currentColor;
+  opacity: 0.6;
   font-size: 10px;
 }
 
