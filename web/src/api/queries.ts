@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import "./client";
 import {
   eventsGeojsonEventsGeojsonGet,
@@ -74,6 +74,11 @@ export function useEvents(filters: EventFilters = {}) {
       );
       return applyClientFilters(events, filters);
     },
+    // Keep the prior results visible while a new day/range query is in flight so
+    // MainView never swaps MapView for a Spinner — otherwise the MapLibre instance
+    // is torn down and rebuilt on every slider/range change (the "whole map
+    // re-renders" bug). Markers update; the map itself stays mounted.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -97,5 +102,7 @@ export function useEventsGeoJSON(filters: Pick<EventFilters, "channel" | "eventD
           },
         }),
       ),
+    // See useEvents — keeps the map mounted across day/range changes.
+    placeholderData: keepPreviousData,
   });
 }
