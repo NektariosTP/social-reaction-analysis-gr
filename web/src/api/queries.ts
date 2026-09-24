@@ -17,7 +17,7 @@ export interface EventFilters {
   actionForms?: string[];
   thematicFields?: string[];
   channel?: string;
-  intensities?: string[];
+  intensity?: string;
   eventDate?: string;
   windowDays?: number;
   bbox?: string;
@@ -28,19 +28,20 @@ export interface EventFilters {
 interface AxisTaggedEntity {
   action_forms: string[];
   thematic_fields: string[];
-  intensity?: string | null;
 }
 
 /**
- * The API only accepts a single value per axis query param. For multi-select
- * axis filters we fetch a broader page (server-side on the filters that ARE
- * single-valued) and narrow client-side against the label arrays we already
- * have — simpler and more honest than firing N requests and merging them.
+ * The API only accepts a single value per axis query param. Action/theme are
+ * genuinely multi-select, so for those we fetch a broader page (server-side
+ * on the filters that ARE single-valued) and narrow client-side against the
+ * label arrays we already have — simpler and more honest than firing N
+ * requests and merging them. Channel and intensity are single-valued per
+ * event, so they go straight through as server-side query params instead.
  * Shared between the /events list and /events/geojson results.
  */
 export function applyClientFilters<T extends AxisTaggedEntity>(
   entities: T[],
-  filters: Pick<EventFilters, "actionForms" | "thematicFields" | "intensities">,
+  filters: Pick<EventFilters, "actionForms" | "thematicFields">,
 ): T[] {
   let result = entities;
   if (filters.actionForms?.length) {
@@ -50,10 +51,6 @@ export function applyClientFilters<T extends AxisTaggedEntity>(
   if (filters.thematicFields?.length) {
     const set = new Set(filters.thematicFields);
     result = result.filter((e) => e.thematic_fields.some((f) => set.has(f)));
-  }
-  if (filters.intensities?.length) {
-    const set = new Set(filters.intensities);
-    result = result.filter((e) => e.intensity && set.has(e.intensity));
   }
   return result;
 }
@@ -66,6 +63,7 @@ export function useEvents(filters: EventFilters = {}) {
         listEventsEventsGet({
           query: {
             channel: filters.channel ?? null,
+            intensity: filters.intensity ?? null,
             event_date: filters.eventDate ?? null,
             window_days: filters.windowDays ?? null,
             bbox: filters.bbox ?? null,
@@ -93,7 +91,7 @@ export function useEvent(id: string | undefined) {
 }
 
 export function useEventsGeoJSON(
-  filters: Pick<EventFilters, "channel" | "eventDate" | "windowDays"> = {},
+  filters: Pick<EventFilters, "channel" | "intensity" | "eventDate" | "windowDays"> = {},
 ) {
   return useQuery({
     queryKey: ["events-geojson", filters],
@@ -102,6 +100,7 @@ export function useEventsGeoJSON(
         eventsGeojsonEventsGeojsonGet({
           query: {
             channel: filters.channel ?? null,
+            intensity: filters.intensity ?? null,
             event_date: filters.eventDate ?? null,
             window_days: filters.windowDays ?? null,
           },

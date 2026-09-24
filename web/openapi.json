@@ -351,6 +351,22 @@
             }
           },
           {
+            "name": "intensity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Intensity"
+            }
+          },
+          {
             "name": "event_date",
             "in": "query",
             "required": false,

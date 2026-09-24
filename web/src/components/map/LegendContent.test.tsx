@@ -8,27 +8,38 @@ const EMPTY: FilterState = {
   actionForms: [],
   thematicFields: [],
   channel: null,
-  intensities: [],
+  intensity: null,
   day: null,
   windowDays: null,
 };
 
 describe("LegendContent intensity chips (interactive)", () => {
-  it("clicking an intensity chip from the default state narrows to just that value", async () => {
-    const onToggleFilterValue = vi.fn();
+  it("clicking an intensity chip selects that value, single-select like channel", async () => {
+    const onSetFilters = vi.fn();
     render(
-      <LegendContent filters={EMPTY} onToggleFilterValue={onToggleFilterValue} onSetFilters={vi.fn()} />,
+      <LegendContent filters={EMPTY} onToggleFilterValue={vi.fn()} onSetFilters={onSetFilters} />,
     );
     await userEvent.click(screen.getByRole("button", { name: /^Peaceful$/ }));
-    // Additive, matching the Action/Theme axes: routed through the same
-    // toggleInList-backed handler, not the checkbox-style "all" sentinel.
-    expect(onToggleFilterValue).toHaveBeenCalledWith("intensities", "Ειρηνική");
+    expect(onSetFilters).toHaveBeenCalledWith({ intensity: "Ειρηνική" });
   });
 
-  it("highlights only the intensities present in the active filter list", () => {
+  it("clicking the already-active intensity chip clears it back to All", async () => {
+    const onSetFilters = vi.fn();
     render(
       <LegendContent
-        filters={{ ...EMPTY, intensities: ["Ειρηνική"] }}
+        filters={{ ...EMPTY, intensity: "Ειρηνική" }}
+        onToggleFilterValue={vi.fn()}
+        onSetFilters={onSetFilters}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^Peaceful$/ }));
+    expect(onSetFilters).toHaveBeenCalledWith({ intensity: null });
+  });
+
+  it("highlights only the active intensity", () => {
+    render(
+      <LegendContent
+        filters={{ ...EMPTY, intensity: "Ειρηνική" }}
         onToggleFilterValue={vi.fn()}
         onSetFilters={vi.fn()}
       />,

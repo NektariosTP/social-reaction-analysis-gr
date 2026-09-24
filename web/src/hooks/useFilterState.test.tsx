@@ -1,116 +1,52 @@
 import { describe, expect, it } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { toggleWithAllSentinel, useFilterState } from "./useFilterState";
+import { useFilterState } from "./useFilterState";
 
-const ALL = ["peaceful", "disruptive", "violent"];
-
-// Real taxonomy value: contains a literal comma inside the label itself.
-const DISRUPTIVE = "Διαταρακτική (μη βίαιη, παρεμποδιστική)";
-const PEACEFUL = "Ειρηνική";
-const VIOLENT = "Βίαιη/Συγκρουσιακή";
-
-describe("toggleWithAllSentinel", () => {
-  it("unchecking one value from the all-selected sentinel keeps the other two selected", () => {
-    const next = toggleWithAllSentinel(ALL, [], "disruptive");
-    expect(next.sort()).toEqual(["peaceful", "violent"]);
-  });
-
-  it("toggles membership normally when a subset is already selected", () => {
-    expect(toggleWithAllSentinel(ALL, ["peaceful"], "violent").sort()).toEqual(
-      ["peaceful", "violent"],
-    );
-    expect(toggleWithAllSentinel(ALL, ["peaceful", "violent"], "violent")).toEqual(["peaceful"]);
-  });
-
-  it("collapses back to the empty sentinel when every value becomes selected again", () => {
-    const next = toggleWithAllSentinel(ALL, ["peaceful", "violent"], "disruptive");
-    expect(next).toEqual([]);
-  });
-
-  it("unchecking the last selected value produces a distinct 'none selected' marker, not the all-sentinel []", () => {
-    const next = toggleWithAllSentinel(ALL, ["peaceful"], "peaceful");
-    expect(next).not.toEqual([]);
-    // None of the real values should read as selected against this result.
-    expect(ALL.some((v) => next.includes(v))).toBe(false);
-  });
-
-  it("re-checking a value from the 'none selected' state selects just that value", () => {
-    const none = toggleWithAllSentinel(ALL, ["peaceful"], "peaceful");
-    const next = toggleWithAllSentinel(ALL, none, "violent");
-    expect(next).toEqual(["violent"]);
-  });
-
-  it("walking all three down to zero and back up round-trips through all/none correctly", () => {
-    let selected: string[] = []; // starts at "all"
-    selected = toggleWithAllSentinel(ALL, selected, "peaceful");
-    selected = toggleWithAllSentinel(ALL, selected, "violent");
-    selected = toggleWithAllSentinel(ALL, selected, "disruptive"); // now zero selected
-    expect(ALL.some((v) => selected.includes(v))).toBe(false);
-
-    selected = toggleWithAllSentinel(ALL, selected, "disruptive");
-    expect(selected).toEqual(["disruptive"]);
-    selected = toggleWithAllSentinel(ALL, selected, "peaceful");
-    selected = toggleWithAllSentinel(ALL, selected, "violent");
-    expect(selected).toEqual([]); // back to "all"
-  });
-});
-
-describe("useFilterState URL round-trip", () => {
-  it("preserves a value containing a literal comma alongside another value", () => {
+describe("useFilterState intensity param", () => {
+  it("defaults intensity to null when `a4` is absent", () => {
     const { result } = renderHook(() => useFilterState(), {
       wrapper: ({ children }) => <MemoryRouter initialEntries={["/"]}>{children}</MemoryRouter>,
     });
-
-    act(() => {
-      result.current.setFilters({ intensities: [DISRUPTIVE, VIOLENT] });
-    });
-
-    expect(result.current.filters.intensities.sort()).toEqual([DISRUPTIVE, VIOLENT].sort());
+    expect(result.current.filters.intensity).toBeNull();
   });
 
-  it("round-trips the comma-toggle sequence from the reported bug", () => {
+  it("round-trips a selected intensity through the `a4` URL param", () => {
     const { result } = renderHook(() => useFilterState(), {
       wrapper: ({ children }) => <MemoryRouter initialEntries={["/"]}>{children}</MemoryRouter>,
     });
-
-    // Starting from the all-selected sentinel ([]), uncheck "Peaceful".
     act(() => {
-      const all = [PEACEFUL, DISRUPTIVE, VIOLENT];
-      result.current.setFilters({
-        intensities: toggleWithAllSentinel(all, result.current.filters.intensities, PEACEFUL),
-      });
+      result.current.setFilters({ intensity: "Ειρηνική" });
     });
-
-    expect(result.current.filters.intensities.sort()).toEqual([DISRUPTIVE, VIOLENT].sort());
+    expect(result.current.filters.intensity).toBe("Ειρηνική");
   });
 
-  it("persists an explicit zero-selection across the URL instead of snapping back to all", () => {
+  it("reads an initial intensity from the `a4` param", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={[`/?a4=${encodeURIComponent("Ειρηνική")}`]}>{children}</MemoryRouter>
+      ),
+    });
+    expect(result.current.filters.intensity).toBe("Ειρηνική");
+  });
+
+  it("clearing intensity removes the `a4` param", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={[`/?a4=${encodeURIComponent("Ειρηνική")}`]}>{children}</MemoryRouter>
+      ),
+    });
+    act(() => result.current.setFilters({ intensity: null }));
+    expect(result.current.filters.intensity).toBeNull();
+  });
+
+  it("round-trips a value containing a literal comma", () => {
     const { result } = renderHook(() => useFilterState(), {
       wrapper: ({ children }) => <MemoryRouter initialEntries={["/"]}>{children}</MemoryRouter>,
     });
-    const all = [PEACEFUL, DISRUPTIVE, VIOLENT];
-
-    act(() => {
-      let selected = result.current.filters.intensities;
-      selected = toggleWithAllSentinel(all, selected, PEACEFUL);
-      result.current.setFilters({ intensities: selected });
-    });
-    act(() => {
-      let selected = result.current.filters.intensities;
-      selected = toggleWithAllSentinel(all, selected, DISRUPTIVE);
-      result.current.setFilters({ intensities: selected });
-    });
-    act(() => {
-      let selected = result.current.filters.intensities;
-      selected = toggleWithAllSentinel(all, selected, VIOLENT);
-      result.current.setFilters({ intensities: selected });
-    });
-
-    // Nothing should read as selected — and crucially the state must not have
-    // collapsed back to the "all selected" sentinel ([]).
-    expect(all.some((v) => result.current.filters.intensities.includes(v))).toBe(false);
-    expect(result.current.filters.intensities).not.toEqual([]);
+    const value = "Διαταρακτική (μη βίαιη, παρεμποδιστική)";
+    act(() => result.current.setFilters({ intensity: value }));
+    expect(result.current.filters.intensity).toBe(value);
   });
 });
 

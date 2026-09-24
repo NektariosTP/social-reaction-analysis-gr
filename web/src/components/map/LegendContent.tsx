@@ -18,7 +18,7 @@ const AXES: { titleKey: string; axis: ChipAxis; values: string[]; color: string 
 interface LegendContentProps {
   /** When all three are supplied the legend chips become filter toggles. */
   filters?: FilterState;
-  onToggleFilterValue?: (key: "actionForms" | "thematicFields" | "intensities", value: string) => void;
+  onToggleFilterValue?: (key: "actionForms" | "thematicFields", value: string) => void;
   onSetFilters?: (next: Partial<FilterState>) => void;
 }
 
@@ -51,14 +51,10 @@ export function LegendContent({ filters, onToggleFilterValue, onSetFilters }: Le
           onToggle: () => onSetFilters({ channel: filters.channel === value ? null : value }),
         };
       case "intensity":
-        // Additive, matching action/theme: click narrows from "all" (empty)
-        // by adding the value, unlike the Filters-panel checkbox list (which
-        // starts fully checked and treats an unchecked state as narrowing
-        // via the "all" sentinel) — a click surface reads as select-to-narrow,
-        // not uncheck-to-narrow.
+        // Single-select, like channel: intensity is one value per event.
         return {
-          active: filters.intensities.includes(value),
-          onToggle: () => onToggleFilterValue("intensities", value),
+          active: filters.intensity === value,
+          onToggle: () => onSetFilters({ intensity: filters.intensity === value ? null : value }),
         };
     }
   }

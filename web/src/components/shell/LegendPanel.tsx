@@ -5,7 +5,7 @@ import styles from "./LegendPanel.module.css";
 
 interface LegendPanelProps {
   filters?: FilterState;
-  onToggleFilterValue?: (key: "actionForms" | "thematicFields" | "intensities", value: string) => void;
+  onToggleFilterValue?: (key: "actionForms" | "thematicFields", value: string) => void;
   onSetFilters?: (next: Partial<FilterState>) => void;
 }
 

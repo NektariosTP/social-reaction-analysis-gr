@@ -74,7 +74,7 @@ export function HeaderBlock({
                   actionForms: [],
                   thematicFields: [],
                   channel: null,
-                  intensities: [],
+                  intensity: null,
                   day: null,
                   windowDays: null,
                 })

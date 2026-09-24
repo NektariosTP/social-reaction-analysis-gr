@@ -5,7 +5,8 @@ export interface FilterState {
   actionForms: string[];
   thematicFields: string[];
   channel: string | null;
-  intensities: string[];
+  /** Single-select, like channel: exact intensity value or null for "All". */
+  intensity: string | null;
   /** ISO YYYY-MM-DD local day to time-travel to, or null for Live (present). */
   day: string | null;
   /** Preset range window in days (7/15/30), past-only, or null. Mutually
@@ -24,27 +25,6 @@ function serializeList(values: string[]): string {
   return values.map(encodeURIComponent).join(",");
 }
 
-// A real empty array already means "all selected" (see below), so "every value
-// explicitly deselected" needs its own marker to stay distinguishable. Never a
-// real taxonomy value.
-const NONE_SENTINEL = "__none__";
-
-/**
- * Resolves a checkbox toggle against an "empty selection means all selected" sentinel.
- * The opposite extreme — nothing selected — is represented as `[NONE_SENTINEL]` so it
- * doesn't collide with the "all" sentinel (`[]`); `set.has()`/`includes()` checks against
- * real taxonomy values naturally treat that marker as a non-match, so callers filtering
- * on the resolved list don't need to special-case it.
- */
-export function toggleWithAllSentinel(all: string[], selected: string[], value: string): string[] {
-  const isNone = selected.length === 1 && selected[0] === NONE_SENTINEL;
-  const base = selected.length === 0 ? all : isNone ? [] : selected;
-  const next = base.includes(value) ? base.filter((v) => v !== value) : [...base, value];
-  if (next.length === all.length) return [];
-  if (next.length === 0) return [NONE_SENTINEL];
-  return next;
-}
-
 /** Keeps filter selections in the URL so views are shareable/bookmarkable. */
 export function useFilterState() {
   const [params, setParams] = useSearchParams();
@@ -54,7 +34,7 @@ export function useFilterState() {
       actionForms: parseList(params, "a1"),
       thematicFields: parseList(params, "a2"),
       channel: params.get("a3"),
-      intensities: parseList(params, "a4"),
+      intensity: params.get("a4"),
       day: params.get("d"),
       windowDays: params.get("w") ? Number(params.get("w")) : null,
     }),
@@ -81,7 +61,7 @@ export function useFilterState() {
           if (merged.channel) out.set("a3", merged.channel);
           else out.delete("a3");
 
-          if (merged.intensities.length) out.set("a4", serializeList(merged.intensities));
+          if (merged.intensity) out.set("a4", merged.intensity);
           else out.delete("a4");
 
           if (merged.day) out.set("d", merged.day);
@@ -99,7 +79,7 @@ export function useFilterState() {
   );
 
   const toggleInList = useCallback(
-    (key: "actionForms" | "thematicFields" | "intensities", value: string) => {
+    (key: "actionForms" | "thematicFields", value: string) => {
       const current = filters[key];
       const next = current.includes(value)
         ? current.filter((v) => v !== value)

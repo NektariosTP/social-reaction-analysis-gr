@@ -9,7 +9,7 @@ const EMPTY: FilterState = {
   actionForms: [],
   thematicFields: [],
   channel: null,
-  intensities: [],
+  intensity: null,
   day: null,
   windowDays: null,
 };
@@ -39,6 +39,14 @@ describe("ActiveFilterPills", () => {
     const remove = screen.getByRole("button", { name: /Labour/ });
     await userEvent.click(remove);
     expect(onToggleFilterValue).toHaveBeenCalledWith("thematicFields", "Εργασιακό");
+  });
+
+  it("renders a removable pill for an active intensity", async () => {
+    const onSetFilters = vi.fn();
+    renderPills({ ...EMPTY, intensity: "Ειρηνική" }, { onSetFilters });
+    const remove = screen.getByRole("button", { name: /Peaceful/ });
+    await userEvent.click(remove);
+    expect(onSetFilters).toHaveBeenCalledWith({ intensity: null });
   });
 
   it("renders a range pill and clears it", async () => {

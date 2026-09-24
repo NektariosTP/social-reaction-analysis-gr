@@ -348,6 +348,7 @@ async def events_geojson(
     action_form: Annotated[str | None, Query()] = None,
     thematic_field: Annotated[str | None, Query()] = None,
     channel: Annotated[str | None, Query()] = None,
+    intensity: Annotated[str | None, Query()] = None,
     event_date: Annotated[str | None, Query(description="ISO 8601 day YYYY-MM-DD")] = None,
     window_days: Annotated[
         int | None, Query(ge=1, le=365, description="Last N days (past-only)")
@@ -359,6 +360,7 @@ async def events_geojson(
         action_form=action_form,
         thematic_field=thematic_field,
         channel=channel,
+        intensity=intensity,
         event_date=event_date,
         window_days=window_days,
         limit=1000,

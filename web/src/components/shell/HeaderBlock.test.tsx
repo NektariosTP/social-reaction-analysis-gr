@@ -8,7 +8,7 @@ const baseFilters: FilterState = {
   actionForms: [],
   thematicFields: [],
   channel: null,
-  intensities: [],
+  intensity: null,
   day: null,
   windowDays: null,
 };
@@ -52,7 +52,7 @@ describe("HeaderBlock", () => {
       actionForms: [],
       thematicFields: [],
       channel: null,
-      intensities: [],
+      intensity: null,
       day: null,
       windowDays: null,
     });

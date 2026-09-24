@@ -10,7 +10,7 @@ interface MapLegendProps {
    * hardcoding its height. */
   onHeightChange?: (height: number) => void;
   filters?: FilterState;
-  onToggleFilterValue?: (key: "actionForms" | "thematicFields" | "intensities", value: string) => void;
+  onToggleFilterValue?: (key: "actionForms" | "thematicFields", value: string) => void;
   onSetFilters?: (next: Partial<FilterState>) => void;
 }
 

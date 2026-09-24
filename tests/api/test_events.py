@@ -407,3 +407,12 @@ async def test_list_events_passes_window_days(client: AsyncClient) -> None:
         resp = await client.get("/events?window_days=15")
     assert resp.status_code == 200
     assert mock.await_args.kwargs["window_days"] == 15
+
+
+async def test_geojson_passes_intensity(client: AsyncClient) -> None:
+    mock = AsyncMock(return_value=[])
+    with patch("api.routes.events._fetch_events", mock), \
+         patch("api.routes.events._fetch_event_locations", new_callable=AsyncMock, return_value={}):
+        resp = await client.get("/events/geojson?intensity=Ειρηνική")
+    assert resp.status_code == 200
+    assert mock.call_args.kwargs["intensity"] == "Ειρηνική"

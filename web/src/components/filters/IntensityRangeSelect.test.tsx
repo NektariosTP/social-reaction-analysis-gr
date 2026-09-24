@@ -1,57 +1,31 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { useState } from "react";
 import { IntensityRangeSelect } from "./IntensityRangeSelect";
 
-function StatefulHarness() {
-  const [intensities, setIntensities] = useState<string[]>([]);
-  return (
-    <IntensityRangeSelect
-      selected={intensities}
-      onSetFilters={(next) => {
-        if (next.intensities) setIntensities(next.intensities);
-      }}
-    />
-  );
-}
-
 describe("IntensityRangeSelect", () => {
-  it("renders all three levels checked when selected is empty (the all-sentinel)", () => {
-    render(<IntensityRangeSelect selected={[]} onSetFilters={vi.fn()} />);
-    const boxes = screen.getAllByRole("checkbox");
-    expect(boxes).toHaveLength(3);
-    expect(boxes.every((b) => (b as HTMLInputElement).checked)).toBe(true);
+  it("highlights 'All' when nothing is selected", () => {
+    render(<IntensityRangeSelect selected={null} onChange={vi.fn()} />);
+    const all = screen.getByRole("button", { name: /all/i });
+    expect(all.className).toMatch(/chipSelected/);
   });
 
-  it("unchecking one box from the all-sentinel keeps the other two selected in state", () => {
-    const onSetFilters = vi.fn();
-    render(<IntensityRangeSelect selected={[]} onSetFilters={onSetFilters} />);
-    screen.getByLabelText(/disruptive/i).click();
-    expect(onSetFilters).toHaveBeenCalledTimes(1);
-    const [{ intensities }] = onSetFilters.mock.calls[0];
-    expect(intensities).toHaveLength(2);
-    expect(intensities).not.toContain("Διαταρακτική (μη βίαιη, παρεμποδιστική)");
+  it("clicking a value selects only that value", () => {
+    const onChange = vi.fn();
+    render(<IntensityRangeSelect selected={null} onChange={onChange} />);
+    screen.getByRole("button", { name: /^peaceful$/i }).click();
+    expect(onChange).toHaveBeenCalledWith("Ειρηνική");
   });
 
-  it("re-checking the last unchecked box collapses selection back to the empty sentinel", () => {
-    const onSetFilters = vi.fn();
-    render(
-      <IntensityRangeSelect
-        selected={["Ειρηνική", "Βίαιη/Συγκρουσιακή"]}
-        onSetFilters={onSetFilters}
-      />,
-    );
-    screen.getByLabelText(/disruptive/i).click();
-    expect(onSetFilters).toHaveBeenCalledWith({ intensities: [] });
+  it("highlights the currently-selected value, not All", () => {
+    render(<IntensityRangeSelect selected="Ειρηνική" onChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /^peaceful$/i }).className).toMatch(/chipSelected/);
+    expect(screen.getByRole("button", { name: /all/i }).className).not.toMatch(/chipSelected/);
   });
 
-  it("unchecking all three boxes leaves all three unchecked, not snapped back to all-checked", () => {
-    render(<StatefulHarness />);
-    screen.getByLabelText(/^peaceful/i).click();
-    screen.getByLabelText(/^disruptive/i).click();
-    screen.getByLabelText(/^violent/i).click();
-
-    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    expect(boxes.every((b) => !b.checked)).toBe(true);
+  it("clicking 'All' clears the selection", () => {
+    const onChange = vi.fn();
+    render(<IntensityRangeSelect selected="Ειρηνική" onChange={onChange} />);
+    screen.getByRole("button", { name: /all/i }).click();
+    expect(onChange).toHaveBeenCalledWith(null);
   });
 });

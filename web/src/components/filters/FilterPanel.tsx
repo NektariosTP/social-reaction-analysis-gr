@@ -38,7 +38,10 @@ export function FilterPanel({ filters, onToggle, onSetFilters }: FilterPanelProp
         onClear={() => onSetFilters({ thematicFields: [] })}
       />
       <ChannelSelect selected={filters.channel} onChange={(channel) => onSetFilters({ channel })} />
-      <IntensityRangeSelect selected={filters.intensities} onSetFilters={onSetFilters} />
+      <IntensityRangeSelect
+        selected={filters.intensity}
+        onChange={(intensity) => onSetFilters({ intensity })}
+      />
     </div>
   );
 }

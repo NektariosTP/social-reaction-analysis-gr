@@ -1,13 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useLang } from "../../hooks/useLang";
 import { axisLabel } from "../../i18n";
-import { INTENSITY } from "../../i18n/taxonomy";
 import type { FilterState } from "../../hooks/useFilterState";
-import { toggleWithAllSentinel } from "../../hooks/useFilterState";
 import { formatAbsoluteDate } from "../../utils/time";
 import styles from "./ActiveFilterPills.module.css";
-
-const ALL_INTENSITY = Object.keys(INTENSITY);
 
 interface ActiveFilterPillsProps {
   filters: FilterState;
@@ -35,13 +31,11 @@ export function ActiveFilterPills({ filters, onToggleFilterValue, onSetFilters }
   if (filters.channel) {
     pills.push({ key: `a3:${filters.channel}`, label: axisLabel(filters.channel, lang), onRemove: () => onSetFilters({ channel: null }) });
   }
-  // Only real taxonomy values are pills — the "none"/"all" sentinels are skipped
-  // because they are not keys of INTENSITY.
-  for (const v of filters.intensities.filter((x) => ALL_INTENSITY.includes(x))) {
+  if (filters.intensity) {
     pills.push({
-      key: `a4:${v}`,
-      label: axisLabel(v, lang),
-      onRemove: () => onSetFilters({ intensities: toggleWithAllSentinel(ALL_INTENSITY, filters.intensities, v) }),
+      key: `a4:${filters.intensity}`,
+      label: axisLabel(filters.intensity, lang),
+      onRemove: () => onSetFilters({ intensity: null }),
     });
   }
   if (filters.day) {

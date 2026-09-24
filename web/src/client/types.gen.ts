@@ -525,6 +525,10 @@ export type EventsGeojsonEventsGeojsonGetData = {
          */
         channel?: string | null;
         /**
+         * Intensity
+         */
+        intensity?: string | null;
+        /**
          * Event Date
          *
          * ISO 8601 day YYYY-MM-DD
