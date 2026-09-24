@@ -90,4 +90,35 @@ describe("HeaderBlock", () => {
     setup({ trailing: <button>EL</button> });
     expect(screen.getByRole("button", { name: "EL" })).toBeInTheDocument();
   });
+
+  it("expands the range panel in the same slot as the filter panel, inline (not a floating dropdown)", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: /live/i }));
+    expect(screen.getByRole("button", { name: /last 7 days/i })).toBeInTheDocument();
+  });
+
+  it("opening the range panel closes an already-open filter panel, and vice versa", () => {
+    setup();
+    fireEvent.click(screen.getByText(/filters/i));
+    expect(screen.getByText("Clear")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /live/i }));
+    expect(screen.queryByText("Clear")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /last 7 days/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(/filters/i));
+    expect(screen.queryByRole("button", { name: /last 7 days/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Clear")).toBeInTheDocument();
+  });
+
+  it("picking a preset updates filters without closing the range panel; Save closes it", () => {
+    const props = setup();
+    fireEvent.click(screen.getByRole("button", { name: /live/i }));
+    fireEvent.click(screen.getByRole("button", { name: /last 15 days/i }));
+    expect(props.onSetFilters).toHaveBeenCalledWith({ windowDays: 15, day: null });
+    expect(screen.getByRole("button", { name: /last 15 days/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Save"));
+    expect(screen.queryByRole("button", { name: /last 15 days/i })).not.toBeInTheDocument();
+  });
 });

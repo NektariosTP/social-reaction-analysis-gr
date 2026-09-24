@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FilterState } from "../../hooks/useFilterState";
-import { FilterPanel, RangeSelect } from "../filters";
+import { FilterPanel, RangePanel, RangeSelect } from "../filters";
 import { BrandMark } from "../common";
 import styles from "./HeaderBlock.module.css";
 
@@ -12,6 +12,8 @@ interface HeaderBlockProps {
   trailing?: React.ReactNode;
 }
 
+type Panel = "range" | "filters" | null;
+
 export function HeaderBlock({
   filters,
   onToggleFilterValue,
@@ -19,19 +21,19 @@ export function HeaderBlock({
   trailing,
 }: HeaderBlockProps) {
   const { t } = useTranslation();
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<Panel>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!filterOpen) return;
+    if (!activePanel) return;
 
     function handlePointerDown(e: PointerEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
+        setActivePanel(null);
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setFilterOpen(false);
+      if (e.key === "Escape") setActivePanel(null);
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -40,7 +42,11 @@ export function HeaderBlock({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [filterOpen]);
+  }, [activePanel]);
+
+  function togglePanel(panel: Exclude<Panel, null>) {
+    setActivePanel((current) => (current === panel ? null : panel));
+  }
 
   return (
     <div ref={rootRef}>
@@ -53,21 +59,38 @@ export function HeaderBlock({
         <RangeSelect
           windowDays={filters.windowDays}
           day={filters.day}
-          onChange={onSetFilters}
+          open={activePanel === "range"}
+          onClick={() => togglePanel("range")}
         />
         <button
-          className={styles.filterToggle}
-          onClick={() => setFilterOpen((v) => !v)}
+          type="button"
+          className={styles.pillTrigger}
+          aria-expanded={activePanel === "filters"}
+          onClick={() => togglePanel("filters")}
         >
-          {filterOpen ? "⋀" : "⋁"} {t("filters.title")}
+          <span className={styles.pillIcon}>🎛️</span>
+          <span className={styles.pillLabel}>{t("filters.title")}</span>
+          <span className={styles.pillArrow}>{activePanel === "filters" ? "▴" : "▾"}</span>
         </button>
       </div>
 
-      {filterOpen && (
+      {activePanel === "range" && (
+        <div className={styles.expansion}>
+          <RangePanel windowDays={filters.windowDays} day={filters.day} onChange={onSetFilters} />
+          <div className={styles.expansionActions}>
+            <button type="button" className={styles.doneBtn} onClick={() => setActivePanel(null)}>
+              {t("filters.done")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activePanel === "filters" && (
         <div className={styles.expansion}>
           <FilterPanel filters={filters} onToggle={onToggleFilterValue} onSetFilters={onSetFilters} />
           <div className={styles.expansionActions}>
             <button
+              type="button"
               className={styles.clearBtn}
               onClick={() =>
                 onSetFilters({
@@ -82,7 +105,7 @@ export function HeaderBlock({
             >
               {t("filters.clear")}
             </button>
-            <button className={styles.doneBtn} onClick={() => setFilterOpen(false)}>
+            <button type="button" className={styles.doneBtn} onClick={() => setActivePanel(null)}>
               {t("filters.done")}
             </button>
           </div>

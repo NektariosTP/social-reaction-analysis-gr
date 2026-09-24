@@ -3,23 +3,23 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RangeSelect } from "./RangeSelect";
 
-describe("RangeSelect", () => {
-  it("shows Live by default and emits a preset on selection", async () => {
-    const onChange = vi.fn();
-    render(<RangeSelect windowDays={null} day={null} onChange={onChange} />);
-    expect(screen.getByRole("button", { name: /live/i })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: /live/i }));
-    await userEvent.click(screen.getByRole("button", { name: /last 7 days/i }));
-    expect(onChange).toHaveBeenCalledWith({ windowDays: 7, day: null });
+describe("RangeSelect (trigger)", () => {
+  it("shows Live by default and calls onClick when pressed", async () => {
+    const onClick = vi.fn();
+    render(<RangeSelect windowDays={null} day={null} open={false} onClick={onClick} />);
+    const trigger = screen.getByRole("button", { name: /live/i });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(trigger);
+    expect(onClick).toHaveBeenCalledOnce();
   });
 
-  it("emits an exact day from the date input", async () => {
-    const onChange = vi.fn();
-    render(<RangeSelect windowDays={null} day={null} onChange={onChange} />);
-    await userEvent.click(screen.getByRole("button", { name: /live/i }));
-    const input = screen.getByLabelText(/select exact date/i);
-    await userEvent.type(input, "2026-09-18");
-    expect(onChange).toHaveBeenLastCalledWith({ windowDays: null, day: "2026-09-18" });
+  it("shows the preset label when a window is active", () => {
+    render(<RangeSelect windowDays={7} day={null} open onClick={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /last 7 days/i })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows the formatted date when an exact day is active", () => {
+    render(<RangeSelect windowDays={null} day="2026-09-18" open={false} onClick={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /2026/ })).toBeInTheDocument();
   });
 });
