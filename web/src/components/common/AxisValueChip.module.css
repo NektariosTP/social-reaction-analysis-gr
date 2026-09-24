@@ -32,3 +32,14 @@
   background: var(--axis-intensity-bg);
   color: var(--axis-intensity-fg);
 }
+
+.interactive {
+  cursor: pointer;
+  font: inherit;
+  border: none;
+}
+
+/* Thicker "active filter" border without reflow (chips have no border). */
+.active {
+  box-shadow: inset 0 0 0 2px currentColor;
+}

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AxisValueChip } from "./AxisValueChip";
 
 describe("AxisValueChip", () => {
@@ -22,5 +23,19 @@ describe("AxisValueChip", () => {
   it("renders a plain pill for thematic field values", () => {
     render(<AxisValueChip axis="theme" value="Εκπαίδευση" />);
     expect(screen.getByText("Education")).toBeInTheDocument();
+  });
+
+  it("renders a button and fires onToggle when interactive", async () => {
+    const onToggle = vi.fn();
+    render(<AxisValueChip axis="theme" value="Εργασιακό" onToggle={onToggle} active />);
+    const btn = screen.getByRole("button");
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(btn);
+    expect(onToggle).toHaveBeenCalledOnce();
+  });
+
+  it("stays a non-interactive span without onToggle", () => {
+    const { container } = render(<AxisValueChip axis="theme" value="Εργασιακό" />);
+    expect(container.querySelector("button")).toBeNull();
   });
 });
