@@ -154,6 +154,26 @@
             "description": "ISO 8601 day YYYY-MM-DD"
           },
           {
+            "name": "window_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 365,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last N days (past-only)",
+              "title": "Window Days"
+            },
+            "description": "Last N days (past-only)"
+          },
+          {
             "name": "bbox",
             "in": "query",
             "required": false,
@@ -347,6 +367,26 @@
               "title": "Event Date"
             },
             "description": "ISO 8601 day YYYY-MM-DD"
+          },
+          {
+            "name": "window_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 365,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last N days (past-only)",
+              "title": "Window Days"
+            },
+            "description": "Last N days (past-only)"
           }
         ],
         "responses": {

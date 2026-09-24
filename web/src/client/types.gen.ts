@@ -453,6 +453,12 @@ export type ListEventsEventsGetData = {
          */
         event_date?: string | null;
         /**
+         * Window Days
+         *
+         * Last N days (past-only)
+         */
+        window_days?: number | null;
+        /**
          * Bbox
          *
          * west,south,east,north
@@ -524,6 +530,12 @@ export type EventsGeojsonEventsGeojsonGetData = {
          * ISO 8601 day YYYY-MM-DD
          */
         event_date?: string | null;
+        /**
+         * Window Days
+         *
+         * Last N days (past-only)
+         */
+        window_days?: number | null;
     };
     url: '/events/geojson';
 };
