@@ -8,13 +8,12 @@ interface TemporalBannerProps {
   event: EventSummary;
 }
 
-type Tone = "upcoming" | "today" | "past";
-
 /**
- * Temporal strip atop a story card / on the analysis page. Upcoming and today
- * events get an emphasized announcement; past events get a quiet "took place on"
- * line (anchored on event_time, else first_seen). Also carries calling-union
- * info. Renders nothing when there is no temporal line and no unions.
+ * Highlighted strip carrying an event's scheduled-time and calling-unions
+ * info, pinned atop its story card and shown on the analysis page. Upcoming,
+ * today, and past each get a distinct, unambiguous full-sentence message
+ * (anchored on event_time, else first_seen for past events). Renders nothing
+ * when the event has neither a temporal line nor unions.
  */
 export function TemporalBanner({ event }: TemporalBannerProps) {
   const { t } = useTranslation();
@@ -24,27 +23,24 @@ export function TemporalBanner({ event }: TemporalBannerProps) {
   const hasUnions = Boolean(event.announced_by) || unions.length > 0;
   const pastDate = event.event_time ?? event.first_seen ?? null;
 
-  let tone: Tone | null = null;
-  let text: string | null = null;
+  let timeChip: string | null = null;
   if (event.temporal_status === "today") {
-    tone = "today";
-    text = t("banner.happeningToday");
+    timeChip = `🔴 ${t("banner.happeningToday")}`;
   } else if (event.temporal_status === "upcoming" && event.event_time) {
-    tone = "upcoming";
-    text = t("banner.scheduledIn", { days: daysUntil(event.event_time) });
+    const days = daysUntil(event.event_time);
+    timeChip = `📅 ${days === 1 ? t("banner.scheduledInOne") : t("banner.scheduledIn", { days })}`;
   } else if (pastDate) {
-    tone = "past";
-    text = t("banner.tookPlaceOn", { date: formatAbsoluteDate(pastDate, lang) });
+    timeChip = `📅 ${t("banner.tookPlaceOn", { date: formatAbsoluteDate(pastDate, lang) })}`;
   }
 
-  if (!text && !hasUnions) return null;
+  if (!timeChip && !hasUnions) return null;
 
   const joinedBy = unions.slice(1, 3);
   const extra = unions.length > 3 ? ` +${unions.length - 3}` : "";
 
   return (
-    <div className={styles.banner} data-tone={tone ?? undefined}>
-      {text && <span className={styles.timeLine}>{text}</span>}
+    <div className={styles.banner}>
+      {timeChip && <span className={styles.timeChip}>{timeChip}</span>}
       {event.announced_by && (
         <span className={styles.unions}>
           📣 {event.announced_by}

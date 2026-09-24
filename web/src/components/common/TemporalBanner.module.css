@@ -1,36 +1,19 @@
 .banner {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: var(--space-2) var(--space-3);
-}
-
-.timeLine {
-  font-weight: 700;
-}
-
-/* Upcoming / today = loud announcement. */
-.banner[data-tone="upcoming"],
-.banner[data-tone="today"] {
-  background: var(--color-surface-alt);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
   border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: 8px;
 }
 
-.banner[data-tone="upcoming"] .timeLine {
-  font-size: 15px;
-  color: var(--color-accent);
-}
-
-.banner[data-tone="today"] .timeLine {
-  font-size: 15px;
-  color: var(--color-danger, #d33);
-}
-
-/* Past = quiet informational line. */
-.banner[data-tone="past"] .timeLine {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
+.timeChip {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .unions {

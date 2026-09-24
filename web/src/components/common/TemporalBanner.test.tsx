@@ -21,18 +21,38 @@ function ev(over: Partial<EventSummary> = {}): EventSummary {
 }
 
 describe("TemporalBanner", () => {
-  it("renders 'Happening today' for a today event", () => {
+  it("renders a full 'happening today' sentence with the 🔴 emoji", () => {
     render(<TemporalBanner event={ev({ temporal_status: "today", event_time: "2026-01-01T09:00:00Z" })} />);
-    expect(screen.getByText(/happening today/i)).toBeInTheDocument();
+    expect(screen.getByText(/🔴.*happening today/i)).toBeInTheDocument();
   });
 
-  it("renders a 'took place on' line for a past event (falls back to first_seen)", () => {
+  it("renders a full 'took place on' sentence with the 📅 emoji (falls back to first_seen)", () => {
     render(
       <TemporalBanner
         event={ev({ temporal_status: "past", event_time: null, first_seen: "2026-09-18T09:00:00Z" })}
       />,
     );
-    expect(screen.getByText(/took place on/i)).toBeInTheDocument();
+    expect(screen.getByText(/📅.*took place on/i)).toBeInTheDocument();
+  });
+
+  it("uses the singular 'in 1 day' sentence when the event is tomorrow", () => {
+    const now = new Date(2026, 8, 24, 12, 0, 0).getTime();
+    render(
+      <TemporalBanner
+        event={ev({ temporal_status: "upcoming", event_time: new Date(now + 86_400_000).toISOString() })}
+      />,
+    );
+    expect(screen.getByText(/in 1 day\./i)).toBeInTheDocument();
+  });
+
+  it("uses the plural 'in N days' sentence for further-out events", () => {
+    const now = new Date(2026, 8, 24, 12, 0, 0).getTime();
+    render(
+      <TemporalBanner
+        event={ev({ temporal_status: "upcoming", event_time: new Date(now + 3 * 86_400_000).toISOString() })}
+      />,
+    );
+    expect(screen.getByText(/in 3 days\./i)).toBeInTheDocument();
   });
 
   it("renders the announcing union and joined-by unions", () => {
