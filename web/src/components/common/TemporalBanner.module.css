@@ -1,20 +1,36 @@
 .banner {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
-  border-radius: var(--radius-sm);
-  padding: 5px 9px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2) var(--space-3);
 }
 
-.timeChip {
-  font-family: var(--font-mono);
-  font-size: 10px;
+.timeLine {
   font-weight: 700;
-  white-space: nowrap;
+}
+
+/* Upcoming / today = loud announcement. */
+.banner[data-tone="upcoming"],
+.banner[data-tone="today"] {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.banner[data-tone="upcoming"] .timeLine {
+  font-size: 15px;
+  color: var(--color-accent);
+}
+
+.banner[data-tone="today"] .timeLine {
+  font-size: 15px;
+  color: var(--color-danger, #d33);
+}
+
+/* Past = quiet informational line. */
+.banner[data-tone="past"] .timeLine {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .unions {

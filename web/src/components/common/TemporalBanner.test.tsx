@@ -21,9 +21,18 @@ function ev(over: Partial<EventSummary> = {}): EventSummary {
 }
 
 describe("TemporalBanner", () => {
-  it("renders a today chip for a today event", () => {
+  it("renders 'Happening today' for a today event", () => {
     render(<TemporalBanner event={ev({ temporal_status: "today", event_time: "2026-01-01T09:00:00Z" })} />);
-    expect(screen.getByText(/today/i)).toBeInTheDocument();
+    expect(screen.getByText(/happening today/i)).toBeInTheDocument();
+  });
+
+  it("renders a 'took place on' line for a past event (falls back to first_seen)", () => {
+    render(
+      <TemporalBanner
+        event={ev({ temporal_status: "past", event_time: null, first_seen: "2026-09-18T09:00:00Z" })}
+      />,
+    );
+    expect(screen.getByText(/took place on/i)).toBeInTheDocument();
   });
 
   it("renders the announcing union and joined-by unions", () => {
@@ -50,8 +59,10 @@ describe("TemporalBanner", () => {
     expect(screen.getByText(/ΟΛΜΕ/)).toBeInTheDocument();
   });
 
-  it("renders nothing when there is neither time nor unions", () => {
-    const { container } = render(<TemporalBanner event={ev({ temporal_status: null, event_time: null, participating_unions: [] })} />);
+  it("renders nothing when there is no time, no unions, and no seen date", () => {
+    const { container } = render(
+      <TemporalBanner event={ev({ temporal_status: null, event_time: null, first_seen: null, last_seen: null, participating_unions: [] })} />,
+    );
     expect(container.firstChild).toBeNull();
   });
 });

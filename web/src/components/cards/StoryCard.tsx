@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { EventSummary } from "../../client/types.gen";
 import { useLang } from "../../hooks/useLang";
-import { formatRelativeTime } from "../../utils/time";
 import { sourceCountDisplay } from "../../utils/sourceDisplay";
 import { AxisTag, TemporalBanner } from "../common";
 import styles from "./StoryCard.module.css";
@@ -57,7 +56,7 @@ export function StoryCard({ event, variant = "compact", onOpen, expanded = false
       </div>
 
       <div className={styles.meta}>
-        {count} {t(labelKey)} · {formatRelativeTime(event.last_seen, lang)}
+        {count} {t(labelKey)}
       </div>
 
       {isFeatured && (
