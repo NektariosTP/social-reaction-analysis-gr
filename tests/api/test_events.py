@@ -379,6 +379,13 @@ async def test_fetch_events_window_days_builds_past_only_hybrid_sql() -> None:
     assert "event_time IS NULL AND last_seen" in sql
     assert "<= (now() AT TIME ZONE 'Europe/Athens')::date" in sql
     assert params["window_days"] == 7
+    # window_days is cast via CAST(...), not the `::` shorthand: SQLAlchemy's
+    # text() treats a bare `::` as an escaped literal colon, so `:window_days::int`
+    # reaches asyncpg with a stray `:` and fails at runtime with a syntax error
+    # (a real prod incident — the mocked session here can't catch it, hence
+    # the explicit assertion that the working spelling is the one in use).
+    assert "CAST(:window_days AS integer)" in sql
+    assert "::int" not in sql
     # A preset opens up archived events, like the single-day path does.
     assert "status IN ('enriched', 'archived')" in sql
 

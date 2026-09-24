@@ -144,16 +144,20 @@ async def _fetch_events(
         # :window_days is reused in two operator contexts (date subtraction and
         # make_interval's days arg); asyncpg's server-side parameter type
         # inference can resolve the same bind name inconsistently across sites
-        # in one prepared statement unless each site is explicitly cast.
+        # in one prepared statement unless each site is explicitly cast. Use
+        # CAST(...) rather than the `::` shorthand: SQLAlchemy's text() treats
+        # a bare `::` as an escaped literal colon, not a Postgres cast, so
+        # `:window_days::int` reaches asyncpg with a stray `:` and fails with
+        # a syntax error.
         conditions.append(
             "("
             " (event_time IS NOT NULL "
             "AND (event_time AT TIME ZONE 'Europe/Athens')::date "
             "<= (now() AT TIME ZONE 'Europe/Athens')::date "
             "AND (event_time AT TIME ZONE 'Europe/Athens')::date "
-            ">= (now() AT TIME ZONE 'Europe/Athens')::date - :window_days::int) "
+            ">= (now() AT TIME ZONE 'Europe/Athens')::date - CAST(:window_days AS integer)) "
             "OR (event_time IS NULL "
-            "AND last_seen >= now() - make_interval(days => :window_days::int))"
+            "AND last_seen >= now() - make_interval(days => CAST(:window_days AS integer)))"
             ")"
         )
         params["window_days"] = window_days
