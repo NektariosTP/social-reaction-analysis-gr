@@ -22,3 +22,10 @@ def test_events_endpoint_exposes_event_date_param() -> None:
     schema = app.openapi()
     params = schema["paths"]["/events"]["get"]["parameters"]
     assert any(p["name"] == "event_date" for p in params)
+
+
+def test_events_endpoints_expose_window_days_param() -> None:
+    schema = app.openapi()
+    for path in ("/events", "/events/geojson"):
+        params = schema["paths"][path]["get"]["parameters"]
+        assert any(p["name"] == "window_days" for p in params), path

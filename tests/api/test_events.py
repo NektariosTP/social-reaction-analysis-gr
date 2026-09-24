@@ -361,3 +361,49 @@ async def test_geojson_passes_event_date(client: AsyncClient) -> None:
         resp = await client.get("/events/geojson?event_date=2026-09-16")
     assert resp.status_code == 200
     assert mock.call_args.kwargs["event_date"] == "2026-09-16"
+
+
+@pytest.mark.asyncio
+async def test_fetch_events_window_days_builds_past_only_hybrid_sql() -> None:
+    session = AsyncMock()
+    result = MagicMock()
+    result.all.return_value = []
+    session.execute.return_value = result
+
+    await _fetch_events(session, window_days=7)
+
+    sql = str(session.execute.call_args.args[0])
+    params = session.execute.call_args.args[1]
+    # Past-only: excludes upcoming (event_time <= today) and reaches back N days.
+    assert "make_interval" in sql
+    assert "event_time IS NULL AND last_seen" in sql
+    assert "<= (now() AT TIME ZONE 'Europe/Athens')::date" in sql
+    assert params["window_days"] == 7
+    # A preset opens up archived events, like the single-day path does.
+    assert "status IN ('enriched', 'archived')" in sql
+
+
+@pytest.mark.asyncio
+async def test_fetch_events_event_date_overrides_window_days() -> None:
+    session = AsyncMock()
+    result = MagicMock()
+    result.all.return_value = []
+    session.execute.return_value = result
+
+    await _fetch_events(session, window_days=7, event_date="2026-09-18")
+
+    sql = str(session.execute.call_args.args[0])
+    params = session.execute.call_args.args[1]
+    assert "window_days" not in params          # window ignored
+    assert "make_interval" not in sql
+    assert params["event_date"] == date(2026, 9, 18)
+
+
+@pytest.mark.asyncio
+async def test_list_events_passes_window_days(client: AsyncClient) -> None:
+    with patch(
+        "api.routes.events._fetch_events", new_callable=AsyncMock, return_value=[]
+    ) as mock:
+        resp = await client.get("/events?window_days=15")
+    assert resp.status_code == 200
+    assert mock.await_args.kwargs["window_days"] == 15

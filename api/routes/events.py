@@ -4,12 +4,12 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 from typing import Annotated, Any, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
-from zoneinfo import ZoneInfo
 
 from api.db import get_db
 from api.models import (
@@ -99,6 +99,7 @@ async def _fetch_events(
     date_from: str | None = None,
     date_to: str | None = None,
     event_date: str | None = None,
+    window_days: int | None = None,
     bbox: str | None = None,
     temporal_status: str | None = None,
     is_national: bool | None = None,
@@ -110,8 +111,9 @@ async def _fetch_events(
     # 24h after their event_time, which routinely happens before a user
     # time-travels back to that day. Only the day-filtered query sees through
     # the sweep; Live keeps hiding archived events.
+    include_archived = bool(event_date) or bool(window_days and not event_date)
     conditions = [
-        "status IN ('enriched', 'archived')" if event_date else "status = 'enriched'"
+        "status IN ('enriched', 'archived')" if include_archived else "status = 'enriched'"
     ]
     params: dict[str, Any] = {"limit": limit, "offset": offset}
 
@@ -138,6 +140,18 @@ async def _fetch_events(
             "(event_time AT TIME ZONE 'Europe/Athens')::date = :event_date"
         )
         params["event_date"] = _parse_iso_date(event_date, "event_date")
+    if window_days and not event_date:
+        conditions.append(
+            "("
+            " (event_time IS NOT NULL "
+            "AND (event_time AT TIME ZONE 'Europe/Athens')::date "
+            "<= (now() AT TIME ZONE 'Europe/Athens')::date "
+            "AND (event_time AT TIME ZONE 'Europe/Athens')::date "
+            ">= (now() AT TIME ZONE 'Europe/Athens')::date - :window_days) "
+            "OR (event_time IS NULL AND last_seen >= now() - make_interval(days => :window_days))"
+            ")"
+        )
+        params["window_days"] = window_days
     if bbox:
         # bbox = "west,south,east,north"
         parts = [float(p) for p in bbox.split(",")]
@@ -274,6 +288,9 @@ async def list_events(
     date_from: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     date_to: Annotated[str | None, Query(description="ISO 8601 date")] = None,
     event_date: Annotated[str | None, Query(description="ISO 8601 day YYYY-MM-DD")] = None,
+    window_days: Annotated[
+        int | None, Query(ge=1, le=365, description="Last N days (past-only)")
+    ] = None,
     bbox: Annotated[str | None, Query(description="west,south,east,north")] = None,
     temporal_status: Annotated[Literal["upcoming", "today", "past"] | None, Query()] = None,
     is_national: Annotated[bool | None, Query()] = None,
@@ -291,6 +308,7 @@ async def list_events(
         date_from=date_from,
         date_to=date_to,
         event_date=event_date,
+        window_days=window_days,
         bbox=bbox,
         temporal_status=temporal_status,
         is_national=is_national,
@@ -331,9 +349,20 @@ async def events_geojson(
     thematic_field: Annotated[str | None, Query()] = None,
     channel: Annotated[str | None, Query()] = None,
     event_date: Annotated[str | None, Query(description="ISO 8601 day YYYY-MM-DD")] = None,
+    window_days: Annotated[
+        int | None, Query(ge=1, le=365, description="Last N days (past-only)")
+    ] = None,
     db: AsyncSession = Depends(get_db),
 ) -> GeoJSONFeatureCollection:
-    rows = await _fetch_events(db, action_form=action_form, thematic_field=thematic_field, channel=channel, event_date=event_date, limit=1000)
+    rows = await _fetch_events(
+        db,
+        action_form=action_form,
+        thematic_field=thematic_field,
+        channel=channel,
+        event_date=event_date,
+        window_days=window_days,
+        limit=1000,
+    )
     located = [r for r in rows if r.lat is not None and r.lon is not None]
     locations_by_event = await _fetch_event_locations(db, [str(r.id) for r in located])
     features = []
