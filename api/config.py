@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     )
     cache_ttl_seconds: int = 120
     cors_origins: list[str] = ["*"]
+    # Per-IP API rate limit (limits syntax, e.g. "60/minute"). Applied to all
+    # routes except /health; keyed by the real client IP (X-Forwarded-For behind
+    # Caddy). Set rate_limit_enabled=False to turn it off entirely.
+    rate_limit: str = "60/minute"
+    rate_limit_enabled: bool = True
 
 
 settings = Settings()

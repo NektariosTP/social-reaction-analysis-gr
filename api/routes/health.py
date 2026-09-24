@@ -5,12 +5,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db import get_db
+from api.limiter import limiter
 from api.models import HealthResponse
 
 router = APIRouter(tags=["ops"])
 
 
 @router.get("/health", response_model=HealthResponse)
+@limiter.exempt  # type: ignore[untyped-decorator]  # slowapi's decorator is untyped
 async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
     await db.execute(text("SELECT 1"))
     return HealthResponse(status="ok", db="ok")

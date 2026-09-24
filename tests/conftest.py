@@ -7,7 +7,19 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from api.db import get_db
+from api.limiter import limiter
 from api.main import app
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """Clear the in-memory rate-limit counters before every test.
+
+    The limiter is a process-global with a shared in-memory store, so without a
+    reset one test's requests would eat into the next test's per-IP budget and
+    cause spurious 429s across the suite.
+    """
+    limiter.reset()
 
 
 @pytest.fixture
