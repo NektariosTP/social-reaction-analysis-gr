@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { FilterState } from "../../hooks/useFilterState";
 import { LegendContent } from "./LegendContent";
 import styles from "./MapLegend.module.css";
 
@@ -8,11 +9,14 @@ interface MapLegendProps {
    * (open/close toggle, content), so callers can keep other UI clear of it without
    * hardcoding its height. */
   onHeightChange?: (height: number) => void;
+  filters?: FilterState;
+  onToggleFilterValue?: (key: "actionForms" | "thematicFields", value: string) => void;
+  onSetFilters?: (next: Partial<FilterState>) => void;
 }
 
 /** Desktop-only floating legend widget (bottom-right of the map). On mobile,
  * the equivalent content renders as its own bottom-nav tab — see LegendPanel. */
-export function MapLegend({ onHeightChange }: MapLegendProps = {}) {
+export function MapLegend({ onHeightChange, filters, onToggleFilterValue, onSetFilters }: MapLegendProps = {}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -30,7 +34,9 @@ export function MapLegend({ onHeightChange }: MapLegendProps = {}) {
       <button className={styles.toggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         {t("legend.title")} {open ? "▾" : "▸"}
       </button>
-      {open && <LegendContent />}
+      {open && (
+        <LegendContent filters={filters} onToggleFilterValue={onToggleFilterValue} onSetFilters={onSetFilters} />
+      )}
     </div>
   );
 }

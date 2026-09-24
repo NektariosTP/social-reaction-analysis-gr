@@ -209,7 +209,14 @@ export function MainView() {
             bottomInset={isMobile ? bottomInset : 0}
           />
         )}
-        {!isMobile && <MapLegend onHeightChange={setLegendHeight} />}
+        {!isMobile && (
+          <MapLegend
+            onHeightChange={setLegendHeight}
+            filters={filters}
+            onToggleFilterValue={toggleInList}
+            onSetFilters={setFilters}
+          />
+        )}
       </div>
 
       {isMobile ? (
@@ -242,7 +249,9 @@ export function MainView() {
                 emptyMessage={emptyDayMessage}
               />
             )}
-            {activeTab === "legend" && <LegendPanel />}
+            {activeTab === "legend" && (
+              <LegendPanel filters={filters} onToggleFilterValue={toggleInList} onSetFilters={setFilters} />
+            )}
             {activeTab === "about" && <AboutContent />}
           </BottomSheet>
 
