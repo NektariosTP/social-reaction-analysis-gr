@@ -86,5 +86,11 @@
   "about.thesisPdf": "Πλήρες PDF διπλωματικής",
   "about.thesisRepo": "[repository πανεπιστημίου]",
   "about.licenseUse": "Τα δεδομένα προορίζονται μόνο για ακαδημαϊκή, μη εμπορική χρήση.",
-  "about.licenseCopyright": "© 2026 [Όνομα Συγγραφέα] — CC BY-NC 4.0"
+  "about.licenseCopyright": "© 2026 [Όνομα Συγγραφέα] — CC BY-NC 4.0",
+  "range.live": "Ζωντανά",
+  "range.liveSubtitle": "σήμερα & προσεχή",
+  "range.last7": "Τελευταίες 7 ημέρες",
+  "range.last15": "Τελευταίες 15 ημέρες",
+  "range.last30": "Τελευταίες 30 ημέρες",
+  "range.exactDate": "Επιλογή ημερομηνίας"
 }
