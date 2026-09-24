@@ -164,15 +164,17 @@ export function MainView() {
   }
 
   const eventDate = filters.day ?? undefined;
+  const windowDays = filters.windowDays ?? undefined;
   const eventsQuery = useEvents({
     actionForms: filters.actionForms,
     thematicFields: filters.thematicFields,
     channel: filters.channel ?? undefined,
     intensities: filters.intensities,
     eventDate,
+    windowDays,
     limit: 100,
   });
-  const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined, eventDate });
+  const geojsonQuery = useEventsGeoJSON({ channel: filters.channel ?? undefined, eventDate, windowDays });
 
   // Mobile sheet defaults to the unified feed; a user's explicit tab choice wins.
   const activeTab: SheetTab = userTab ?? "feed";

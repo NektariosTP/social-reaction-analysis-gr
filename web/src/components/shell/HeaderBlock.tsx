@@ -75,6 +75,7 @@ export function HeaderBlock({
                   channel: null,
                   intensities: [],
                   day: null,
+                  windowDays: null,
                 })
               }
             >

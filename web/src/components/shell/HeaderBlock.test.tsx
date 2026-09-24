@@ -10,6 +10,7 @@ const baseFilters: FilterState = {
   channel: null,
   intensities: [],
   day: null,
+  windowDays: null,
 };
 
 function setup(overrides: Partial<React.ComponentProps<typeof HeaderBlock>> = {}) {
@@ -53,6 +54,7 @@ describe("HeaderBlock", () => {
       channel: null,
       intensities: [],
       day: null,
+      windowDays: null,
     });
   });
 
