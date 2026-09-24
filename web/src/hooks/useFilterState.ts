@@ -8,6 +8,9 @@ export interface FilterState {
   intensities: string[];
   /** ISO YYYY-MM-DD local day to time-travel to, or null for Live (present). */
   day: string | null;
+  /** Preset range window in days (7/15/30), past-only, or null. Mutually
+   * exclusive with `day`. */
+  windowDays: number | null;
 }
 
 // Taxonomy values may contain literal commas (e.g. the Intensity "Disruptive"
@@ -53,6 +56,7 @@ export function useFilterState() {
       channel: params.get("a3"),
       intensities: parseList(params, "a4"),
       day: params.get("d"),
+      windowDays: params.get("w") ? Number(params.get("w")) : null,
     }),
     [params],
   );
@@ -62,6 +66,10 @@ export function useFilterState() {
       setParams(
         (prev) => {
           const merged = { ...filters, ...next };
+          // Range is single-mode: a preset window and an exact day cannot both
+          // be active. The most recent choice wins.
+          if (next.windowDays != null) merged.day = null;
+          if (next.day != null) merged.windowDays = null;
           const out = new URLSearchParams(prev);
 
           if (merged.actionForms.length) out.set("a1", serializeList(merged.actionForms));
@@ -78,6 +86,9 @@ export function useFilterState() {
 
           if (merged.day) out.set("d", merged.day);
           else out.delete("d");
+
+          if (merged.windowDays != null) out.set("w", String(merged.windowDays));
+          else out.delete("w");
 
           return out;
         },

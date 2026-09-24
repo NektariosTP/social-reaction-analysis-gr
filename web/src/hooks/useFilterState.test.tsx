@@ -139,3 +139,37 @@ describe("useFilterState day (time-travel) param", () => {
     expect(result.current.filters.day).toBe("2026-09-01");
   });
 });
+
+describe("useFilterState windowDays (range preset)", () => {
+  it("defaults windowDays to null when `w` is absent", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/"]}>{children}</MemoryRouter>,
+    });
+    expect(result.current.filters.windowDays).toBeNull();
+  });
+
+  it("reads an initial windowDays from the `w` param", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/?w=7"]}>{children}</MemoryRouter>,
+    });
+    expect(result.current.filters.windowDays).toBe(7);
+  });
+
+  it("setting windowDays clears an existing exact day (mutually exclusive)", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/?d=2026-09-18"]}>{children}</MemoryRouter>,
+    });
+    act(() => result.current.setFilters({ windowDays: 15 }));
+    expect(result.current.filters.windowDays).toBe(15);
+    expect(result.current.filters.day).toBeNull();
+  });
+
+  it("setting an exact day clears an existing windowDays", () => {
+    const { result } = renderHook(() => useFilterState(), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/?w=30"]}>{children}</MemoryRouter>,
+    });
+    act(() => result.current.setFilters({ day: "2026-09-01" }));
+    expect(result.current.filters.day).toBe("2026-09-01");
+    expect(result.current.filters.windowDays).toBeNull();
+  });
+});
