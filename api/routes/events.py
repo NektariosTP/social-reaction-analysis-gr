@@ -141,14 +141,19 @@ async def _fetch_events(
         )
         params["event_date"] = _parse_iso_date(event_date, "event_date")
     if window_days and not event_date:
+        # :window_days is reused in two operator contexts (date subtraction and
+        # make_interval's days arg); asyncpg's server-side parameter type
+        # inference can resolve the same bind name inconsistently across sites
+        # in one prepared statement unless each site is explicitly cast.
         conditions.append(
             "("
             " (event_time IS NOT NULL "
             "AND (event_time AT TIME ZONE 'Europe/Athens')::date "
             "<= (now() AT TIME ZONE 'Europe/Athens')::date "
             "AND (event_time AT TIME ZONE 'Europe/Athens')::date "
-            ">= (now() AT TIME ZONE 'Europe/Athens')::date - :window_days) "
-            "OR (event_time IS NULL AND last_seen >= now() - make_interval(days => :window_days))"
+            ">= (now() AT TIME ZONE 'Europe/Athens')::date - :window_days::int) "
+            "OR (event_time IS NULL "
+            "AND last_seen >= now() - make_interval(days => :window_days::int))"
             ")"
         )
         params["window_days"] = window_days
