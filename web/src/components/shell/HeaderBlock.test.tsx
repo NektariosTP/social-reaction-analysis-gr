@@ -30,9 +30,9 @@ describe("HeaderBlock", () => {
     expect(screen.getByTestId("brand-mark")).toBeInTheDocument();
   });
 
-  it("renders the time-travel slider instead of a search input", () => {
+  it("renders the range selector instead of a search input", () => {
     setup();
-    expect(screen.getByRole("slider")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /live/i })).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/search/i)).not.toBeInTheDocument();
   });
 

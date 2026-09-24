@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FilterState } from "../../hooks/useFilterState";
-import { FilterPanel, TimelineSlider } from "../filters";
+import { FilterPanel, RangeSelect } from "../filters";
 import { BrandMark } from "../common";
 import styles from "./HeaderBlock.module.css";
 
@@ -50,9 +50,10 @@ export function HeaderBlock({
         {trailing && <div className={styles.trailing}>{trailing}</div>}
       </div>
       <div className={styles.searchRow}>
-        <TimelineSlider
-          value={filters.day}
-          onChange={(day) => onSetFilters({ day })}
+        <RangeSelect
+          windowDays={filters.windowDays}
+          day={filters.day}
+          onChange={onSetFilters}
         />
         <button
           className={styles.filterToggle}
