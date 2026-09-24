@@ -123,3 +123,27 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+@media (max-width: 640px) {
+  .brandRow {
+    margin-bottom: 0;
+    /* Legibility for the brand text now that there's no card behind it. */
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+  }
+
+  .searchRow {
+    justify-content: space-between;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  /* When the Filters panel is open on mobile it must stay legible over the map. */
+  .expansion {
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-3);
+    margin-top: var(--space-2);
+    border-top: none;
+  }
+}

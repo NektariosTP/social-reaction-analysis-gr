@@ -19,6 +19,7 @@ import {
 } from "../components/shell";
 import { Spinner, ErrorState } from "../components/common";
 import { AboutModal, AboutContent } from "../components/about";
+import { ActiveFilterPills } from "../components/filters";
 import { useIsMobile } from "../hooks/useIsMobile";
 import styles from "./MainView.module.css";
 
@@ -228,6 +229,9 @@ export function MainView() {
               onSetFilters={setFilters}
               trailing={<UserControls />}
             />
+            <div className={styles.activePills}>
+              <ActiveFilterPills filters={filters} onToggleFilterValue={toggleInList} onSetFilters={setFilters} />
+            </div>
           </div>
 
           <BottomSheet
@@ -266,6 +270,10 @@ export function MainView() {
                 onToggleFilterValue={toggleInList}
                 onSetFilters={setFilters}
               />
+            </div>
+
+            <div className={styles.activePills}>
+              <ActiveFilterPills filters={filters} onToggleFilterValue={toggleInList} onSetFilters={setFilters} />
             </div>
 
             <div className={styles.scrollColumn}>
