@@ -127,7 +127,7 @@ Each event is labelled independently across four axes — not forced into a sing
 | **Axis 1 — Action Form** | multi-label | Διαδήλωση/Πορεία/Συγκέντρωση · Απεργία/Στάση εργασίας · Κατάληψη · Αποκλεισμός/Μπλόκο · Μποϊκοτάζ · Διαδικτυακή εκστρατεία · Whistleblowing · Αποχή |
 | **Axis 2 — Thematic Field** | multi-label | Εργασιακό · Πολιτικό/Θεσμικό · Οικονομικό · Περιβαλλοντικό · Δικαιώματα/Κοινωνικό · Εκπαίδευση · Αστυνομική Βία · Άλλο |
 | **Axis 3 — Channel** | single | Φυσικό (offline) · Ψηφιακό (online) · Υβριδικό |
-| **Axis 4 — Intensity** | ordinal | Ειρηνική → Διαταρακτική (μη βίαιη, παρεμποδιστική) → Βίαιη/Συγκρουσιακή |
+| **Axis 4 — Intensity** | ordinal | Ειρηνική → Διαταρακτική → Βίαιη/Συγκρουσιακή |
 
 Schema columns: `action_forms text[]`, `thematic_fields text[]`, `channel text`, `intensity text`, `classification_confidence jsonb`.
 

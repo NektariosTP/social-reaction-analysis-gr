@@ -44,7 +44,7 @@ describe("useFilterState intensity param", () => {
     const { result } = renderHook(() => useFilterState(), {
       wrapper: ({ children }) => <MemoryRouter initialEntries={["/"]}>{children}</MemoryRouter>,
     });
-    const value = "Διαταρακτική (μη βίαιη, παρεμποδιστική)";
+    const value = "Διαταρακτική";
     act(() => result.current.setFilters({ intensity: value }));
     expect(result.current.filters.intensity).toBe(value);
   });

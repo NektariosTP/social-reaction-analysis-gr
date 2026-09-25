@@ -10,7 +10,7 @@ from pathlib import Path
 _DEC = JSONDecoder()
 
 # Classifier axis vocabularies carry parenthetical annotations
-# ("Φυσικό (offline)", "Διαταρακτική (μη βίαιη, παρεμποδιστική)") that gold
+# ("Φυσικό (offline)", "Διαταρακτική") that gold
 # labels sometimes omit. Strip a trailing "(...)" so comparison is on the
 # canonical label, not its annotation style.
 _TRAILING_PAREN = re.compile(r"\s*\([^)]*\)\s*$")
