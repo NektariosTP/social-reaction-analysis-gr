@@ -68,7 +68,7 @@ export function HeaderBlock({
           aria-expanded={activePanel === "filters"}
           onClick={() => togglePanel("filters")}
         >
-          <span className={styles.pillIcon}>🎛️</span>
+          <span className={styles.pillIcon}>⚙️</span>
           <span className={styles.pillLabel}>{t("filters.title")}</span>
           <span className={styles.pillArrow}>{activePanel === "filters" ? "▴" : "▾"}</span>
         </button>
