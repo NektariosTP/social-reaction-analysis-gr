@@ -40,11 +40,11 @@ export function ClusterDetailContent({
 
   return (
     <div className={`${styles.content} ${flushTop ? styles.flushTop : ""}`}>
+      {showBanner && <TemporalBanner event={event} />}
+
       {showHeadline && (
         <h2 className={styles.headline}>{(lang === "el" ? event.summary_el : event.summary_en) ?? "…"}</h2>
       )}
-
-      {showBanner && <TemporalBanner event={event} />}
 
       {showMeta && (
         <div className={styles.metaChips}>
