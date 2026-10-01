@@ -83,7 +83,7 @@ async def _enrich_event(session: AsyncSession, event: Any) -> None:
     national = bool(enr.is_national or detect_national_scope(full_text))
     geo = await resolve_locations(enr.locations, national=national, session=session)
     primary = geo[0] if geo else None
-    event_time = parse_event_date(enr.event_date)
+    event_time = parse_event_date(enr.event_date, reference_date)
 
     await session.execute(
         text("""

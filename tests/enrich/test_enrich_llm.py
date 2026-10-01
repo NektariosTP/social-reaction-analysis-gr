@@ -79,10 +79,32 @@ def test_enrich_event_llm_returns_none_on_empty_summary() -> None:
     assert result is None
 
 
-def test_parse_event_date_date_only_is_midnight_athens() -> None:
-    assert parse_event_date("2026-09-15") == datetime(2026, 9, 15, 0, 0, tzinfo=_ATHENS)
+def test_parse_event_date_date_only_defaults_to_noon_athens() -> None:
+    # A date with no time means "that day" — anchor it at 12:00 noon, never midnight.
+    assert parse_event_date("2026-09-15") == datetime(2026, 9, 15, 12, 0, tzinfo=_ATHENS)
 
 
-def test_parse_event_date_none_returns_none() -> None:
+def test_parse_event_date_preserves_explicit_time() -> None:
+    assert parse_event_date("2026-09-15T18:30:00") == datetime(
+        2026, 9, 15, 18, 30, tzinfo=_ATHENS
+    )
+
+
+def test_parse_event_date_falls_back_to_reference_date_at_noon() -> None:
+    # LLM extracted no date → use the reference date (first article/reaction),
+    # at noon Athens, rather than leaving event_time NULL.
+    got = parse_event_date(None, "2026-09-28T12:54:00+00:00")
+    assert got == datetime(2026, 9, 28, 12, 0, tzinfo=_ATHENS)
+
+
+def test_parse_event_date_unparseable_falls_back_to_reference() -> None:
+    assert parse_event_date("not a date", "2026-09-10") == datetime(
+        2026, 9, 10, 12, 0, tzinfo=_ATHENS
+    )
+
+
+def test_parse_event_date_none_without_reference_returns_none() -> None:
+    # Only truly anchorless input yields None (no articles, no reaction dates).
     assert parse_event_date(None) is None
     assert parse_event_date("") is None
+    assert parse_event_date(None, None) is None

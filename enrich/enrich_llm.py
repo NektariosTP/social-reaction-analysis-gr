@@ -30,17 +30,38 @@ class EventEnrichment(BaseModel):
     is_national: bool = False
 
 
-def parse_event_date(value: str | None) -> datetime | None:
-    """Parse ISO 8601 date/date-time → tz-aware Europe/Athens. None/unparseable → None."""
+def _parse_iso(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        dt = datetime.fromisoformat(value)
+        return datetime.fromisoformat(value)
     except ValueError:
         return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=_ATHENS)
-    return dt
+
+
+def _as_athens(dt: datetime) -> datetime:
+    return dt.replace(tzinfo=_ATHENS) if dt.tzinfo is None else dt.astimezone(_ATHENS)
+
+
+def parse_event_date(value: str | None, reference_date: str | None = None) -> datetime | None:
+    """Parse an ISO 8601 date/date-time to a tz-aware Europe/Athens datetime.
+
+    An event's time should never be NULL when any anchor date exists:
+    - an explicit date-time is preserved as-is;
+    - a date with no time means "that day" and is anchored at 12:00 noon Athens;
+    - a missing/unparseable value falls back to the reference date (the first
+      article/reaction date), also at noon Athens.
+    Returns None only when neither value nor reference_date yields a date.
+    """
+    dt = _parse_iso(value)
+    if dt is not None and value is not None and "T" in value:
+        return _as_athens(dt)  # explicit time — keep it
+    # Date-only value, or fall back to the reference date → noon of that Athens day.
+    anchor = dt if dt is not None else _parse_iso(reference_date)
+    if anchor is None:
+        return None
+    day = _as_athens(anchor).date()
+    return datetime(day.year, day.month, day.day, 12, 0, tzinfo=_ATHENS)
 
 
 def _coerce(result: EventEnrichment) -> EventEnrichment:
