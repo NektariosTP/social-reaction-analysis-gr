@@ -29,8 +29,8 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "uv run alembic upgrade head &&
-             uv run uvicorn api.main:app --host 0.0.0.0 --port 8000"
+      sh -c "alembic upgrade head &&
+             uvicorn api.main:app --host 0.0.0.0 --port 8000"
 
   worker:
     build:
@@ -60,8 +60,8 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "uv run alembic upgrade head &&
-             uv run python -m worker.run"
+      sh -c "alembic upgrade head &&
+             python -m worker.run"
 
   admin:
     build:
@@ -77,8 +77,8 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "uv run alembic upgrade head &&
-             uv run uvicorn admin.main:app --host 0.0.0.0 --port 8001"
+      sh -c "alembic upgrade head &&
+             uvicorn admin.main:app --host 0.0.0.0 --port 8001"
 
   caddy:
     build:
