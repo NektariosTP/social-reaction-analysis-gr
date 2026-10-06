@@ -1,0 +1,26 @@
+# Build context hygiene — keep images and the daemon upload small.
+.git
+.gitignore
+
+# Local Python virtualenv — images build their own .venv via uv.
+.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+
+# Node — caddy build runs `npm ci` + `npm run build` itself.
+node_modules
+web/node_modules
+web/dist
+
+# Secrets / local env (compose injects env at runtime; never bake into context).
+.env
+.env.*
+!.env.example
+
+# Dev noise
+*.log
+.pytest_cache
+.mypy_cache
+.ruff_cache
+scratchpad

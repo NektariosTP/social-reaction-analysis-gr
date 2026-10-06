@@ -12,9 +12,14 @@ Real-time platform for detecting, classifying, and visualising social movements 
 
 ### Setup
 ```bash
-uv sync
-cp .env.example .env  # add at least one LLM API key
+uv sync --extra worker   # base = api/admin only; `worker` extra adds the NLP/enrichment stack
+cp .env.example .env      # add at least one LLM API key
 ```
+
+> Dependency split: the base deps cover the api + admin web layer. The heavy
+> pipeline libs (spaCy, sentence-transformers, torch [CPU], transformers, …)
+> live in the `worker` optional-dependency group so the api/admin images stay
+> small. Running any pipeline stage below requires `--extra worker`.
 
 ### Development (all services)
 ```bash
