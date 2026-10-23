@@ -73,7 +73,7 @@
   "footer.github": "GitHub",
   "footer.contact": "Contact",
   "about.title": "About apergia.map",
-  "about.lead": "apergia.map is a thesis research project (MSc, 2026). It automatically reads Greek news, groups related stories into events, and shows them on a live map of protests and other collective action across Greece.",
+  "about.lead": "apergia.map is a thesis research project (BSc, 2026). It automatically reads Greek news, groups related stories into events, and shows them on a live map of protests and other collective action across Greece.",
   "about.projectLabel": "About the project",
   "about.projectP1": "There is no single, easy-to-search record of protests and collective action in Greece. apergia.map fills that gap: it gathers Greek news, groups coverage of the same event together, and shows the result as an interactive map and dashboard.",
   "about.projectP2": "Its main idea is to describe each event along four separate dimensions — what people did, what it was about, whether it happened offline or online, and how intense it was — instead of squeezing it into a single category.",
