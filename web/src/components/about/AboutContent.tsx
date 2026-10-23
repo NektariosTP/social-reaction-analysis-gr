@@ -76,10 +76,15 @@ export function AboutContent() {
             <span>{t("about.contact")}</span>
             <span style={{ opacity: 0.5 }}>↗</span>
           </a>
-          <div className={styles.linkRow}>
+          <a
+            className={styles.linkRow}
+            href="https://pergamos.lib.uoa.gr/en/item/uoadl:5450759"
+            target="_blank"
+            rel="noreferrer"
+          >
             <span>{t("about.thesisPdf")}</span>
-            <span style={{ opacity: 0.5 }}>{t("about.thesisRepo")}</span>
-          </div>
+            <span style={{ opacity: 0.5 }}>↗</span>
+          </a>
           <p style={{ fontSize: 10, color: "var(--color-text-muted)", marginTop: 12 }}>
             {t("about.licenseUse")}
             <br />{t("about.licenseCopyright")}
